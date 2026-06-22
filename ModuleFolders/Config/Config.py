@@ -97,13 +97,22 @@ class ConfigMixin:
                 resolve_user_dir,
             )
             if "label_input_path" in config:
-                config["label_input_path"] = resolve_user_dir(config["label_input_path"], default_input_dir())
+                config["label_input_path"] = resolve_user_dir(
+                    config["label_input_path"],
+                    default_input_dir(),
+                    ("./input", "input"),
+                )
             if "label_output_path" in config:
-                config["label_output_path"] = resolve_user_dir(config["label_output_path"], default_output_dir())
+                config["label_output_path"] = resolve_user_dir(
+                    config["label_output_path"],
+                    default_output_dir(),
+                    ("./output", "output"),
+                )
             if "label_polish_output_path" in config:
                 config["label_polish_output_path"] = resolve_user_dir(
                     config["label_polish_output_path"],
                     default_polish_output_dir(),
+                    ("./polish_output", "polish_output"),
                 )
 
         return config

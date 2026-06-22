@@ -274,14 +274,17 @@ def auto_polish_output_dir(input_path: str) -> str:
     return os.path.join(parent, "AiNieePolishOutput")
 
 
-# 把存储的路径解析成绝对路径：非字符串、空或相对值回落到可见的默认目录。
-def resolve_user_dir(value, fallback: Path) -> str:
+# 把存储的路径解析成绝对路径：非字符串或空值回落到可见的默认目录。
+def resolve_user_dir(value, fallback: Path, legacy_relative_values: tuple[str, ...] = ()) -> str:
     if isinstance(value, str):
         text = value.strip()
         if text:
+            if text in legacy_relative_values:
+                return str(fallback)
             candidate = Path(text).expanduser()
             if candidate.is_absolute():
                 return str(candidate)
+            return str(candidate.resolve())
     return str(fallback)
 
 

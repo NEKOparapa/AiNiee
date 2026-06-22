@@ -274,8 +274,8 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 cached_version = download_info.get("version")
                 is_completed = download_info.get("status") == "completed"
                 cached_version_cmp = self._try_compare_versions(cached_version, self.current_version)
-                is_newer = cached_version_cmp is None or cached_version_cmp > 0
-                url_matches = (not self.latest_download_url) or (download_info.get("url") == self.latest_download_url)
+                is_newer = cached_version_cmp is not None and cached_version_cmp > 0
+                url_matches = bool(self.latest_download_url) and download_info.get("url") == self.latest_download_url
                 cached_size = download_info.get("total_size", 0)
                 size_ok = cached_size > 0 and os.path.getsize(local_filename) == cached_size
                 if is_completed and is_newer and url_matches and size_ok:
@@ -292,7 +292,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                         # 运行更新器
                         self._run_updater(str(local_filename))
                     return
-                if is_completed and cached_version_cmp is not None and cached_version_cmp <= 0:
+                if is_completed and (cached_version_cmp is None or cached_version_cmp <= 0):
                     try:
                         os.remove(local_filename)
                         os.remove(download_info_file)
