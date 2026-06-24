@@ -11,7 +11,7 @@ cmd = [
     "--windowed",  # Hide console window on Windows; logs go to user_log_dir.
     #"--onefile",  # Create a one-file bundled executable.
     "--noconfirm",  # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
-    "--add-data=Resource:Resource",
+    f"--add-data=Resource{os.pathsep}Resource",
     "--hidden-import=babeldoc",
     "--hidden-import=sklearn",
     "--collect-all=babeldoc",
