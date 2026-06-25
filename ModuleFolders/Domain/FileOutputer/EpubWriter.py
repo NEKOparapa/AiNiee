@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import ProjectType
+from ModuleFolders.Service.TaskExecutor.TranslatorUtil import map_language_name_to_code
 from ModuleFolders.Domain.FileAccessor.EpubAccessor import EpubAccessor
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
@@ -16,6 +17,7 @@ from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     PreWriteMetadata,
     BilingualOrder,
 )
+from ModuleFolders.Domain.FileOutputer import WriterUtil
 
 
 class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
@@ -43,11 +45,18 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
             source_file_path, self._rebuild_translated_tag
         )
 
+    def _get_target_lang_code(self) -> str | None:
+        target_lang = getattr(WriterUtil.get_ainiee_config(), 'target_language', None)
+        if target_lang:
+            return map_language_name_to_code(target_lang)
+        return None
+
     def _write_translation_file(
         self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path, translate_html_tag: Callable[[str, str], str]
     ):
-        content = self.file_accessor.read_content(source_file_path)
+        content, opf_info = self.file_accessor.read_content(source_file_path)
+        target_lang_code = self._get_target_lang_code()
 
         translated_item_dict = {
             k: list(v)
@@ -66,7 +75,19 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
                     translated_text = item.final_text
                     new_html = translate_html_tag(original_html, translated_text)
                     modified_html_content = modified_html_content.replace(original_html, new_html, 1)
+
+            if target_lang_code and item_filename.endswith(('.xhtml', '.html', '.htm')):
+                modified_html_content = self._replace_html_lang_tags(modified_html_content, target_lang_code)
+
             translation_content[item_filename] = modified_html_content
+
+        # 替换 OPF 文件中的 <dc:language> 元数据
+        if target_lang_code and opf_info:
+            opf_filename, opf_content = opf_info
+            translation_content[opf_filename] = self._replace_opf_language(
+                opf_content, target_lang_code
+            )
+
         self.file_accessor.write_content(
             translation_content, translation_file_path, source_file_path
         )
@@ -152,6 +173,23 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
         else:  # 默认为译文在前
             return f"{trans_html}\n  {orig_html_styled}"
 
+
+    def _replace_html_lang_tags(self, xhtml_content: str, target_lang_code: str) -> str:
+        """替换 XHTML 中 <html> 根元素上的 lang 和 xml:lang 属性为目标语言代码。"""
+        def replace_in_html_tag(match):
+            html_tag = match.group(0)
+            html_tag = re.sub(r'(xml:lang\s*=\s*)["\'][^"\']*["\']', rf'\1"{target_lang_code}"', html_tag)
+            html_tag = re.sub(r'(?<!xml:)(lang\s*=\s*)["\'][^"\']*["\']', rf'\1"{target_lang_code}"', html_tag)
+            return html_tag
+        return re.sub(r'<html\b[^>]*>', replace_in_html_tag, xhtml_content, count=1)
+
+    def _replace_opf_language(self, opf_content: str, target_lang_code: str) -> str:
+        """替换 OPF 文件中 <dc:language> 元素的文本为目标语言代码。"""
+        return re.sub(
+            r'(<dc:language[^>]*>)[^<]*(</dc:language>)',
+            rf'\g<1>{target_lang_code}\2',
+            opf_content,
+        )
 
     def _copy_leading_spaces(self, source_text, target_text):
         leading_spaces = re.match(r'^[ \u3000]+', source_text)

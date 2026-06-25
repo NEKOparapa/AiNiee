@@ -44,7 +44,8 @@ class EpubReader(BaseSourceReader):
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
         items = []
-        for item_id, filename, content in self.file_accessor.read_content(file_path):
+        content_items, _ = self.file_accessor.read_content(file_path)
+        for item_id, filename, content in content_items:
             # 判断是否是 NCX 文件（目录文件）
             if filename.endswith('.ncx'):
                 ncx_items = self._read_ncx_content(item_id, content)
