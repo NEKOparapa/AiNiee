@@ -176,7 +176,7 @@ class PromptBuilderPolishing(Base):
                 extra_log.append(characterization)
 
         previous = ""
-        if getattr(config, "pre_line_counts", 0) and previous_text_list:
+        if getattr(config, "polishing_pre_line_counts", 0) and previous_text_list:
             previous = PromptBuilderPolishing.build_pre_text(config, previous_text_list)
             if previous:
                 extra_log.append(f"###上文内容\n{'\n'.join(previous_text_list)}")

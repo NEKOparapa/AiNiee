@@ -23,7 +23,6 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
     [分] 最终阶段 (Finalize): 主线程收口结果，程序兜底遗漏项，清洗禁翻项并落盘。
     """
     
-    CHUNK_TOKEN_LIMIT = 10000
     REDUCE_BATCH_TOKEN_LIMIT = 10000
     MAX_REQUEST_ATTEMPTS = 2
     COMMON_PUNCTUATION_CHARS = set(
@@ -79,7 +78,8 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 self.tra("正在生成分析用文本片段..."),
                 self.tra("按 token 切分项目原文。"),
             )
-            chunks = self.cache_manager.generate_analysis_source_chunks("token", self.CHUNK_TOKEN_LIMIT)
+            extract_task_token_limit = max(1, int(getattr(self.config, "extract_task_token_limit", 10000)))
+            chunks = self.cache_manager.generate_analysis_source_chunks("token", extract_task_token_limit)
             self.info(f"分析文本切分完成，共生成 {len(chunks)} 个分块。")
 
             # --- [第一阶段] ---

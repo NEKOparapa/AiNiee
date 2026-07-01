@@ -30,6 +30,7 @@ from UserInterface.EditView.EditViewPage import EditViewPage
 from UserInterface.Native.MacOSUI import about_message, app_menu_title, command_shortcut
 from UserInterface.Platform.PlatformPage import PlatformPage
 from UserInterface.PromptSettings.PolishingSettings.PolishingSystemPromptPage import PolishingSystemPromptPage
+from UserInterface.Settings.AdvancedSettingsPage import AdvancedSettingsPage
 from UserInterface.Settings.AppSettingsPage import AppSettingsPage
 from UserInterface.Settings.OutputSettingsPage import OutputSettingsPage
 from UserInterface.Settings.TaskSettingsPage import TaskSettingsPage
@@ -40,7 +41,6 @@ from UserInterface.Table.TextReplaceBPage import TextReplaceBPage
 from UserInterface.PromptSettings.TranslationSettings.CharacterizationPromptPage import CharacterizationPromptPage
 from UserInterface.PromptSettings.TranslationSettings.SystemPromptPage import SystemPromptPage
 from UserInterface.PromptSettings.TranslationSettings.TranslationExamplePromptPage import TranslationExamplePromptPage
-from UserInterface.PromptSettings.TranslationSettings.TranslationSettingsPage import TranslationSettingsPage
 from UserInterface.PromptSettings.TranslationSettings.WorldBuildingPromptPage import WorldBuildingPromptPage
 from UserInterface.PromptSettings.TranslationSettings.WritingStylePromptPage import WritingStylePromptPage
 from UserInterface.VersionManager.VersionManager import VersionManager
@@ -268,10 +268,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.navigationInterface.addItemHeader(self.tra("任务配置"), NavigationItemPosition.SCROLL)
         self.add_task_setting_pages()
 
-        # ===== 高级设置 =====
-        self.navigationInterface.addItemHeader(self.tra("高级设置"), NavigationItemPosition.SCROLL)
-        self.add_settings_pages()
-
         # ===== 提示词管理 =====
         self.navigationInterface.addItemHeader(self.tra("提示词管理"), NavigationItemPosition.SCROLL)
         self.add_prompt_setting_pages()
@@ -324,19 +320,13 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
     def add_task_setting_pages(self) -> None:
         self.task_settings_page = TaskSettingsPage("task_settings_page", self)
         self.addSubInterface(self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"), NavigationItemPosition.SCROLL)
+
         self.output_settings_page = OutputSettingsPage("output_settings_page", self)
         self.addSubInterface(self.output_settings_page, FluentIcon.ALBUM, self.tra("输出设置"), NavigationItemPosition.SCROLL)
-
-    # 添加翻译设置
-    def add_settings_pages(self) -> None:
-        self.translation_settings_page = TranslationSettingsPage("TranslationSettings", self)
-        self.TranslationSettings = self.translation_settings_page
-        self.addSubInterface(
-            self.translation_settings_page,
-            FluentIcon.EXPRESSIVE_INPUT_ENTRY,
-            self.tra("翻译设置"),
-            NavigationItemPosition.SCROLL,
-        )
+        
+        self.advanced_settings_page = AdvancedSettingsPage("advanced_settings_page", self)
+        self.TranslationSettings = self.advanced_settings_page.translation_settings_page
+        self.addSubInterface(self.advanced_settings_page,FluentIcon.TILES,self.tra("高级设置"),NavigationItemPosition.SCROLL)
 
     # 添加提示词设置
     def add_prompt_setting_pages(self) -> None:
