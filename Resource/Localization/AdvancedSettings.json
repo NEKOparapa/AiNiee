@@ -84,6 +84,18 @@
       "English": "The extraction task in Start Translation splits source text by this token count.",
       "日本語": "翻訳開始内の抽出タスクは、この Token 数で原文を分割します。"
     },
+    "自动提取禁翻词条": {
+      "简中": "自动提取禁翻词条",
+      "繁中": "自動提取禁翻詞條",
+      "English": "Automatically Extract Do-not-translate Entries",
+      "日本語": "禁翻訳項目を自動抽出"
+    },
+    "开启该开关后，将自动提取文本中禁止翻译内容，需要用户审查与筛选，避免影响翻译效率": {
+      "简中": "开启该开关后，将自动提取文本中禁止翻译内容，需要用户审查与筛选，避免影响翻译效率",
+      "繁中": "開啟該開關後，將自動提取文本中禁止翻譯內容，需要用戶審查與篩選，避免影響翻譯效率",
+      "English": "When enabled, do-not-translate content is extracted automatically. Review and filter the results to avoid reducing translation efficiency.",
+      "日本語": "有効にすると、テキスト内の翻訳禁止内容を自動抽出します。翻訳効率への影響を避けるため、確認と絞り込みが必要です。"
+    },
     "只影响润色流程的上文参考行数": {
       "简中": "只影响润色流程的上文参考行数",
       "繁中": "只影響潤色流程的上文參考行數",

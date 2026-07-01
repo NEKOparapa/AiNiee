@@ -163,6 +163,8 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             )
             self.info("开始汇总最终分析结果并写回缓存 ...")
             final_data = self._finalize_results(first_stage_results, second_stage_results)
+            if not getattr(self.config, "auto_extract_non_translate_switch", False):
+                final_data["non_translate"] = []
             self._emit_progress_update(
                 "finalize",
                 self.tra("结果整合"),
