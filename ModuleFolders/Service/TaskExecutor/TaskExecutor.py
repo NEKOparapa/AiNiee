@@ -587,7 +587,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
                 "line" if self.config.tokens_limit_switch == False else "token",
                 self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                self.config.pre_line_counts,
+                getattr(self.config, "polishing_pre_line_counts", 10),
                 TaskType.POLISH
             )
 
