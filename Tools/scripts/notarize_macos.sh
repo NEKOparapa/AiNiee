@@ -15,7 +15,7 @@ case "$ARCH" in
     exit 1
     ;;
 esac
-DMG_PATH="${DMG_PATH:-dist/AiNiee-macOS-${ARCH}.dmg}"
+DMG_PATH="${DMG_PATH:-dist/AiNiee-Beta-macOS-${ARCH}.dmg}"
 ENTITLEMENTS="${ENTITLEMENTS:-Tools/Packaging/macOS/entitlements.plist}"
 
 : "${CODESIGN_IDENTITY:?CODESIGN_IDENTITY is required}"
