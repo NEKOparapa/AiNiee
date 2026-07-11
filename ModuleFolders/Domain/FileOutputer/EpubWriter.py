@@ -112,7 +112,7 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
             trans_div = f'<div>{processed_trans}</div>'
             orig_div = f'<div style="{style_str}">{original_html}</div>'
 
-            if self.output_config.bilingual_order == BilingualOrder.SOURCE_FIRSTT:
+            if self.output_config.bilingual_order == BilingualOrder.SOURCE_FIRST:
                 return f"{orig_div}\n  {trans_div}"
             else:  # 默认为译文在前
                 return f"{trans_div}\n  {orig_div}"
