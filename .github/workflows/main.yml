@@ -25,6 +25,11 @@ jobs:
         run: |
           choco install upx -y
 
+      - name: Install Inno Setup
+        shell: cmd
+        run: |
+          choco install innosetup -y --no-progress
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -43,19 +48,27 @@ jobs:
         run: python .\Tools\pyinstall.py
 
       - name: Prepare Release Package
-        # 将原 Pack Resource 步骤重命名并修改
         run: |
-          # 将资源文件夹复制到 PyInstaller 生成的输出目录内部
-          Copy-Item -Path "Resource" -Destination "dist\AiNiee\Resource" -Recurse -Force
-
-          # 压缩 dist\AiNiee 目录，updater 会智能查找 AiNiee.exe 所在目录
-          Compress-Archive -Path "dist\AiNiee" -DestinationPath "AiNiee-Beta.zip"
+          # PyInstaller --add-data 已将 Resource 打入 dist\AiNiee\_internal\Resource，
+          # 压缩整个输出目录，updater 会智能查找 AiNiee.exe 所在目录
+          Set-Content -Path "dist\AiNiee\portable.txt" -Value "便携模式：删除此文件可改用系统目录。"
+          Compress-Archive -Path "dist\AiNiee" -DestinationPath "AiNiee-Beta-Windows-Portable.zip"
+          Remove-Item "dist\AiNiee\portable.txt" -Force
 
       - name: Upload Windows package
         uses: actions/upload-artifact@v4
         with:
-          name: AiNiee-Beta-Windows
-          path: AiNiee-Beta.zip
+          name: AiNiee-Beta-Windows-Portable
+          path: AiNiee-Beta-Windows-Portable.zip
+
+      - name: Build Windows installer
+        run: python .\Tools\build_installer_windows.py
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: AiNiee-Beta-Windows-Setup
+          path: AiNiee-Beta-Windows-Setup.exe
 
   build-macos:
     name: Build macOS (${{ matrix.arch }})
@@ -118,8 +131,8 @@ jobs:
       - name: Upload macOS package
         uses: actions/upload-artifact@v4
         with:
-          name: AiNiee-macOS-${{ matrix.arch }}
-          path: dist/AiNiee-macOS-${{ matrix.arch }}.dmg
+          name: AiNiee-Beta-macOS-${{ matrix.arch }}
+          path: dist/AiNiee-Beta-macOS-${{ matrix.arch }}.dmg
 
   release:
     name: Publish Beta Release
@@ -144,6 +157,12 @@ jobs:
         run: |
           set -euo pipefail
 
+          shopt -s nullglob
+          assets=(release-assets/*)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No release assets downloaded; refusing to recreate Beta release"; exit 1
+          fi
+
           # 同 tag 的正式 release 和 draft 都先清掉，避免 action 命中重复 draft 后发布失败。
           gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate --jq '.[] | select(.tag_name == "Beta") | .id' |
           while read -r release_id; do
@@ -154,7 +173,7 @@ jobs:
 
           gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/Beta" >/dev/null 2>&1 || true
 
-          gh release create Beta release-assets/* \
+          gh release create Beta "${assets[@]}" \
             --title "AiNiee-Beta 开发测试版本，由最新源码自动打包" \
             --notes "AiNiee-Beta 开发测试版本，由最新源码自动打包" \
             --generate-notes \

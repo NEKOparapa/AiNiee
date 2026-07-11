@@ -60,6 +60,48 @@
       "English": "Keep this low.\nRecommended: 10 lines or fewer.\nLocal APIs are not supported.", 
       "日本語": "行数は大きく設定しないでください。10行以内を推奨 (ローカルAPIは非対応)"
     },
+    "提取设置": {
+      "简中": "提取设置",
+      "繁中": "提取設定",
+      "English": "Extraction Settings",
+      "日本語": "抽出設定"
+    },
+    "润色设置": {
+      "简中": "润色设置",
+      "繁中": "潤色設定",
+      "English": "Polishing Settings",
+      "日本語": "推敲設定"
+    },
+    "提取任务的 Token 切分数": {
+      "简中": "提取任务的 Token 切分数",
+      "繁中": "提取任務的 Token 切分數",
+      "English": "Extraction Task Token Split Size",
+      "日本語": "抽出タスクの Token 分割数"
+    },
+    "开始翻译中的提取任务会按此 Token 数切分原文": {
+      "简中": "开始翻译中的提取任务会按此 Token 数切分原文",
+      "繁中": "開始翻譯中的提取任務會按此 Token 數切分原文",
+      "English": "The extraction task in Start Translation splits source text by this token count.",
+      "日本語": "翻訳開始内の抽出タスクは、この Token 数で原文を分割します。"
+    },
+    "自动提取禁翻词条": {
+      "简中": "自动提取禁翻词条",
+      "繁中": "自動提取禁翻詞條",
+      "English": "Automatically Extract Do-not-translate Entries",
+      "日本語": "禁翻訳項目を自動抽出"
+    },
+    "开启该开关后，将自动提取文本中禁止翻译内容，需要用户审查与筛选，避免影响翻译效率": {
+      "简中": "开启该开关后，将自动提取文本中禁止翻译内容，需要用户审查与筛选，避免影响翻译效率",
+      "繁中": "開啟該開關後，將自動提取文本中禁止翻譯內容，需要用戶審查與篩選，避免影響翻譯效率",
+      "English": "When enabled, do-not-translate content is extracted automatically. Review and filter the results to avoid reducing translation efficiency.",
+      "日本語": "有効にすると、テキスト内の翻訳禁止内容を自動抽出します。翻訳効率への影響を避けるため、確認と絞り込みが必要です。"
+    },
+    "只影响润色流程的上文参考行数": {
+      "简中": "只影响润色流程的上文参考行数",
+      "繁中": "只影響潤色流程的上文參考行數",
+      "English": "Only affects the number of previous context lines used by polishing.",
+      "日本語": "推敲フローで参照する上文行数にのみ影響します。"
+    },
     "自动预处理文本": {
         "简中": "自动预处理文本",
         "繁中": "自動預處理文本",

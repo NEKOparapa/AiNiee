@@ -1,4 +1,3 @@
-import os
 import re
 import threading
 import urllib
@@ -7,6 +6,7 @@ import rapidjson as json
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.FilePathConfig import auto_output_dir, auto_polish_output_dir, default_polish_output_dir
 from ModuleFolders.Log.Log import LogMixin
 
 
@@ -295,10 +295,10 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
 
         # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
         if self.auto_set_output_path is True:
-            abs_input_path = os.path.abspath(self.label_input_path)
-            parent_dir = os.path.dirname(abs_input_path)
-            self.label_output_path = os.path.join(parent_dir, "AiNieeOutput")
-            self.label_polish_output_path = os.path.join(parent_dir, "AiNieePolishOutput")
+            self.label_output_path = auto_output_dir(self.label_input_path)
+            self.label_polish_output_path = auto_polish_output_dir(self.label_input_path)
+        elif not hasattr(self, "label_polish_output_path"):
+            self.label_polish_output_path = str(default_polish_output_dir())
 
         # 保存新配置
         config = self.load_config()
