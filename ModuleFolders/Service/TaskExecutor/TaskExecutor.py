@@ -245,7 +245,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         output_config = {
             "translated_suffix": config.get('output_filename_suffix'),
             "bilingual_suffix": "_bilingual",
-            "bilingual_order": config.get('bilingual_text_order','translation_first') 
+            "bilingual_order": config.get('bilingual_text_order','translation_first'),
+            "source_language": config.get('source_language'),
+            "target_language": config.get('target_language'),
         }
 
         # 写入文件
@@ -488,7 +490,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         output_config = {
              "translated_suffix": self.config.output_filename_suffix,
              "bilingual_suffix": "_bilingual",
-             "bilingual_order": self.config.bilingual_text_order 
+             "bilingual_order": self.config.bilingual_text_order,
+             "source_language": self.config.source_language,
+             "target_language": self.config.target_language,
         }
 
         # 写入文件
@@ -659,7 +663,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         output_config = {
              "translated_suffix": self.config.output_filename_suffix,
              "bilingual_suffix": "_bilingual",
-             "bilingual_order": self.config.bilingual_text_order 
+             "bilingual_order": self.config.bilingual_text_order,
+             "source_language": self.config.source_language,
+             "target_language": self.config.target_language,
         }
 
         # 写入文件

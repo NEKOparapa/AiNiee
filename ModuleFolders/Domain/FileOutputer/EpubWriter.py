@@ -8,7 +8,6 @@ from bs4 import BeautifulSoup
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import ProjectType
-from ModuleFolders.Service.TaskExecutor.TranslatorUtil import map_language_name_to_code
 from ModuleFolders.Domain.FileAccessor.EpubAccessor import EpubAccessor
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
@@ -17,7 +16,6 @@ from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     PreWriteMetadata,
     BilingualOrder,
 )
-from ModuleFolders.Domain.FileOutputer import WriterUtil
 
 
 class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
@@ -45,18 +43,26 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
             source_file_path, self._rebuild_translated_tag
         )
 
-    def _get_target_lang_code(self) -> str | None:
-        target_lang = getattr(WriterUtil.get_ainiee_config(), 'target_language', None)
-        if target_lang:
-            return map_language_name_to_code(target_lang)
-        return None
+    @staticmethod
+    def _is_same_primary_language(code_a: str, code_b: str) -> bool:
+        """比较 BCP 47 语言代码的主语言子标签是否一致（ja 匹配 ja-JP/ja_JP）。
+
+        参考 RFC 4647 basic filtering: https://www.rfc-editor.org/rfc/rfc4647#section-3.3.1
+        """
+        if not code_a or not code_b:
+            return False
+        primary_a = re.split(r"[-_]", code_a.strip(), maxsplit=1)[0].lower()
+        primary_b = re.split(r"[-_]", code_b.strip(), maxsplit=1)[0].lower()
+        return primary_a == primary_b
 
     def _write_translation_file(
         self, translation_file_path: Path, cache_file: CacheFile,
         source_file_path: Path, translate_html_tag: Callable[[str, str], str]
     ):
         content, opf_info = self.file_accessor.read_content(source_file_path)
-        target_lang_code = self._get_target_lang_code()
+        lang_config = self.output_config.language_config
+        source_lang_code = lang_config.source_lang_code
+        target_lang_code = lang_config.target_lang_code
 
         translated_item_dict = {
             k: list(v)
@@ -77,7 +83,9 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
                     modified_html_content = modified_html_content.replace(original_html, new_html, 1)
 
             if target_lang_code and item_filename.endswith(('.xhtml', '.html', '.htm')):
-                modified_html_content = self._replace_html_lang_tags(modified_html_content, target_lang_code)
+                modified_html_content = self._replace_html_lang_tags(
+                    modified_html_content, source_lang_code, target_lang_code
+                )
 
             translation_content[item_filename] = modified_html_content
 
@@ -85,7 +93,7 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
         if target_lang_code and opf_info:
             opf_filename, opf_content = opf_info
             translation_content[opf_filename] = self._replace_opf_language(
-                opf_content, target_lang_code
+                opf_content, source_lang_code, target_lang_code
             )
 
         self.file_accessor.write_content(
@@ -174,20 +182,45 @@ class EpubWriter(BaseBilingualWriter, BaseTranslatedWriter):
             return f"{trans_html}\n  {orig_html_styled}"
 
 
-    def _replace_html_lang_tags(self, xhtml_content: str, target_lang_code: str) -> str:
-        """替换 XHTML 中 <html> 根元素上的 lang 和 xml:lang 属性为目标语言代码。"""
+    def _replace_html_lang_tags(
+        self, xhtml_content: str, source_lang_code: str | None, target_lang_code: str
+    ) -> str:
+        """替换 <html> 根元素上与源语言一致的 lang / xml:lang 属性为目标语言代码；
+        源语言未知（auto）时直接替换。正文内局部 lang 标记不处理。"""
+        def replace_lang_attr(match):
+            current_code = match.group(2)
+            if source_lang_code and not self._is_same_primary_language(current_code, source_lang_code):
+                return match.group(0)
+            return f'{match.group(1)}"{target_lang_code}"'
+
         def replace_in_html_tag(match):
             html_tag = match.group(0)
-            html_tag = re.sub(r'(xml:lang\s*=\s*)["\'][^"\']*["\']', rf'\1"{target_lang_code}"', html_tag)
-            html_tag = re.sub(r'(?<!xml:)(lang\s*=\s*)["\'][^"\']*["\']', rf'\1"{target_lang_code}"', html_tag)
+            html_tag = re.sub(r'(xml:lang\s*=\s*)["\']([^"\']*)["\']', replace_lang_attr, html_tag)
+            html_tag = re.sub(r'(?<!xml:)(lang\s*=\s*)["\']([^"\']*)["\']', replace_lang_attr, html_tag)
             return html_tag
         return re.sub(r'<html\b[^>]*>', replace_in_html_tag, xhtml_content, count=1)
 
-    def _replace_opf_language(self, opf_content: str, target_lang_code: str) -> str:
-        """替换 OPF 文件中 <dc:language> 元素的文本为目标语言代码。"""
+    def _replace_opf_language(
+        self, opf_content: str, source_lang_code: str | None, target_lang_code: str
+    ) -> str:
+        """替换 OPF 中与源语言一致的 <dc:language> 为目标语言代码，其余语言声明保留；
+        源语言未知（auto）时只替换第一个（EPUB 约定第一个为主语言）。"""
+        replaced = False
+
+        def replace_language_element(match):
+            nonlocal replaced
+            current_code = match.group(2).strip()
+            if source_lang_code:
+                if not self._is_same_primary_language(current_code, source_lang_code):
+                    return match.group(0)
+            elif replaced:
+                return match.group(0)
+            replaced = True
+            return f"{match.group(1)}{target_lang_code}{match.group(3)}"
+
         return re.sub(
-            r'(<dc:language[^>]*>)[^<]*(</dc:language>)',
-            rf'\g<1>{target_lang_code}\2',
+            r'(<dc:language[^>]*>)([^<]*)(</dc:language>)',
+            replace_language_element,
             opf_content,
         )
 
