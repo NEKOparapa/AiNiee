@@ -179,7 +179,7 @@ class FileOutputer:
 
     def _get_writer_default_config(self, project_type, output_path: Path, input_path: Path, config: dict):
         from ModuleFolders.Domain.FileOutputer.BaseWriter import (
-            BilingualOrder, OutputConfig, TranslationOutputConfig,
+            BilingualOrder, OutputConfig, OutputLanguageConfig, TranslationOutputConfig,
         )
 
         # 从配置中读取后缀，如果未配置则使用默认值
@@ -198,7 +198,14 @@ class FileOutputer:
 
         # 创建基础的 OutputConfig，包含新的配置项
         def create_output_config(**kwargs):
-            base_args = {"bilingual_order": bilingual_order, "input_root": input_path}
+            base_args = {
+                "bilingual_order": bilingual_order,
+                "input_root": input_path,
+                "language_config": OutputLanguageConfig(
+                    source_language=config.get("source_language"),
+                    target_language=config.get("target_language"),
+                ),
+            }
             base_args.update(kwargs)
             return OutputConfig(**base_args)
 

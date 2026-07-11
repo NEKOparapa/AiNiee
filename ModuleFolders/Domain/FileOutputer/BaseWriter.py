@@ -7,6 +7,7 @@ from typing import TypedDict
 import rich
 
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.TaskExecutor.TranslatorUtil import map_language_name_to_code
 from ModuleFolders.Domain.FileOutputer import WriterUtil
 
 
@@ -33,17 +34,41 @@ class BilingualOrder(Enum):
     TRANSLATION_FIRST = "translation_first"
 
 @dataclass
+class OutputLanguageConfig:
+    """输出阶段用到的翻译语言配置，语言值为名称（如 japanese、chinese_simplified）"""
+    source_language: str = None  # 原文语言名称，可能为 auto
+    target_language: str = None  # 译文语言名称
+
+    @property
+    def source_lang_code(self) -> str | None:
+        """原文语言代码；未配置或为 auto 时返回 None"""
+        if self.source_language and self.source_language != "auto":
+            return map_language_name_to_code(self.source_language)
+        return None
+
+    @property
+    def target_lang_code(self) -> str | None:
+        """译文语言代码；未配置时返回 None"""
+        if self.target_language:
+            return map_language_name_to_code(self.target_language)
+        return None
+
+
+@dataclass
 class OutputConfig:
     translated_config: TranslationOutputConfig = None
     bilingual_config: TranslationOutputConfig = None
     input_root: Path = None
     bilingual_order: BilingualOrder = field(default=BilingualOrder.TRANSLATION_FIRST)  # 双语排序配置
+    language_config: OutputLanguageConfig = None  # 翻译语言配置
 
     def __post_init__(self):
         if self.translated_config is None:
             self.translated_config = TranslationOutputConfig(True, "_translated")
         if self.bilingual_config is None:
             self.bilingual_config = TranslationOutputConfig(False, "_bilingual")
+        if self.language_config is None:
+            self.language_config = OutputLanguageConfig()
 
 
 class WriterInitParams(TypedDict):
