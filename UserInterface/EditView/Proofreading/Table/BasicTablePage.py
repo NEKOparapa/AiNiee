@@ -33,6 +33,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     COL_NUM = 0
     COL_SOURCE = 1
     COL_TRANS = 2
+    COL_STATUS = 3
     UPDATE_EVENT = Base.EVENT.TABLE_BASIC_UPDATE
     DONE_EVENT = Base.EVENT.TABLE_BASIC_DONE
 
@@ -79,7 +80,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.subscribe(self.DONE_EVENT, self._on_task_done)
 
     def _init_table(self):
-        self.headers = [self.tra("行"), self.tra("原文"), self.tra("译文")]
+        self.headers = [self.tra("行"), self.tra("原文"), self.tra("译文"), self.tra("状态")]
         self.table.setColumnCount(len(self.headers))
         self.table.setHorizontalHeaderLabels(self.headers)
         self.table.verticalHeader().hide()
@@ -95,13 +96,35 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)
-        header.setStretchLastSection(True)
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(self.COL_TRANS, QHeaderView.Stretch)
+        header.setSectionResizeMode(self.COL_STATUS, QHeaderView.Fixed)
 
         self.table.setColumnWidth(self.COL_NUM, 60)
         self.table.setColumnWidth(self.COL_SOURCE, 400)
         self.table.setColumnWidth(self.COL_TRANS, 400)
+        self.table.setColumnWidth(self.COL_STATUS, 90)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
+
+    def _get_translation_status_text(self, translation_status: int) -> str:
+        status_text = {
+            TranslationStatus.UNTRANSLATED: "待译",
+            TranslationStatus.TRANSLATED: "已译",
+            TranslationStatus.POLISHED: "已润",
+            TranslationStatus.EXCLUDED: "排除",
+        }.get(translation_status)
+        return self.tra(status_text) if status_text else "-"
+
+    def _update_status_cell(self, row: int, translation_status: int) -> None:
+        status_item = self.table.item(row, self.COL_STATUS)
+        if status_item is None:
+            status_item = QTableWidgetItem()
+            status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
+            status_item.setTextAlignment(Qt.AlignCenter)
+            self.table.setItem(row, self.COL_STATUS, status_item)
+
+        status_item.setText(self._get_translation_status_text(translation_status))
 
     def _init_pager(self):
         self.pager_container = QWidget(self)
@@ -166,6 +189,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
                 trans_item = QTableWidgetItem(item_data.translated_text)
                 self.table.setItem(row_idx, self.COL_TRANS, trans_item)
+                self._update_status_cell(row_idx, item_data.translation_status)
 
                 if item_data.extra and item_data.extra.get("language_mismatch_translation", False):
                     trans_item.setBackground(highlight_brush)
@@ -229,6 +253,9 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             new_text=new_text,
         )
         self._sync_local_item(text_index, new_text)
+        local_item = self._items_by_text_index.get(text_index)
+        if local_item is not None:
+            self._update_status_cell(row, local_item.translation_status)
         self.table.resizeRowToContentsSafe(row)
 
     def _show_context_menu(self, pos: QPoint):
@@ -289,6 +316,9 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                     item.setText(new_text)
                 else:
                     self.table.setItem(row, self.COL_TRANS, QTableWidgetItem(new_text))
+                local_item = self._items_by_text_index.get(text_index)
+                if local_item is not None:
+                    self._update_status_cell(row, local_item.translation_status)
 
             self.table.scheduleResizeRowsToContents()
         finally:
