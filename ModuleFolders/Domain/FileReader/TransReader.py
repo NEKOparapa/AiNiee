@@ -234,6 +234,9 @@ class TransReader(BaseSourceReader):
         # 检查是否是地图名字显示插件
         if text.startswith("<namePop:") and text.endswith(">"):
             return True
+        # 检查是否是 LB 插件文本
+        if text.startswith("<LB:") and text.endswith(">"):
+            return True
         return False
     
     # 检查字段路径内容
