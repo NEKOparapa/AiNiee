@@ -276,7 +276,7 @@ class ResponseExtractor:
 
     # 去除数字序号及括号
     def remove_numbered_prefix(self, translation_text_dict):
-        """
+        r"""
         仅去除提取流程为了对齐条目而附加的外层响应序号前缀。
 
         这里处理的是“运输层编号”，不是译文正文的一部分。
