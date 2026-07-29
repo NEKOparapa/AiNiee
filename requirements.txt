@@ -32,6 +32,7 @@ protobuf==4.25.7
 language-data
 langcodes
 msgspec
+magika
 
 # mediapipe
 absl-py

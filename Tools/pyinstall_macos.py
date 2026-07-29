@@ -150,6 +150,7 @@ def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
         "--collect-all=mediapipe.tasks.c",
         "--collect-all=darkdetect",
         "--collect-all=opencc",
+        "--collect-all=magika",
         "--collect-all=objc",
         "--collect-all=Foundation",
         "--collect-all=AppKit",
