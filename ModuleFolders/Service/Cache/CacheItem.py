@@ -21,6 +21,7 @@ class TranslationStatus:
     TRANSLATED = 1  # 已翻译
     POLISHED = 2  # 已润色
     EXCLUDED = 7  # 已排除
+    QUESTIONABLE = 8  # 存疑（非确定性排除，不参与翻译和润色，但做最后的漏翻检查）
 
 
 @dataclass(repr=False)
@@ -231,6 +232,7 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
             TranslationStatus.TRANSLATED: "已翻译",
             TranslationStatus.POLISHED: "已润色",
             TranslationStatus.EXCLUDED: "已排除",
+            TranslationStatus.QUESTIONABLE: "存疑",
         }
         status_str = status_map.get(self.translation_status, f"未知({self.translation_status})")
 
