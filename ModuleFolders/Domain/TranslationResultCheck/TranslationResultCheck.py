@@ -189,6 +189,10 @@ class TranslationResultCheck:
                         check_summary["newline_errors"] += len(errors)
                         current_entry_errors.extend(errors)
 
+                elif translation_status == TranslationStatus.QUESTIONABLE:  # 存疑
+                    error_msg = "🚧 [WARNING] 条目存疑 "
+                    current_entry_errors.append(error_msg)  # 记录错误
+
 
                 if current_entry_errors: # 如果当前条目有错误，则添加到结构化错误日志
                     total_error_count += len(current_entry_errors)

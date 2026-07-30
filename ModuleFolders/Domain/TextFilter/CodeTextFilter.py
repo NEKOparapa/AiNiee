@@ -19,4 +19,4 @@ class CodeTextFilter:
                 continue
             label = self.get_label(item.source_text)
             if label != ContentTypeLabel.TXT:
-                item.translation_status = TranslationStatus.TRANSLATED
+                item.translation_status = TranslationStatus.QUESTIONABLE
