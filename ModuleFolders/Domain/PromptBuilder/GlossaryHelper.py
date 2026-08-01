@@ -1,5 +1,9 @@
 import regex
 import regex._regex_core
+from functools import lru_cache
+
+
+_CACHE_MAXSIZE = 8192
 
 
 class GlossaryHelper:
@@ -15,6 +19,7 @@ class GlossaryHelper:
         return str(value).strip()
 
     @staticmethod
+    @lru_cache(maxsize=_CACHE_MAXSIZE)
     def _compile_source_text(source_text: str):
         return regex.compile(source_text)
 
@@ -75,6 +80,7 @@ class GlossaryHelper:
             return False
 
     @classmethod
+    @lru_cache(maxsize=_CACHE_MAXSIZE)
     def is_regex_pattern(cls, source_text: str) -> bool:
         source_text = cls._normalize_text(source_text)
         if not source_text:
@@ -90,6 +96,7 @@ class GlossaryHelper:
         return literal_text != source_text
 
     @classmethod
+    @lru_cache(maxsize=_CACHE_MAXSIZE)
     def get_source_state(cls, source_text: str) -> str:
         source_text = cls._normalize_text(source_text)
         if not source_text:
@@ -158,6 +165,7 @@ class GlossaryHelper:
         return normalized_rows
 
     @classmethod
+    @lru_cache(maxsize=_CACHE_MAXSIZE)
     def build_search_pattern(
         cls,
         source_text: str,
@@ -279,3 +287,10 @@ class GlossaryHelper:
                 seen_keys.add(dedupe_key)
 
         return matched_rows
+
+    @classmethod
+    def clear_cache(cls) -> None:
+        cls._compile_source_text.cache_clear()
+        cls.is_regex_pattern.cache_clear()
+        cls.get_source_state.cache_clear()
+        cls.build_search_pattern.cache_clear()
