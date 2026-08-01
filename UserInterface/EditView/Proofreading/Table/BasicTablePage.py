@@ -113,6 +113,7 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             TranslationStatus.TRANSLATED: "已译",
             TranslationStatus.POLISHED: "已润",
             TranslationStatus.EXCLUDED: "排除",
+            TranslationStatus.QUESTIONABLE: "存疑",
         }.get(translation_status)
         return self.tra(status_text) if status_text else "-"
 

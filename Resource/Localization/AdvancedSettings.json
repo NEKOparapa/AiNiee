@@ -36,6 +36,18 @@
       "English": "Before translation, filters out text that doesn't match the source language.\nFiltered text will not be translated.",
       "日本語": "有効にすると、設定された原文言語と一致しないテキストは翻訳前に自動で除外され、翻訳対象になりません。"
     },
+    "自动过滤代码文本": {
+      "简中": "自动过滤代码文本",
+      "繁中": "自動過濾代碼文本",
+      "English": "Automatically filter code text",
+      "日本語": "コードテキストを自動的にフィルタリングする"
+    },
+    "启用后，将在翻译前，自动过滤掉代码文本，不参与翻译（仅作用于Mtool项目）": {
+      "简中": "启用后，将在翻译前，自动过滤掉代码文本，不参与翻译（仅作用于Mtool项目）",
+      "繁中": "啟用後，將在翻譯前自動過濾掉代碼文本，不參與翻譯（僅作用於 Mtool 專案）",
+      "English": "When enabled, code text will be automatically filtered out before translation and will not be included in the translation (only applies to Mtool projects).",
+      "日本語": "有効にすると、翻訳前にコードテキストが自動的にフィルタリングされ、翻訳対象から除外されます（Mtool プロジェクトにのみ適用されます）。"
+    },
     "动态示例和预回复功能": {
       "简中": "动态示例和预回复功能",
       "繁中": "動態範例與預回覆功能",

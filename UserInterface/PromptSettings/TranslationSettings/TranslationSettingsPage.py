@@ -22,6 +22,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
             "source_language": "auto",
             "target_language": "chinese_simplified",
             "language_filter_switch": False,
+            "code_filter_switch": False,
             "pre_line_counts": 0,
             "few_shot_and_example_switch": True,
             "auto_process_text_code_segment": False,
@@ -48,6 +49,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         self.add_auto_process_text_code_segment(self.container, config)
         self.add_widget_text_symbol_repair(self.container, config)
         self.add_widget_language_filter(self.container, config)
+        self.add_widget_code_filter(self.container, config)
         self.add_widget_few_shot_and_example(self.container, config)
         self.container.addWidget(HorizontalSeparator())
         self.add_widget_result_check(self.container, config)
@@ -96,6 +98,25 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
             )
         )
 
+    # 自动过滤代码文本
+    def add_widget_code_filter(self, parent, config) -> None:
+
+        def init(widget: SwitchButtonCard) -> None:
+            widget.set_checked(config.get("code_filter_switch", False))
+
+        def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
+            config = self.load_config()
+            config["code_filter_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("自动过滤代码文本"),
+                self.tra("启用后，将在翻译前，自动过滤掉代码文本，不参与翻译（仅作用于Mtool项目）"),
+                init=init,
+                checked_changed=checked_changed,
+            )
+        )
 
     # 示例模块和预回复模块开关
     def add_widget_few_shot_and_example(self, parent, config) -> None:

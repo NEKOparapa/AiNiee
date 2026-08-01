@@ -82,6 +82,7 @@ from ModuleFolders.Domain.PromptBuilder.PromptBuilderPolishing import PromptBuil
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
+from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Domain.TextFilter.TextFilter import TextFilter
 from ModuleFolders.Domain.TranslationResultCheck.TranslationResultCheck import TranslationResultCheck
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
@@ -416,6 +417,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 task.set_previous_items(previous_chunk)  # 传入该任务待翻译原文的上文
                 task.prepare(self.config.target_platform)  # 预先构建消息列表
                 tasks_list.append(task)
+            GlossaryHelper.clear_cache()
             self.info(f"已经生成全部翻译任务 ...")
             self.print("")
 
@@ -601,6 +603,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 task.set_previous_items(previous_chunk)  # 传入该任务待润色文的上文
                 task.prepare()  # 预先构建消息列表
                 tasks_list.append(task)
+            GlossaryHelper.clear_cache()
             self.info(f"已经生成全部润色任务 ...")
             self.print("")
 

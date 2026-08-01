@@ -159,6 +159,17 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
                             "target_field": check_attr,
                         })
                         continue
+                    elif item.translation_status == TranslationStatus.QUESTIONABLE:
+                        errors_list.append({
+                            "row_id": f"{file_name} : {item.text_index + 1}",
+                            "error_type": self._build_rule_error("条目存疑", item.source_text, text_content),
+                            "source": item.source_text,
+                            "check_text": text_content,
+                            "file_path": file_path,
+                            "text_index": item.text_index,
+                            "target_field": check_attr,
+                        })
+                        continue
 
                 if not text_content or not item.source_text:
                     continue
