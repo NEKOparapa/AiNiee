@@ -7,7 +7,6 @@ from typing import TypedDict
 import rich
 
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
-from ModuleFolders.Service.TaskExecutor.TranslatorUtil import map_language_name_to_code
 from ModuleFolders.Domain.FileOutputer import WriterUtil
 
 
@@ -35,23 +34,9 @@ class BilingualOrder(Enum):
 
 @dataclass
 class OutputLanguageConfig:
-    """输出阶段用到的翻译语言配置，语言值为名称（如 japanese、chinese_simplified）"""
-    source_language: str = None  # 原文语言名称，可能为 auto
-    target_language: str = None  # 译文语言名称
-
-    @property
-    def source_lang_code(self) -> str | None:
-        """原文语言代码；未配置或为 auto 时返回 None"""
-        if self.source_language and self.source_language != "auto":
-            return map_language_name_to_code(self.source_language)
-        return None
-
-    @property
-    def target_lang_code(self) -> str | None:
-        """译文语言代码；未配置时返回 None"""
-        if self.target_language:
-            return map_language_name_to_code(self.target_language)
-        return None
+    """输出阶段使用的 BCP 47 原文、译文语言代码。"""
+    source_lang_code: str = None
+    target_lang_code: str = None
 
 
 @dataclass

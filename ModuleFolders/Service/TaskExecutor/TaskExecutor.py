@@ -87,7 +87,11 @@ from ModuleFolders.Domain.TextFilter.TextFilter import TextFilter
 from ModuleFolders.Domain.TranslationResultCheck.TranslationResultCheck import TranslationResultCheck
 from ModuleFolders.Infrastructure.LLMRequester.LLMClientFactory import LLMClientFactory
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
-from ModuleFolders.Service.TaskExecutor.TranslatorUtil import get_source_language_for_file
+from ModuleFolders.Service.TaskExecutor.TranslatorUtil import (
+    get_most_common_language,
+    get_source_language_for_file,
+    map_language_name_to_code,
+)
 
 
 # 翻译器
@@ -135,6 +139,22 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             executor.shutdown(wait=False, cancel_futures=True)
         except TypeError:
             executor.shutdown(wait=False)
+
+    def _resolve_output_source_language(self, configured_source: str | None) -> str | None:
+        """解析输出文件使用的原文语言，保留翻译阶段的逐文件自动检测。"""
+        if configured_source != "auto":
+            return map_language_name_to_code(configured_source) if configured_source else None
+
+        detected_language = get_most_common_language(self.cache_manager.project)
+        if detected_language == "un":
+            return None
+
+        return map_language_name_to_code(detected_language)
+
+    @staticmethod
+    def _resolve_output_target_language(configured_target: str | None) -> str | None:
+        """将输出文件使用的译文语言名称转换为 BCP 47 代码。"""
+        return map_language_name_to_code(configured_target) if configured_target else None
 
     def _convert_translated_text_with_opencc(self, preset: str | None) -> bool:
         preset = preset or "s2t"
@@ -247,8 +267,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             "translated_suffix": config.get('output_filename_suffix'),
             "bilingual_suffix": "_bilingual",
             "bilingual_order": config.get('bilingual_text_order','translation_first'),
-            "source_language": config.get('source_language'),
-            "target_language": config.get('target_language'),
+            "source_lang_code": self._resolve_output_source_language(config.get('source_language')),
+            "target_lang_code": self._resolve_output_target_language(config.get('target_language')),
         }
 
         # 写入文件
@@ -493,8 +513,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
              "translated_suffix": self.config.output_filename_suffix,
              "bilingual_suffix": "_bilingual",
              "bilingual_order": self.config.bilingual_text_order,
-             "source_language": self.config.source_language,
-             "target_language": self.config.target_language,
+             "source_lang_code": self._resolve_output_source_language(self.config.source_language),
+             "target_lang_code": self._resolve_output_target_language(self.config.target_language),
         }
 
         # 写入文件
@@ -667,8 +687,8 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
              "translated_suffix": self.config.output_filename_suffix,
              "bilingual_suffix": "_bilingual",
              "bilingual_order": self.config.bilingual_text_order,
-             "source_language": self.config.source_language,
-             "target_language": self.config.target_language,
+             "source_lang_code": self._resolve_output_source_language(self.config.source_language),
+             "target_lang_code": self._resolve_output_target_language(self.config.target_language),
         }
 
         # 写入文件

@@ -202,8 +202,8 @@ class FileOutputer:
                 "bilingual_order": bilingual_order,
                 "input_root": input_path,
                 "language_config": OutputLanguageConfig(
-                    source_language=config.get("source_language"),
-                    target_language=config.get("target_language"),
+                    source_lang_code=config.get("source_lang_code"),
+                    target_lang_code=config.get("target_lang_code"),
                 ),
             }
             base_args.update(kwargs)
