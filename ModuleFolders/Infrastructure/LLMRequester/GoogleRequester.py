@@ -28,6 +28,10 @@ class GoogleRequester(LogMixin, Base):
                 for m in messages if m["role"] != "system"
             ]
 
+            # 新版 Gemini 不支持以 model 角色结尾的预填充内容
+            if processed_messages and processed_messages[-1].role == "model":
+                processed_messages.pop()
+
             # 创建 Gemini Developer API 客户端（非 Vertex AI API）
             client = LLMClientFactory().get_google_client(platform_config)
 
