@@ -1,38 +1,38 @@
 # System
-pyinstaller
-openai
-boto3
-anthropic
-google-genai
-tiktoken
-numpy
-openpyxl
-PyQt5
+pyinstaller>=6.21.0
+openai>=2.46.0
+boto3>=1.43.51
+anthropic>=0.117.0
+google-genai>=2.12.1
+tiktoken>=0.13.0
+numpy>=2.5.1
+openpyxl>=3.1.5
+PyQt5>=5.15.11
 PyQt-Fluent-Widgets[full]~=1.10.0
-pyobjc-framework-Cocoa; sys_platform == "darwin"
-opencc
-beautifulsoup4
-lxml
-chardet
-PyYAML
-requests
-httpx[http2]
-curl_cffi
+pyobjc-framework-Cocoa>=12.2.1; sys_platform == "darwin"
+opencc>=1.4.1
+beautifulsoup4>=4.15.0
+lxml>=6.1.1
+chardet>=7.4.3
+PyYAML>=6.0.3
+requests>=2.34.2
+httpx[http2]>=0.28.1
+curl_cffi>=0.15.0
 
 # Tools
-python-pptx
-polib
-pandas
-rich
-tqdm
-jaconv
-python-rapidjson
+python-pptx>=1.0.2
+polib>=1.2.0
+pandas>=3.0.3
+rich>=15.0.0
+tqdm>=4.69.0
+jaconv>=0.5.0
+python-rapidjson>=1.23
 protobuf==4.25.7
 # 获取iso语言代码对应的友好名称
-language-data
-langcodes
-msgspec
-magika
+language-data>=1.4.0
+langcodes>=3.5.1
+msgspec>=0.21.1
+magika>=1.0.3
 
 # mediapipe
 absl-py
