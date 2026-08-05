@@ -108,6 +108,18 @@
       "English": "When enabled, do-not-translate content is extracted automatically. Review and filter the results to avoid reducing translation efficiency.",
       "日本語": "有効にすると、テキスト内の翻訳禁止内容を自動抽出します。翻訳効率への影響を避けるため、確認と絞り込みが必要です。"
     },
+    "启用短词挂靠长词规则": {
+      "简中": "启用短词挂靠长词规则",
+      "繁中": "啟用短詞掛靠長詞規則",
+      "English": "Attach Short Terms to Longer Terms",
+      "日本語": "短い語を長い語に関連付ける"
+    },
+    "开启后，会将长词中包含的短词交由同一组裁决；关闭可避免短名被误挂靠到多个称号或全名之一": {
+      "简中": "开启后，会将长词中包含的短词交由同一组裁决；关闭可避免短名被误挂靠到多个称号或全名之一",
+      "繁中": "開啟後，會將長詞中包含的短詞交由同一組裁決；關閉可避免短名被錯誤掛靠到多個稱號或全名之一",
+      "English": "When enabled, short terms contained in a longer term are decided together. Disable it to prevent a short name from being incorrectly attached to a title or full name.",
+      "日本語": "有効にすると、長い語に含まれる短い語を同じグループで判定します。短い名前が称号やフルネームに誤って紐付くのを防ぐには無効にしてください。"
+    },
     "只影响润色流程的上文参考行数": {
       "简中": "只影响润色流程的上文参考行数",
       "繁中": "只影響潤色流程的上文參考行數",

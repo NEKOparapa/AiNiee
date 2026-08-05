@@ -38,6 +38,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         self.request_limiter = RequestLimiter()
         self.grouped_stage_two_inputs = {} # 第二阶段的输入结构：{主source: {source, merged_sources, candidates}}
         self.grouped_stage_two_source_aliases = {} # 第二阶段的 source 别名映射：{所有source: 主source}
+        self.candidate_occurrence_counts = {} # 第一阶段候选次数：{source: count}，不区分最终角色/术语裁决
 
 
     # ========================================================================
@@ -116,7 +117,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             self.info(f"第一阶段提取完成，成功收集 {len(first_stage_results)} 个分块结果。")
 
             # --- [第二阶段] ---
-            reduction_batches = self._prepare_reduction_batches(first_stage_results) # 准备第二阶段的批次：将第一阶段的结果按 source 聚合，短词挂靠长词，形成待裁决的候选组。
+            reduction_batches = self._prepare_reduction_batches(first_stage_results) # 准备第二阶段的批次：按 source 聚合；可选地将短词挂靠到长词，形成待裁决的候选组。
             self._emit_progress_update(
                 "stage2",
                 self.tra("第二阶段"),
@@ -359,14 +360,33 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             self.error(f"第二阶段合并失败: {error}")
             return {"characters": [], "terms": []}
 
+    @staticmethod
+    def _should_skip_merge(main_group: dict, sub_group: dict) -> bool:
+        """短词挂靠前检查：类型分布明显不同时跳过合并，保留短词独立。"""
+        def _type_dist(candidates):
+            chars = sum(1 for c in candidates if c.get("type") == "character")
+            terms = sum(1 for c in candidates if c.get("type") == "term")
+            return chars, terms
+
+        m_chars, m_terms = _type_dist(main_group.get("candidates", []))
+        s_chars, s_terms = _type_dist(sub_group.get("candidates", []))
+
+        if m_chars + m_terms == 0 or s_chars + s_terms == 0:
+            return False
+
+        # 主流类型不一致时不合并
+        return (m_chars >= m_terms) != (s_chars >= s_terms)
+
     def _prepare_reduction_batches(self, first_stage_results: list) -> list:
-        """组装第二阶段所需的候选组批次：短词挂靠长词"""
+        """组装第二阶段候选组批次，并按设置决定是否执行短词挂靠长词。"""
         raw_grouped_inputs = {}
+        self.candidate_occurrence_counts = {}
         for result in first_stage_results:
             for row in result.get("characters", []):
                 source = str(row.get("source", "")).strip()
                 if not source: continue
                 raw_grouped_inputs.setdefault(source, {"source": source, "merged_sources": [source], "candidates": []})
+                self.candidate_occurrence_counts[source] = self.candidate_occurrence_counts.get(source, 0) + 1
                 raw_grouped_inputs[source]["candidates"].append({
                     "candidate_source": source, "type": "character", "recommended_translation": str(row.get("recommended_translation", "")).strip(),
                     "gender": str(row.get("gender", "")).strip(), "category_path": "", "note": str(row.get("note", "")).strip(),
@@ -375,6 +395,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 source = str(row.get("source", "")).strip()
                 if not source: continue
                 raw_grouped_inputs.setdefault(source, {"source": source, "merged_sources": [source], "candidates": []})
+                self.candidate_occurrence_counts[source] = self.candidate_occurrence_counts.get(source, 0) + 1
                 raw_grouped_inputs[source]["candidates"].append({
                     "candidate_source": source, "type": "term", "recommended_translation": str(row.get("recommended_translation", "")).strip(),
                     "gender": "", "category_path": str(row.get("category_path", "")).strip(), "note": str(row.get("note", "")).strip(),
@@ -382,6 +403,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
 
         sorted_sources = sorted(raw_grouped_inputs.keys(), key=lambda s: (-len(s), s))
         grouped_inputs, source_aliases, consumed_sources = {}, {}, set()
+        enable_short_name_merge = getattr(self.config, "extract_short_name_merge_switch", True)
 
         for source in sorted_sources:
             if source in consumed_sources: continue
@@ -390,9 +412,15 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             source_aliases[source] = source
             consumed_sources.add(source)
 
+            if not enable_short_name_merge:
+                continue
+
             for other_source in sorted_sources:
                 if other_source in consumed_sources or other_source == source: continue
                 if other_source in source:  # 短 source 挂靠
+                    # 检查类型分布：短词和长词类型明显不同时保留各自独立
+                    if self._should_skip_merge(raw_grouped_inputs[source], raw_grouped_inputs[other_source]):
+                        continue
                     merged_group["merged_sources"].append(other_source)
                     merged_group["candidates"].extend(raw_grouped_inputs[other_source].get("candidates", []))
                     source_aliases[other_source] = source
@@ -499,17 +527,10 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
     # 4. 最终阶段：整合兜底与落盘 (分)
     # ========================================================================
 
-    def _get_candidate_occurrence_count(self, source: str, candidate_type: str) -> int:
+    def _get_candidate_occurrence_count(self, source: str) -> int:
+        """返回原词在第一阶段所有候选中的累计次数，不受类型和挂靠关系影响。"""
         source = str(source or "").strip()
-        candidate_type = str(candidate_type or "").strip()
-        grouped_item = self.grouped_stage_two_inputs.get(source) or {}
-        occurrence_count = sum(
-            1
-            for candidate in grouped_item.get("candidates", []) or []
-            if candidate.get("type") == candidate_type
-            and str(candidate.get("candidate_source", "")).strip() == source
-        )
-        return max(1, occurrence_count)
+        return max(1, int(self.candidate_occurrence_counts.get(source, 0) or 0))
 
     def _finalize_results(self, first_stage_results: list, second_stage_results: list) -> dict:
         """主线程收口：采纳 AI 裁决结果 -> 启发式兜底缺失项 -> 清洗禁翻项"""
@@ -524,7 +545,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 merged_characters[source] = {
                     "source": source, "recommended_translation": str(row.get("recommended_translation", "")).strip(),
                     "gender": str(row.get("gender", "")).strip() or "其他", "note": str(row.get("note", "")).strip(),
-                    "occurrence_count": self._get_candidate_occurrence_count(source, "character"),
+                    "occurrence_count": self._get_candidate_occurrence_count(source),
                 }
                 assigned_sources.add(source)
 
@@ -535,7 +556,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 merged_terms[source] = {
                     "source": source, "recommended_translation": str(row.get("recommended_translation", "")).strip(),
                     "category_path": str(row.get("category_path", "")).strip() or "其他", "note": str(row.get("note", "")).strip(),
-                    "occurrence_count": self._get_candidate_occurrence_count(source, "term"),
+                    "occurrence_count": self._get_candidate_occurrence_count(source),
                 }
                 assigned_sources.add(source)
 
@@ -565,16 +586,51 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 cat = next((str(c.get("category_path", "")).strip() for c in all_cands if str(c.get("category_path", "")).strip() not in ["", "其他"]), "其他")
                 merged_terms[source] = {
                     "source": source, "recommended_translation": trans, "category_path": cat, "note": " | ".join(notes),
-                    "occurrence_count": self._get_candidate_occurrence_count(source, "term"),
+                    "occurrence_count": self._get_candidate_occurrence_count(source),
                 }
             else:
                 gen = next((str(c.get("gender", "")).strip() for c in all_cands if str(c.get("gender", "")).strip() not in ["", "其他"]), "其他")
                 merged_characters[source] = {
                     "source": source, "recommended_translation": trans, "gender": gen, "note": " | ".join(notes),
-                    "occurrence_count": self._get_candidate_occurrence_count(source, "character"),
+                    "occurrence_count": self._get_candidate_occurrence_count(source),
                 }
 
-        # 3. 第一阶段禁翻项的清洗合并 (不走第二阶段 AI)
+        # 3. 为被合并的短词变体创建副本条目，确保文本中不同形式的名称都能匹配
+        for main_source, grouped_item in self.grouped_stage_two_inputs.items():
+            merged_sources = grouped_item.get("merged_sources", [])
+            if len(merged_sources) <= 1:
+                continue
+
+            # 确定该组的最终类型归属
+            if main_source in merged_characters:
+                target_dict = merged_characters
+                template = merged_characters[main_source]
+            elif main_source in merged_terms:
+                target_dict = merged_terms
+                template = merged_terms[main_source]
+            else:
+                continue
+
+            for sub_source in merged_sources:
+                if sub_source == main_source or sub_source in assigned_sources:
+                    continue
+                # 使用短词变体自己的译名（来自 Stage 1 候选），避免把全名的头衔/姓带过来
+                sub_trans = ""
+                for c in grouped_item.get("candidates", []):
+                    if str(c.get("candidate_source", "")).strip() == sub_source:
+                        t = str(c.get("recommended_translation", "")).strip()
+                        if t:
+                            sub_trans = t
+                            break
+                target_dict[sub_source] = {
+                    **template,
+                    "source": sub_source,
+                    "recommended_translation": sub_trans or template["recommended_translation"],
+                    "occurrence_count": self._get_candidate_occurrence_count(sub_source),
+                }
+                assigned_sources.add(sub_source)
+
+        # 4. 第一阶段禁翻项的清洗合并 (不走第二阶段 AI)
         merged_non_translate = {}
         for result in first_stage_results:
             for row in result.get("non_translate", []):

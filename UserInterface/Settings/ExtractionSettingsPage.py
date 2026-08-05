@@ -14,6 +14,7 @@ class ExtractionSettingsPage(QFrame, ConfigMixin, Base):
         self.default = {
             "extract_task_token_limit": 10000,
             "auto_extract_non_translate_switch": False,
+            "extract_short_name_merge_switch": True,
         }
 
         config = self.save_config(self.load_config_from_default())
@@ -24,6 +25,7 @@ class ExtractionSettingsPage(QFrame, ConfigMixin, Base):
 
         self.add_widget_extract_token_limit(self.container, config)
         self.add_widget_auto_extract_non_translate(self.container, config)
+        self.add_widget_short_name_merge(self.container, config)
         self.container.addStretch(1)
 
     def add_widget_extract_token_limit(self, parent, config) -> None:
@@ -58,6 +60,24 @@ class ExtractionSettingsPage(QFrame, ConfigMixin, Base):
             SwitchButtonCard(
                 self.tra("自动提取禁翻词条"),
                 self.tra("开启该开关后，将自动提取文本中禁止翻译内容，需要用户审查与筛选，避免影响翻译效率"),
+                init=init,
+                checked_changed=checked_changed,
+            )
+        )
+
+    def add_widget_short_name_merge(self, parent, config) -> None:
+        def init(widget: SwitchButtonCard) -> None:
+            widget.set_checked(config.get("extract_short_name_merge_switch"))
+
+        def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
+            config = self.load_config()
+            config["extract_short_name_merge_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("启用短词挂靠长词规则"),
+                self.tra("开启后，会将长词中包含的短词交由同一组裁决；关闭可避免短名被误挂靠到多个称号或全名之一"),
                 init=init,
                 checked_changed=checked_changed,
             )
