@@ -33,7 +33,7 @@ class MToolReader(BaseSourceReader):
             # 根据 JSON 文件内容的数据结构，获取相应字段值
             translation_status = (
                 TranslationStatus.TRANSLATED
-                if key != value
+                if value.strip() and key != value
                 else TranslationStatus.UNTRANSLATED
             )
             item = CacheItem(
