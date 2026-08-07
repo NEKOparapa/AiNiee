@@ -11,6 +11,11 @@ class GlossaryHelper:
     STATE_VALID = "valid"
     STATE_REGEX = "regex"
     STATE_INVALID = "invalid"
+    # 脚本中常见的纯英文字母方括号标签应按原文匹配，而不是按正则字符类匹配。
+    # 含有连字符、反斜杠、脱字符等正则语法的字符类仍会走正则分支。
+    _LITERAL_BRACKET_IDENTIFIER_PATTERN = regex.compile(
+        r"\[[A-Za-z]+\]"
+    )
 
     @staticmethod
     def _normalize_text(value) -> str:
@@ -87,6 +92,9 @@ class GlossaryHelper:
             return False
 
         if not cls.validate_source_text(source_text):
+            return False
+
+        if cls._LITERAL_BRACKET_IDENTIFIER_PATTERN.fullmatch(source_text):
             return False
 
         literal_text = cls._get_literal_text(source_text)

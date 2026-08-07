@@ -5,6 +5,7 @@ import regex._regex_core
 class CharacterHelper:
     VALID_KEY = "is_valid"
     SEPARATOR_TOKEN = "[Separator]"
+    LITERAL_BRACKET_NAME_PATTERN = re.compile(r"\[[A-Za-z]+\]")
     DOT_SEPARATORS = r".．・·･∙⋅‧⸱﹒。｡"
     SPACE_SEPARATOR = " "
     SPACE_SEPARATORS = " \t\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"
@@ -196,6 +197,10 @@ class CharacterHelper:
 
         if cls._has_consecutive_separators(name):
             return False
+
+        # 脚本中常见的纯英文字母方括号名称按普通文本处理。
+        if cls.LITERAL_BRACKET_NAME_PATTERN.fullmatch(name):
+            return True
             
         # 允许的分隔符暂时替换为普通字符，以避免被误判为正则
         test_name = name.replace(cls.SEPARATOR_TOKEN, "X")
