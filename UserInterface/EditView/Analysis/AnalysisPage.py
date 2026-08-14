@@ -545,12 +545,16 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         detail_layout.addWidget(self.table_detail_label)
         detail_layout.addStretch(1)
 
+        self.import_public_table_button = TransparentPushButton(self.tra("从公共表导入"), self.table_detail_widget)
         self.save_public_table_button = TransparentPushButton(self.tra("保存到公共表"), self.table_detail_widget)
         self.clear_current_table_button = TransparentPushButton(self.tra("清空"), self.table_detail_widget)
+        self.import_public_table_button.setFixedHeight(28)
         self.save_public_table_button.setFixedHeight(28)
         self.clear_current_table_button.setFixedHeight(28)
+        self.import_public_table_button.clicked.connect(self._import_current_view_from_public_table)
         self.save_public_table_button.clicked.connect(self._save_current_view_to_public_table)
         self.clear_current_table_button.clicked.connect(self._clear_current_view_rows)
+        detail_layout.addWidget(self.import_public_table_button)
         detail_layout.addWidget(self.save_public_table_button)
         detail_layout.addWidget(self.clear_current_table_button)
 
@@ -1554,6 +1558,140 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     def _join_public_info_parts(self, *parts: str) -> str:
         return "；".join(part for part in parts if str(part).strip())
 
+    # 从公共表导入当前视图对应的内容（与“保存到公共表”方向相反）
+    def _import_current_view_from_public_table(self) -> None:
+        if self._is_analysis_running():
+            self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能从公共表导入。"))
+            return
+        if not self.cache_manager or not self.cache_manager.project:
+            self.warning_toast(self.tra("提示"), self.tra("当前没有已加载的项目。"))
+            return
+
+        config = self.load_config()
+        public_rows = self._get_public_table_rows(self.current_view)
+        if not public_rows:
+            self.info_toast(
+                self.tra("提示"),
+                self.tra("公共表中没有可导入的{0}内容。").format(
+                    self._get_view_display_name(self.current_view)
+                ),
+            )
+            return
+
+        key = self._get_analysis_key(self.current_view)
+        if not key:
+            return
+
+        target_rows = list(self.analysis_data.get(key, []) or [])
+        existing_keys = {
+            self._get_row_key(self.current_view, row)
+            for row in target_rows
+            if self._get_row_key(self.current_view, row)
+        }
+
+        added_count = 0
+        for public_row in public_rows:
+            new_row = self._build_analysis_row_from_public(self.current_view, public_row)
+            if not new_row:
+                continue
+
+            row_key = self._get_row_key(self.current_view, new_row)
+            if not row_key or row_key in existing_keys:
+                continue
+
+            target_rows.append(new_row)
+            existing_keys.add(row_key)
+            added_count += 1
+
+        if added_count <= 0:
+            self.info_toast(self.tra("提示"), self.tra("当前内容均已存在于项目中。"))
+            return
+
+        self.analysis_data[key] = target_rows
+        self._persist_analysis_state(refresh_navigation=True)
+        self._refresh_all_views()
+        self.success_toast(
+            self.tra("完成"),
+            self.tra("已从公共表导入 {0} 条内容。").format(added_count),
+        )
+
+    # 获取当前视图对应的公共表数据
+    def _get_public_table_rows(self, view_name: str) -> list[dict]:
+        config = self.load_config()
+        if view_name == self.VIEW_NON_TRANSLATE:
+            rows = config.get("exclusion_list_data", []) or []
+        else:
+            rows = config.get("prompt_dictionary_data", []) or []
+        return [row for row in rows if isinstance(row, dict)]
+
+    # 解析公共表行的 info 文本（形如 “性别: 男性；备注: xxx” 或 “分类: 地名；备注: xxx”）
+    def _parse_public_info(self, info: str) -> dict:
+        parsed = {}
+        remarks = []
+        for part in str(info or "").split("；"):
+            part = part.strip()
+            if not part:
+                continue
+            if ":" in part:
+                field_name, _, field_value = part.partition(":")
+                field_name = field_name.strip()
+                if field_name:
+                    parsed[field_name] = field_value.strip()
+            else:
+                remarks.append(part)
+
+        if remarks:
+            existing = parsed.get("备注", "")
+            parsed["备注"] = self._join_public_info_parts(existing, "；".join(remarks))
+        return parsed
+
+    # 将公共表行转换为当前分析表行；无法转换时返回 None
+    def _build_analysis_row_from_public(self, view_name: str, public_row: dict) -> dict | None:
+        info_map = self._parse_public_info(public_row.get("info", ""))
+
+        if view_name == self.VIEW_CHARACTERS:
+            source = self._normalize_row_key(public_row.get("src"))
+            if not source:
+                return None
+            # 带“分类”标记的行属于术语，不导入角色表
+            if "分类" in info_map and "性别" not in info_map:
+                return None
+            return {
+                "source": source,
+                "recommended_translation": str(public_row.get("dst", "") or "").strip(),
+                "gender": self._get_character_category_value(
+                    info_map.get("性别"),
+                    fallback=self.CHARACTER_OTHER,
+                ),
+                "note": info_map.get("备注", ""),
+                "occurrence_count": 1,
+            }
+
+        if view_name == self.VIEW_TERMS:
+            source = self._normalize_row_key(public_row.get("src"))
+            if not source:
+                return None
+            return {
+                "source": source,
+                "recommended_translation": str(public_row.get("dst", "") or "").strip(),
+                "category_path": self._resolve_term_category(info_map.get("分类")),
+                "note": info_map.get("备注", ""),
+                "occurrence_count": 1,
+            }
+
+        marker = self._normalize_row_key(public_row.get("markers"))
+        if not marker:
+            return None
+        return {
+            "marker": marker,
+            "category": self._get_non_translate_category_value(
+                info_map.get("分类"),
+                fallback="Other",
+            ),
+            "note": info_map.get("备注", ""),
+            "occurrence_count": 1,
+        }
+
     def _clear_current_view_rows(self) -> None:
         if self._is_analysis_running():
             self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能清空当前显示内容。"))
@@ -1945,6 +2083,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         has_project = bool(self.cache_manager and self.cache_manager.project)
         running = self._is_analysis_running()
         has_visible_rows = bool(self._get_visible_rows(self.current_view))
+        self.import_public_table_button.setEnabled(has_project and not running)
         self.save_public_table_button.setEnabled(has_project and not running)
         self.clear_current_table_button.setEnabled(has_project and not running and has_visible_rows)
 
