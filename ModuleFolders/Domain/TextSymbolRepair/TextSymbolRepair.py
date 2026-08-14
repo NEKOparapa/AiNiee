@@ -12,12 +12,16 @@ class TextSymbolRepair:
     2. 所有标点替换均为「条件替换」：仅当原文确实使用了对应符号时，
        才把译文中出现的替代符号还原为原文符号。
     3. 成对引号（「」『』“”‘’）支持首尾包裹与内部成对两种还原。
+    4. 原文完全没有括号时，删除译文中「括号及括号内文本」——AI 额外添加的批注
+       （如（译者注：…）、【补充说明】等），防止无中生有。
     """
 
     # 需要整体屏蔽、不做任何修改的片段
+    # URL 主体排除 ()[]! 等字符（避免历史贪婪匹配问题），但允许紧跟一个平衡的
+    # 括号尾段，如 https://a.jp/item(a)，保证「原文无括号」判断不被 URL 内的括号干扰
     _PROTECT_PATTERNS = [
-        re.compile(r"https?://[^\s<>\"'()\[\]!，。！？；：、）】」』…]+"),
-        re.compile(r"www\.[^\s<>\"'()\[\]!，。！？；：、）】」』…]+"),
+        re.compile(r"https?://[^\s<>\"'()\[\]!，。！？；：、）】」』…]+(?:\([^()\s]*\))?"),
+        re.compile(r"www\.[^\s<>\"'()\[\]!，。！？；：、）】」』…]+(?:\([^()\s]*\))?"),
         re.compile(r"\[[^\]]*\]\([^)]*\)"),   # Markdown 链接 [text](url)
         re.compile(r"<[^>]+>"),                # HTML / XML 标签
         re.compile(r"\[P\d+\]"),               # 占位符 [P0]
@@ -112,8 +116,14 @@ class TextSymbolRepair:
         # --- 屏蔽受保护片段（URL / 标签 / 占位符等），修复完成后还原 ---
         translated_masked, protected_tokens = self._mask_protected(translated_stripped)
 
+        # 原文同样屏蔽一次：判断「原文是否含有括号」时忽略 URL 等受保护片段内的括号
+        original_masked, _ = self._mask_protected(original_stripped)
+
         # --- 阶段 1: 引号还原（无中生有删除 / 位置对齐 / 单边补全） ---
         translated_masked = self._repair_quotes(original_stripped, translated_masked)
+
+        # --- 阶段 1.5: 批注删除（原文无括号时，删除译文中的括号及括号内文本） ---
+        translated_masked = self._repair_annotations(original_masked, translated_masked)
 
         # --- 阶段 2: 条件标点替换（仅当原文使用对应符号时才替换） ---
         translated_masked = self._repair_conditional_punctuation(original_stripped, translated_masked)
@@ -146,6 +156,21 @@ class TextSymbolRepair:
     # 「无中生有」删除集：原文完全没有引号时，删除译文中凭空出现的引号
     _STRIP_QUOTES = set('「」『』“”‘’"')
 
+    # 批注括号对：原文完全没有括号时，删除译文中「括号及括号内文本」
+    # （AI 额外添加的批注，如（译者注：…）、【补充说明】等）
+    # 不含《》〈〉（书名号/角括号，可能是译文有意引用的标题），也不含 [] {}
+    # （占位符 [P1] / 花括号 {0} 等由屏蔽阶段保护，[] 可能出现在游戏标签等合法内容中）
+    _BRACKET_PAIRS = [
+        ("（", "）"),
+        ("【", "】"),
+        ("〔", "〕"),
+        ("〖", "〗"),
+        ("(", ")"),
+    ]
+    _BRACKET_OPENERS = {pair[0] for pair in _BRACKET_PAIRS}
+    _BRACKET_CLOSERS = {pair[1] for pair in _BRACKET_PAIRS}
+    _BRACKET_ALL = _BRACKET_OPENERS | _BRACKET_CLOSERS
+
     def _repair_quotes(self, original: str, translated: str) -> str:
         """
         统一引号修复入口，按优先级处理三类问题：
@@ -168,6 +193,48 @@ class TextSymbolRepair:
             return completed
 
         return translated
+
+    def _repair_annotations(self, original: str, translated: str) -> str:
+        """删除译文中的「额外批注」。
+
+        当原文完全没有括号时，译文里出现的括号及括号内文本视为 AI 额外添加的
+        批注，整段删除（含括号本身）。支持同类型括号嵌套；孤立的不成对括号
+        （只有左括号或只有右括号）也一并删除。
+        """
+        if any(char in self._BRACKET_ALL for char in original):
+            return translated
+
+        close_for = dict(self._BRACKET_PAIRS)
+        result = []
+        i = 0
+        length = len(translated)
+        while i < length:
+            char = translated[i]
+            if char in self._BRACKET_OPENERS:
+                close = close_for[char]
+                # 寻找配对闭合括号，支持同类型嵌套
+                depth = 1
+                j = i + 1
+                while j < length:
+                    current = translated[j]
+                    if current == char:
+                        depth += 1
+                    elif current == close:
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    j += 1
+                if depth == 0:
+                    i = j + 1  # 删除整个括号段（含括号本身）
+                    continue
+                i += 1  # 孤立的左括号：删除
+                continue
+            if char in self._BRACKET_CLOSERS:
+                i += 1  # 孤立的右括号：删除
+                continue
+            result.append(char)
+            i += 1
+        return "".join(result)
 
     def _strip_invented_quotes(self, translated: str) -> str:
         """删除译文中凭空出现的引号（原文没有引号时）。"""
