@@ -2,7 +2,7 @@ from typing import Any
 import rapidjson as json
 
 from PyQt5.QtCore import QPoint, Qt, QTimer
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QHeaderView,
     QSplitter,
     QStackedWidget,
+    QTableWidget,
     QTableWidgetItem,
     QTreeWidgetItem,
     QVBoxLayout,
@@ -22,6 +23,7 @@ from qfluentwidgets import (
     CardWidget,
     ComboBox,
     FluentIcon as FIF,
+    LineEdit,
     MessageBox,
     MessageBoxBase,
     PrimaryPushButton,
@@ -84,6 +86,198 @@ class AnalysisCategorySelectDialog(MessageBoxBase):
             return self._categories[0]
 
         return self._categories[index]
+
+
+class PublicTableImportDialog(MessageBoxBase):
+    """公共表导入选择对话框：支持关键词筛选与多选。
+
+    candidates 为已转换为当前分析表格式的行（字典列表），
+    existing_keys 为当前项目中已有的键，对应行灰显且不可选中。
+    """
+
+    def __init__(
+        self,
+        parent,
+        view_name: str,
+        candidates: list[dict],
+        existing_keys: set[str],
+        translate,
+    ) -> None:
+        super().__init__(parent)
+        self._view_name = view_name
+        self._candidates = list(candidates)
+        self._existing_keys = set(existing_keys)
+        self._translate = translate
+
+        self.yesButton.setText(translate("导入"))
+        self.cancelButton.setText(translate("取消"))
+        self.setMinimumWidth(640)
+        self.viewLayout.setContentsMargins(16, 16, 16, 16)
+        self.viewLayout.setSpacing(10)
+
+        title = StrongBodyLabel(
+            translate("从公共表导入 - {0}").format(self._get_view_title()),
+            self,
+        )
+        self.viewLayout.addWidget(title)
+
+        # 搜索框（关键词筛选）
+        self.search_input = LineEdit(self)
+        self.search_input.setPlaceholderText(translate("搜索原文、译文、分类或备注..."))
+        self.search_input.setClearButtonEnabled(True)
+        self.search_input.textChanged.connect(self._apply_filter)
+        self.viewLayout.addWidget(self.search_input)
+
+        # 多选表格
+        headers = self._build_headers()
+        self.table = QTableWidget(self)
+        self.table.setColumnCount(len(headers))
+        self.table.setHorizontalHeaderLabels(headers)
+        self.table.verticalHeader().hide()
+        self.table.setAlternatingRowColors(True)
+        self.table.setWordWrap(True)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setMinimumHeight(320)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.itemSelectionChanged.connect(self._update_status_label)
+        self.viewLayout.addWidget(self.table)
+
+        # 底部：全选 + 状态提示
+        bottom_bar = QHBoxLayout()
+        bottom_bar.setContentsMargins(0, 0, 0, 0)
+        bottom_bar.setSpacing(8)
+        self.select_all_button = TransparentPushButton(translate("全选"), self)
+        self.select_all_button.setFixedHeight(28)
+        self.select_all_button.clicked.connect(self._select_all_filtered)
+        bottom_bar.addWidget(self.select_all_button)
+        self.existing_hint_label = CaptionLabel(translate("灰色行已存在于项目中。"), self)
+        self.existing_hint_label.setStyleSheet("color: #7A7A7A;")
+        bottom_bar.addWidget(self.existing_hint_label)
+        bottom_bar.addStretch(1)
+        self.status_label = CaptionLabel("", self)
+        bottom_bar.addWidget(self.status_label)
+        self.viewLayout.addLayout(bottom_bar)
+
+        self._apply_filter()
+
+    def _get_view_title(self) -> str:
+        return {
+            "characters": self._translate("角色表"),
+            "terms": self._translate("术语表"),
+            "non_translate": self._translate("禁翻表"),
+        }.get(self._view_name, self._translate("角色表"))
+
+    def _build_headers(self) -> list[str]:
+        if self._view_name == "characters":
+            return [
+                self._translate("原文"),
+                self._translate("推荐译名"),
+                self._translate("性别"),
+                self._translate("备注"),
+            ]
+        if self._view_name == "terms":
+            return [
+                self._translate("原文"),
+                self._translate("推荐译名"),
+                self._translate("分类"),
+                self._translate("备注"),
+            ]
+        return [
+            self._translate("原文"),
+            self._translate("分类"),
+            self._translate("备注"),
+        ]
+
+    def _display_values(self, row: dict) -> list[str]:
+        if self._view_name == "characters":
+            return [
+                str(row.get("source", "") or ""),
+                str(row.get("recommended_translation", "") or ""),
+                str(row.get("gender", "") or ""),
+                str(row.get("note", "") or ""),
+            ]
+        if self._view_name == "terms":
+            return [
+                str(row.get("source", "") or ""),
+                str(row.get("recommended_translation", "") or ""),
+                str(row.get("category_path", "") or ""),
+                str(row.get("note", "") or ""),
+            ]
+        return [
+            str(row.get("marker", "") or ""),
+            str(row.get("category", "") or ""),
+            str(row.get("note", "") or ""),
+        ]
+
+    def _row_identity(self, row: dict) -> str:
+        return str(row.get("source", "") or row.get("marker", "") or "").strip()
+
+    def _is_existing(self, row: dict) -> bool:
+        return self._row_identity(row) in self._existing_keys
+
+    def _apply_filter(self, *_) -> None:
+        keyword = self.search_input.text().strip().lower()
+        self.table.setRowCount(0)
+        for index, row in enumerate(self._candidates):
+            searchable_text = " ".join(self._display_values(row)).lower()
+            if keyword and keyword not in searchable_text:
+                continue
+
+            row_index = self.table.rowCount()
+            self.table.insertRow(row_index)
+            values = self._display_values(row)
+            for column, value in enumerate(values):
+                item = QTableWidgetItem(value)
+                item.setData(Qt.UserRole, index)
+                if self._is_existing(row):
+                    # 已存在于项目中的行灰显且不可选中
+                    item.setFlags(item.flags() & ~Qt.ItemIsSelectable)
+                    item.setForeground(QBrush(QColor("#8A9099")))
+                self.table.setItem(row_index, column, item)
+        self._update_status_label()
+
+    def _select_all_filtered(self) -> None:
+        self.table.clearSelection()
+        for row_index in range(self.table.rowCount()):
+            item = self.table.item(row_index, 0)
+            if not item:
+                continue
+            index = item.data(Qt.UserRole)
+            if index is None or index < 0 or index >= len(self._candidates):
+                continue
+            if self._is_existing(self._candidates[index]):
+                continue
+            self.table.selectRow(row_index)
+
+    def _update_status_label(self, *_) -> None:
+        total = self.table.rowCount()
+        selected = 0
+        if self.table.selectionModel():
+            selected = len(self.table.selectionModel().selectedRows())
+        self.status_label.setText(
+            self._translate("共 {0} 条，已选 {1} 条").format(total, selected)
+        )
+
+    def selected_rows(self) -> list[dict]:
+        rows = []
+        if not self.table.selectionModel():
+            return rows
+
+        for model_index in self.table.selectionModel().selectedRows():
+            item = self.table.item(model_index.row(), 0)
+            if not item:
+                continue
+            index = item.data(Qt.UserRole)
+            if index is None or index < 0 or index >= len(self._candidates):
+                continue
+            row = self._candidates[index]
+            if self._is_existing(row):
+                continue
+            rows.append(row)
+        return rows
 
 
 class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
@@ -1582,6 +1776,31 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if not key:
             return
 
+        # 构建候选行（公共表内部按原文键去重）
+        candidates = []
+        seen_keys = set()
+        for public_row in public_rows:
+            analysis_row = self._build_analysis_row_from_public(self.current_view, public_row)
+            if not analysis_row:
+                continue
+
+            row_key = self._get_row_key(self.current_view, analysis_row)
+            if not row_key or row_key in seen_keys:
+                continue
+
+            seen_keys.add(row_key)
+            candidates.append(analysis_row)
+
+        if not candidates:
+            self.info_toast(
+                self.tra("提示"),
+                self.tra("公共表中没有可导入的{0}内容。").format(
+                    self._get_view_display_name(self.current_view)
+                ),
+            )
+            return
+
+        # 项目中已有的键，在对话框中灰显且不可选中
         target_rows = list(self.analysis_data.get(key, []) or [])
         existing_keys = {
             self._get_row_key(self.current_view, row)
@@ -1589,18 +1808,29 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             if self._get_row_key(self.current_view, row)
         }
 
+        dialog = PublicTableImportDialog(
+            self.window(),
+            self.current_view,
+            candidates,
+            existing_keys,
+            self.tra,
+        )
+        if not dialog.exec():
+            return
+
+        selected_rows = dialog.selected_rows()
+        if not selected_rows:
+            return
+
         added_count = 0
-        for public_row in public_rows:
-            new_row = self._build_analysis_row_from_public(self.current_view, public_row)
-            if not new_row:
+        current_keys = set(existing_keys)
+        for analysis_row in selected_rows:
+            row_key = self._get_row_key(self.current_view, analysis_row)
+            if not row_key or row_key in current_keys:
                 continue
 
-            row_key = self._get_row_key(self.current_view, new_row)
-            if not row_key or row_key in existing_keys:
-                continue
-
-            target_rows.append(new_row)
-            existing_keys.add(row_key)
+            target_rows.append(analysis_row)
+            current_keys.add(row_key)
             added_count += 1
 
         if added_count <= 0:
