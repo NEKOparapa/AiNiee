@@ -27,6 +27,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
             "few_shot_and_example_switch": True,
             "auto_process_text_code_segment": False,
             "text_symbol_repair_switch": False,
+            "character_name_unify_switch": False,
             "response_check_switch": {
                 "return_to_original_text_check": True,
                 "residual_original_text_check": True,
@@ -48,6 +49,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         self.container.addWidget(HorizontalSeparator())
         self.add_auto_process_text_code_segment(self.container, config)
         self.add_widget_text_symbol_repair(self.container, config)
+        self.add_widget_character_name_unify(self.container, config)
         self.add_widget_language_filter(self.container, config)
         self.add_widget_code_filter(self.container, config)
         self.add_widget_few_shot_and_example(self.container, config)
@@ -173,6 +175,25 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
             SwitchButtonCard(
                 self.tra("自动修复标点符号"),
                 self.tra("启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，适合日语翻译流程。"),
+                widget_init,
+                widget_callback,
+            )
+        )
+
+    # 统一称呼翻译（默认关闭）
+    def add_widget_character_name_unify(self, parent, config) -> None:
+        def widget_init(widget) -> None:
+            widget.set_checked(config.get("character_name_unify_switch", False))
+
+        def widget_callback(widget, checked: bool) -> None:
+            config = self.load_config()
+            config["character_name_unify_switch"] = checked
+            self.save_config(config)
+
+        parent.addWidget(
+            SwitchButtonCard(
+                self.tra("统一称呼翻译"),
+                self.tra("默认关闭，可在本设置中手动开启。开启后，将以角色表中的本名为锚点，扫描全项目原文中的称呼变体（本名+敬称，如 空太先輩、空太くん），并在翻译提示词中要求同一角色（含敬称）必须复用本名推荐译名、同一称呼全文只能使用一种译法，避免「前辈/学姐」等译法混用。"),
                 widget_init,
                 widget_callback,
             )
