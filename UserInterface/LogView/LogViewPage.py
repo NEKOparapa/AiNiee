@@ -17,7 +17,7 @@ from ModuleFolders.Log.LogSystem import get_gui_handler
 from UserInterface.Widget.Toast import ToastMixin
 
 
-_MAX_LINES = 5000
+_MAX_LINES = 2000
 _MAX_HIGHLIGHTS = 500
 _PROGRESS_BAR_SIZE = 6
 
