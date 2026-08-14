@@ -1,7 +1,7 @@
 from typing import Any
 import rapidjson as json
 
-from PyQt5.QtCore import QPoint, Qt, QTimer
+from PyQt5.QtCore import QItemSelectionModel, QPoint, Qt, QTimer
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5.QtWidgets import (
     QAbstractItemView,
@@ -241,6 +241,11 @@ class PublicTableImportDialog(MessageBoxBase):
 
     def _select_all_filtered(self) -> None:
         self.table.clearSelection()
+        selection_model = self.table.selectionModel()
+        if not selection_model:
+            return
+
+        # 逐行累加选中（selectRow 会先清空已有选中，不能用于多选）
         for row_index in range(self.table.rowCount()):
             item = self.table.item(row_index, 0)
             if not item:
@@ -250,7 +255,10 @@ class PublicTableImportDialog(MessageBoxBase):
                 continue
             if self._is_existing(self._candidates[index]):
                 continue
-            self.table.selectRow(row_index)
+            selection_model.select(
+                self.table.model().index(row_index, 0),
+                QItemSelectionModel.Select | QItemSelectionModel.Rows,
+            )
 
     def _update_status_label(self, *_) -> None:
         total = self.table.rowCount()
