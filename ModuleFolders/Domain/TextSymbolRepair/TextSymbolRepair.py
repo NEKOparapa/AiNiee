@@ -12,8 +12,9 @@ class TextSymbolRepair:
     2. 所有标点替换均为「条件替换」：仅当原文确实使用了对应符号时，
        才把译文中出现的替代符号还原为原文符号。
     3. 成对引号（「」『』“”‘’）支持首尾包裹与内部成对两种还原。
-    4. 原文完全没有括号时，删除译文中「括号及括号内文本」——AI 额外添加的批注
-       （如（译者注：…）、【补充说明】等），防止无中生有。
+    4. 原文完全没有括号时，删除译文中「批注型括号段」——AI 额外添加的注释
+       （如（译者注：…）、【补充说明】等）。仅当括号段内部文本命中批注模式
+       （见 _ANNOTATION_PATTERNS）才删除，普通括号内容一律保留，防止误删。
     """
 
     # 需要整体屏蔽、不做任何修改的片段
@@ -156,8 +157,9 @@ class TextSymbolRepair:
     # 「无中生有」删除集：原文完全没有引号时，删除译文中凭空出现的引号
     _STRIP_QUOTES = set('「」『』“”‘’"')
 
-    # 批注括号对：原文完全没有括号时，删除译文中「括号及括号内文本」
-    # （AI 额外添加的批注，如（译者注：…）、【补充说明】等）
+    # 批注括号对：原文完全没有括号时，仅当译文括号段内部文本命中
+    # _ANNOTATION_PATTERNS（如（译者注：…）、【补充说明】）才删除整个括号段；
+    # 其余括号（普通说明、孤立括号等）一律保留。
     # 不含《》〈〉（书名号/角括号，可能是译文有意引用的标题），也不含 [] {}
     # （占位符 [P1] / 花括号 {0} 等由屏蔽阶段保护，[] 可能出现在游戏标签等合法内容中）
     _BRACKET_PAIRS = [
@@ -170,6 +172,19 @@ class TextSymbolRepair:
     _BRACKET_OPENERS = {pair[0] for pair in _BRACKET_PAIRS}
     _BRACKET_CLOSERS = {pair[1] for pair in _BRACKET_PAIRS}
     _BRACKET_ALL = _BRACKET_OPENERS | _BRACKET_CLOSERS
+
+    # 批注识别模式：译文括号段内部文本命中任一模式，才判定为「AI 额外添加的批注」。
+    # 维护提示：增删/调整批注判定只需改这个元组，其余逻辑无需改动。
+    _ANNOTATION_PATTERNS = (
+        # 1) 关键词 + 冒号 + 内容：如（译者注：…）【补充说明：…】(Note: …)
+        re.compile(r"^(译者注|译注|注释|备注|补充说明|补充|说明|注)\s*[：:]\s*\S"),
+        # 2) 括号内就是关键词本身：如（注）【补充】（译者注）
+        re.compile(r"^(译者注|译注|注释|备注|补充说明|补充|说明|注)$"),
+        # 3) 以“注/记”结尾的固定搭配：如（作者注）（编者注）（注记）
+        re.compile(r"^(作者注|编者注|译者注|注记)$"),
+        # 4) 英文批注：(TL: …) (t/n: …) (Note: …) (translator's note)
+        re.compile(r"^(tl|t/n|tn|note|translator['’]?s?\s+note)\b", re.IGNORECASE),
+    )
 
     def _repair_quotes(self, original: str, translated: str) -> str:
         """
@@ -195,11 +210,12 @@ class TextSymbolRepair:
         return translated
 
     def _repair_annotations(self, original: str, translated: str) -> str:
-        """删除译文中的「额外批注」。
+        """删除译文中的「AI 额外添加的批注」。
 
-        当原文完全没有括号时，译文里出现的括号及括号内文本视为 AI 额外添加的
-        批注，整段删除（含括号本身）。支持同类型括号嵌套；孤立的不成对括号
-        （只有左括号或只有右括号）也一并删除。
+        仅当原文完全没有括号，且译文括号段内部文本命中 _ANNOTATION_PATTERNS
+        时，才删除整个括号段（含括号本身）。其余括号一律保留——包括普通括号
+        说明、孤立的不成对括号等，避免误删译文中有意保留的内容。
+        支持同类型括号嵌套：命中批注模式的整段删除。
         """
         if any(char in self._BRACKET_ALL for char in original):
             return translated
@@ -224,17 +240,29 @@ class TextSymbolRepair:
                         if depth == 0:
                             break
                     j += 1
+
                 if depth == 0:
-                    i = j + 1  # 删除整个括号段（含括号本身）
+                    if self._is_annotation(translated[i + 1:j]):
+                        i = j + 1  # 命中批注模式：删除整个括号段（含括号本身）
+                        continue
+                    # 非批注：整段保留，不再扫描其内部
+                    result.append(translated[i:j + 1])
+                    i = j + 1
                     continue
-                i += 1  # 孤立的左括号：删除
-                continue
-            if char in self._BRACKET_CLOSERS:
-                i += 1  # 孤立的右括号：删除
+                # 孤立的左括号（无配对闭合）：保留，不删除
+                result.append(char)
+                i += 1
                 continue
             result.append(char)
             i += 1
         return "".join(result)
+
+    def _is_annotation(self, inner: str) -> bool:
+        """判断括号段内部文本是否为批注（命中任一 _ANNOTATION_PATTERNS 模式）。"""
+        content = inner.strip()
+        if not content:
+            return False
+        return any(pattern.search(content) for pattern in self._ANNOTATION_PATTERNS)
 
     def _strip_invented_quotes(self, translated: str) -> str:
         """删除译文中凭空出现的引号（原文没有引号时）。"""
