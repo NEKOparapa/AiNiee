@@ -126,16 +126,21 @@ def _gui_rows_from_rich_table(value):
         row = []
         for cells in cells_by_column:
             cell = cells[row_index] if row_index < len(cells) else ""
-            row.append(redact(_plain_markup(cell)))
+            row.append(_plain_markup(cell))
         rows.append(row)
-    return rows
+    # 在 LogRecord 创建前即限制表格，避免 worker 线程短时间积压时仍保留完整
+    # 模型思考/回复的副本。GUI handler 还会再次防御性检查外部日志记录。
+    return _log_system._bound_gui_rows(rows)
 
 
 def _prepare_message(value):
     text = redact(_log_text(value))
-    gui_text = _gui_text_from_rich(text) if _is_rich_renderable(value) else text
-    gui_style = _gui_style_from_rich(value) if _is_rich_renderable(value) else ""
-    gui_rows = _gui_rows_from_rich_table(value) if _is_rich_renderable(value) else None
+    is_rich = _is_rich_renderable(value)
+    gui_rows = _gui_rows_from_rich_table(value) if is_rich else None
+    # 表格已有结构化 rows，渲染时不会使用 gui_text；不再额外构造一份完整富文本。
+    gui_text = "" if gui_rows else (_gui_text_from_rich(text) if is_rich else text)
+    gui_text = _log_system._bound_gui_text(gui_text)
+    gui_style = _gui_style_from_rich(value) if is_rich else ""
     return _console_text(text), text, gui_text, gui_style, gui_rows
 
 

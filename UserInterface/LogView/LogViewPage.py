@@ -18,8 +18,10 @@ from UserInterface.Widget.Toast import ToastMixin
 
 
 _MAX_LINES = 2000
+_MAX_RECORDS = 200
 _MAX_HIGHLIGHTS = 500
 _PROGRESS_BAR_SIZE = 6
+_TASK_LOG_SPACING_PX = 40
 
 _DARK_COLORS = {
     "SURFACE": "#11161d",
@@ -96,8 +98,10 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         super().__init__(window)
         self.setObjectName(text.replace(" ", "-"))
 
-        self._buffer: deque = deque(maxlen=_MAX_LINES)
-        self._pending: deque = deque(maxlen=_MAX_LINES)
+        # 一条日志记录可能是包含上百行的富文本表格，不能把“记录数”误当成
+        # “显示行数”。记录缓冲和 QTextDocument 行数分别限流。
+        self._buffer: deque = deque(maxlen=_MAX_RECORDS)
+        self._pending: deque = deque(maxlen=_MAX_RECORDS)
         self._pending_lock = threading.Lock()
         self._auto_scroll = True
         self._filter_level = "ALL"
@@ -145,6 +149,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         # 主体：等宽只读 QTextEdit
         self.text_edit = QTextEdit(self)
         self.text_edit.setReadOnly(True)
+        self.text_edit.document().setMaximumBlockCount(_MAX_LINES)
         self.text_edit.setLineWrapMode(QTextEdit.WidgetWidth)
         self.text_edit.setWordWrapMode(QTextOption.WrapAnywhere)
         self.text_edit.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -434,6 +439,10 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             f'style="border-color:{border_color};">'
             + "".join(table_rows)
             + "</table>"
+            + (
+                '<p style="margin:0; padding:0; font-size:{0}px; '
+                'line-height:{0}px;">&nbsp;</p>'
+            ).format(_TASK_LOG_SPACING_PX)
         )
         self.text_edit.append(html)
 
