@@ -33,6 +33,7 @@ class EpubReader(BaseSourceReader):
         ("heading", r"<h[1-7]\b[^>]*>(.*?)</h[1-7]>", []),
         ("li", r"<li\b[^>]*>(.*?)</li>", ['p']), # 有些p标签内容嵌套在li标签里
         ("p", r"<p\b[^>]*>(.*?)</p>", []),
+        ("section", r"<section\b[^>]*>(.*?)</section>", []),
 
         ("blockquote", r"<blockquote\b[^>]*>(.*?)</blockquote>", []),
         ("text", r"<text\b[^>]*>(.*?)</text>", []),
