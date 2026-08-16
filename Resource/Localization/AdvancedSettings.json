@@ -108,6 +108,18 @@
       "English": "When enabled, do-not-translate content is extracted automatically. Review and filter the results to avoid reducing translation efficiency.",
       "日本語": "有効にすると、テキスト内の翻訳禁止内容を自動抽出します。翻訳効率への影響を避けるため、確認と絞り込みが必要です。"
     },
+    "自动合并长短名称": {
+      "简中": "自动合并长短名称",
+      "繁中": "自動合併長短名稱",
+      "English": "Automatically Merge Long and Short Names",
+      "日本語": "長い名前と短い名前を自動統合"
+    },
+    "例如同时提取到“亚瑟”和“亚瑟王”时，开启后会合并为一项，关闭后会分别保留": {
+      "简中": "例如同时提取到“亚瑟”和“亚瑟王”时，开启后会合并为一项，关闭后会分别保留",
+      "繁中": "例如同時提取到「亞瑟」和「亞瑟王」時，開啟後會合併為一項，關閉後會分別保留",
+      "English": "For example, if both “Arthur” and “King Arthur” are extracted, enabling this option merges them into one entry; disabling it keeps them separate.",
+      "日本語": "たとえば「アーサー」と「アーサー王」の両方が抽出された場合、有効にすると1件にまとめ、無効にすると別々に保持します。"
+    },
     "只影响润色流程的上文参考行数": {
       "简中": "只影响润色流程的上文参考行数",
       "繁中": "只影響潤色流程的上文參考行數",

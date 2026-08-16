@@ -380,23 +380,47 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                     "gender": "", "category_path": str(row.get("category_path", "")).strip(), "note": str(row.get("note", "")).strip(),
                 })
 
-        sorted_sources = sorted(raw_grouped_inputs.keys(), key=lambda s: (-len(s), s))
-        grouped_inputs, source_aliases, consumed_sources = {}, {}, set()
+        enable_short_name_merge = bool(
+            getattr(self.config, "extract_short_name_merge_switch", True)
+        )
 
-        for source in sorted_sources:
-            if source in consumed_sources: continue
-            merged_group = {"source": source, "merged_sources": [source], "candidates": list(raw_grouped_inputs[source].get("candidates", []))}
-            grouped_inputs[source] = merged_group
-            source_aliases[source] = source
-            consumed_sources.add(source)
+        if not enable_short_name_merge:
+            grouped_inputs = {
+                source: {
+                    "source": source,
+                    "merged_sources": [source],
+                    "candidates": list(grouped_item.get("candidates", [])),
+                }
+                for source, grouped_item in raw_grouped_inputs.items()
+            }
+            source_aliases = {source: source for source in grouped_inputs}
+        else:
+            sorted_sources = sorted(raw_grouped_inputs.keys(), key=lambda s: (-len(s), s))
+            grouped_inputs, source_aliases, consumed_sources = {}, {}, set()
 
-            for other_source in sorted_sources:
-                if other_source in consumed_sources or other_source == source: continue
-                if other_source in source:  # 短 source 挂靠
-                    merged_group["merged_sources"].append(other_source)
-                    merged_group["candidates"].extend(raw_grouped_inputs[other_source].get("candidates", []))
-                    source_aliases[other_source] = source
-                    consumed_sources.add(other_source)
+            for source in sorted_sources:
+                if source in consumed_sources:
+                    continue
+
+                merged_group = {
+                    "source": source,
+                    "merged_sources": [source],
+                    "candidates": list(raw_grouped_inputs[source].get("candidates", [])),
+                }
+                grouped_inputs[source] = merged_group
+                source_aliases[source] = source
+                consumed_sources.add(source)
+
+                for other_source in sorted_sources:
+                    if other_source in consumed_sources or other_source == source:
+                        continue
+                    if other_source in source:  # 短 source 挂靠
+                        merged_group["merged_sources"].append(other_source)
+                        merged_group["candidates"].extend(
+                            raw_grouped_inputs[other_source].get("candidates", [])
+                        )
+                        source_aliases[other_source] = source
+                        consumed_sources.add(other_source)
 
         self.grouped_stage_two_inputs = grouped_inputs
         self.grouped_stage_two_source_aliases = source_aliases
