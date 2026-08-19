@@ -890,6 +890,57 @@ class PromptBuilder(Base):
         return the_profile
 
 
+    # 生成"翻译风格上下文"附录：把翻译流程注入 system prompt 的全部自定义内容打包，供其他流程（如提取）复用
+    @staticmethod
+    def build_translation_style_addendum(config: TaskConfig, input_dict: dict, source_lang: str) -> str:
+        sections: list[str] = []
+
+        selected_id = config.translation_prompt_selection.get("last_selected_id")
+        preset_ids = (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK, PromptBuilderEnum.LOCAL)
+        if selected_id not in preset_ids:
+            custom_prompt = config.translation_prompt_selection.get("prompt_content", "")
+            if custom_prompt:
+                custom_prompt = PromptBuilder._replace_language_placeholders(custom_prompt, config, source_lang).strip()
+                if custom_prompt:
+                    sections.append("\n###当前翻译流程使用的自定义提示词\n" + custom_prompt)
+
+        if getattr(config, "prompt_dictionary_switch", False):
+            glossary = PromptBuilder.build_glossary_prompt(config, input_dict)
+            if glossary:
+                sections.append(glossary)
+
+        if getattr(config, "characterization_switch", False):
+            characterization = PromptBuilder.build_characterization(config, input_dict)
+            if characterization:
+                sections.append(characterization)
+
+        if getattr(config, "world_building_switch", False):
+            world_building = PromptBuilder.build_world_building(config)
+            if world_building:
+                sections.append(world_building)
+
+        if getattr(config, "writing_style_switch", False):
+            writing_style = PromptBuilder.build_writing_style(config)
+            if writing_style:
+                sections.append(writing_style)
+
+        if getattr(config, "translation_example_switch", False):
+            translation_example = PromptBuilder.build_translation_example(config)
+            if translation_example:
+                sections.append(translation_example)
+
+        if not sections:
+            return ""
+
+        header = (
+            "\n\n###以下是当前翻译流程使用的风格与规则约束，请在生成 recommended_translation 时严格遵循（命名/术语/写作风格等）。\n"
+            "【优先级声明（重要）】本节规则的优先级高于上下文中的所有 few-shot 示例和"
+            "“都必须写成 XX 语言”之类的兜底指令。当冲突发生时，以本节规则为准——尤其是命名规则。"
+            "few-shot 示例仅用于说明 JSON 输出结构，不代表译名风格。"
+        )
+        return header + "".join(sections)
+
+
     # 生成信息结构 - 通用
     def generate_prompt(config, source_text_dict: dict, previous_text_list: list[str], source_lang) -> tuple[list[dict], str, list[str]]:
         # 储存指令
