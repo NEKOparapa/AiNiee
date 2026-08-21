@@ -12,8 +12,57 @@ class OpenaiRequester(LogMixin, Base):
     def __init__(self) -> None:
         pass
 
+    # 识别火山方舟接口，并映射该平台的思考参数；非火山接口返回 None
+    def _apply_volcengine_thinking_params(
+        self,
+        base_params: dict,
+        platform_config: dict,
+    ) -> dict | None:
+        target_platform = str(
+            platform_config.get("target_platform") or platform_config.get("tag") or ""
+        ).lower()
+        api_url = str(platform_config.get("api_url") or "").lower()
+        is_volcengine = (
+            target_platform.startswith("volcengine")
+            or "volces.com" in api_url
+            or "volcengine" in api_url
+        )
+        if not is_volcengine:
+            return None
+
+        params = copy.deepcopy(base_params)
+        raw_extra_body = params.get("extra_body", {})
+        extra_body = (
+            copy.deepcopy(raw_extra_body)
+            if isinstance(raw_extra_body, dict)
+            else {}
+        )
+        params["extra_body"] = extra_body
+
+        think_switch = bool(platform_config.get("think_switch"))
+        think_depth = platform_config.get("think_depth") or "medium"
+        valid_efforts = {"low", "medium", "high", "xhigh", "max"}
+        reasoning_effort = think_depth if think_depth in valid_efforts else "medium"
+
+        raw_thinking = extra_body.get("thinking", {})
+        thinking = copy.deepcopy(raw_thinking) if isinstance(raw_thinking, dict) else {}
+        thinking["type"] = "enabled" if think_switch else "disabled"
+        extra_body["thinking"] = thinking
+
+        # 清理自定义请求体或调用方遗留的同名字段，避免与界面设置冲突。
+        params.pop("reasoning_effort", None)
+        extra_body.pop("reasoning_effort", None)
+        if think_switch:
+            params["reasoning_effort"] = reasoning_effort
+
+        return params
+
     # 根据 OpenAI 兼容平台的差异，按需添加各自支持的思考参数
     def apply_platform_thinking_params(self, base_params: dict, platform_config: dict) -> dict:
+        volcengine_params = self._apply_volcengine_thinking_params(base_params, platform_config)
+        if volcengine_params is not None:
+            return volcengine_params
+
         params = copy.deepcopy(base_params)
 
         target_platform = str(platform_config.get("target_platform") or "").lower()
@@ -54,17 +103,6 @@ class OpenaiRequester(LogMixin, Base):
         # 如果是xAI 平台----
         if target_platform.startswith("xai") or "api.x.ai" in api_url:
             # xAI Chat Completions 当前不使用 extra_body.thinking 这种参数形状
-            return params
-
-        # 如果是火山方舟平台----
-        if (
-            target_platform.startswith("volcengine")
-            or "volces.com" in api_url
-            or "volcengine" in api_url
-        ):
-            # 思考参数放在 extra_body.thinking 中
-            if "doubao" in model_name_lower or "deepseek" in model_name_lower:
-                extra_body["thinking"] = {"type": "enabled"}
             return params
 
         # 如果是智谱平台---- 

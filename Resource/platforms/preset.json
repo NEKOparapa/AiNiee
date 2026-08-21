@@ -257,7 +257,9 @@
                 "api_key",
                 "model",
                 "rpm_limit",
-                "temperature"
+                "temperature",
+                "think_switch",
+                "think_depth"
             ]
         },
         "dashscope": {

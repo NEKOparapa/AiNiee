@@ -23,6 +23,19 @@ from UserInterface.Widget.SpinCard import SpinCard
 
 class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
+    @staticmethod
+    def is_volcengine_platform(key: str, platform: dict) -> bool:
+        platform = platform if isinstance(platform, dict) else {}
+        key = str(key or "").lower()
+        tag = str(platform.get("tag") or "").lower()
+        api_url = str(platform.get("api_url") or "").lower()
+        return (
+            key.startswith("volcengine")
+            or tag.startswith("volcengine")
+            or "volces.com" in api_url
+            or "volcengine" in api_url
+        )
+
     def __init__(self, window, key):
         super().__init__(window)
 
@@ -37,7 +50,9 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         # 载入配置文件
         config = self.load_config()
         preset = self.load_file(platform_preset_path())
-        settings = config.get("platforms").get(self.key).get("key_in_settings")
+        platform = config.get("platforms").get(self.key)
+        settings = platform.get("key_in_settings") or []
+        is_volcengine = self.is_volcengine_platform(self.key, platform)
 
         # 设置主布局
         self.viewLayout.setContentsMargins(0, 0, 0, 0)
@@ -72,15 +87,19 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         if "temperature" in settings:
             self.add_widget_temperature(self.vbox, config, preset)
 
-        # think_switch
-        if "think_switch" in settings:
+        # think_switch。火山方舟旧实例的 key_in_settings 可能尚未包含该字段，
+        # 因此按平台族补充显示，但仍保存到通用 think_switch。
+        if "think_switch" in settings or is_volcengine:
             self.add_widget_think_switch(self.vbox, config)
 
         # 获取接口格式以进行条件渲染
         api_format = config.get("platforms").get(self.key).get("api_format")
 
         # think_depth - 仅在格式为 OpenAI 或 Anthropic 时显示
-        if "think_depth" in settings and api_format in ["OpenAI", "Anthropic"]:
+        if (
+            ("think_depth" in settings or is_volcengine)
+            and api_format in ["OpenAI", "Anthropic"]
+        ):
             self.add_widget_think_depth(self.vbox, config)
 
         # Google 格式的思考参数配置 - 根据模型版本互斥显示
@@ -138,7 +157,7 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
     # 思考开关
     def add_widget_think_switch(self, parent, config):
         def init(widget):
-            widget.set_checked(config.get("platforms").get(self.key).get("think_switch"))
+            widget.set_checked(config.get("platforms").get(self.key).get("think_switch", True))
 
         def checked_changed(widget, checked: bool):
             config = self.load_config()
@@ -159,8 +178,12 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         def init(widget):
             platform = config.get("platforms").get(self.key)
 
-            widget.set_items(["low","medium","high","xhigh"])
-            widget.set_current_index(max(0, widget.find_text(platform.get("think_depth"))))
+            items = ["low", "medium", "high", "xhigh"]
+            widget.set_items(items)
+            current = platform.get("think_depth", "medium")
+            if current not in items:
+                current = "medium"
+            widget.set_current_index(widget.find_text(current))
 
         def current_text_changed(widget, text: str):
             config = self.load_config()
