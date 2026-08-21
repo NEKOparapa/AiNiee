@@ -22,22 +22,57 @@ class AmazonbedrockRequester(LogMixin, Base):
         try:
             model_name:str = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
-            temperature = platform_config.get("temperature", 1.0)
 
             # 从工厂获取客户端
             client = LLMClientFactory().get_anthropic_bedrock(platform_config)
 
-            response = client.messages.create(
-                model=model_name,
-                system=system_prompt,
-                messages=messages,
-                temperature=temperature,
-                timeout=request_timeout,
-                max_tokens=ModelConfigHelper.get_claude_max_output_tokens(model_name),
-            )
+            max_tokens = ModelConfigHelper.get_claude_max_output_tokens(model_name)
+            think_switch = bool(platform_config.get("think_switch"))
+            think_depth = platform_config.get("think_depth") or "medium"
 
-            # 提取回复的文本内容
-            response_content = response.content[0].text
+            if (
+                messages
+                and isinstance(messages[-1], dict)
+                and messages[-1].get("role") == "assistant"
+            ):
+                messages = messages[:-1]
+
+            request_params = {
+                "model": model_name,
+                "system": system_prompt,
+                "messages": messages,
+                "timeout": request_timeout,
+                "max_tokens": max_tokens,
+            }
+
+            if think_switch:
+                request_params["thinking"] = {
+                    "type": "adaptive",
+                    "display": "summarized",
+                }
+                request_params["output_config"] = {
+                    "effort": think_depth
+                    if think_depth in {"low", "medium", "high", "xhigh", "max"}
+                    else "medium"
+                }
+            elif not ModelConfigHelper.is_claude_always_thinking_model(model_name):
+                request_params["thinking"] = {"type": "disabled"}
+
+            response = client.messages.create(**request_params)
+
+            thinking_parts = []
+            content_parts = []
+            for block in response.content:
+                block_type = getattr(block, "type", "")
+                if block_type == "thinking":
+                    thinking_text = getattr(block, "thinking", "")
+                    if thinking_text:
+                        thinking_parts.append(thinking_text)
+                elif block_type == "text":
+                    content_parts.append(block.text)
+
+            response_think = "".join(thinking_parts)
+            response_content = "".join(content_parts)
         except Exception as e:
             if Base.work_status == Base.STATUS.STOPING:
                 return True, None, None, None, None
@@ -46,23 +81,22 @@ class AmazonbedrockRequester(LogMixin, Base):
 
         # 获取指令消耗
         try:
-            prompt_tokens = int(response.usage.prompt_tokens)
+            prompt_tokens = int(response.usage.input_tokens)
         except Exception:
             prompt_tokens = 0
 
         # 获取回复消耗
         try:
-            completion_tokens = int(response.usage.completion_tokens)
+            completion_tokens = int(response.usage.output_tokens)
         except Exception:
             completion_tokens = 0
 
-        return False, "", response_content, prompt_tokens, completion_tokens
+        return False, response_think, response_content, prompt_tokens, completion_tokens
 
     # 发起请求
     def request_amazonbedrock_boto3(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
         try:
             model_name = platform_config.get("model_name")
-            _request_timeout = platform_config.get("request_timeout")
             temperature = platform_config.get("temperature")
 
             # 从工厂获取客户端
@@ -76,15 +110,47 @@ class AmazonbedrockRequester(LogMixin, Base):
                 new_messages.append({"role": message["role"], "content": [{"text": message["content"]}]})
             if messages[-1]["role"] == "assistant":
                 new_messages.append({"role": "user", "content": [{"text": "continue"}]})
-            response = client.converse(
-                modelId=model_name,
-                system=[{"text": system_prompt}],
-                messages=new_messages,
-                inferenceConfig={"maxTokens": 4096, "temperature": temperature},
-            )
+            is_nova_2 = "amazon.nova-2" in model_name.lower()
+            inference_config = {
+                "maxTokens": 65536 if is_nova_2 else 4096,
+            }
+            if temperature is not None:
+                inference_config["temperature"] = temperature
 
-            # 提取回复的文本内容
-            response_content = response["output"]["message"]["content"][0]["text"]
+            request_params = {
+                "modelId": model_name,
+                "messages": new_messages,
+                "inferenceConfig": inference_config,
+            }
+            if system_prompt:
+                request_params["system"] = [{"text": system_prompt}]
+
+            if is_nova_2:
+                think_switch = bool(platform_config.get("think_switch"))
+                think_depth = platform_config.get("think_depth") or "medium"
+                nova_effort = think_depth if think_depth in {"low", "medium", "high"} else "high"
+                reasoning_config = {"type": "enabled" if think_switch else "disabled"}
+                if think_switch:
+                    reasoning_config["maxReasoningEffort"] = nova_effort
+                request_params["additionalModelRequestFields"] = {
+                    "reasoningConfig": reasoning_config
+                }
+
+            response = client.converse(**request_params)
+
+            thinking_parts = []
+            content_parts = []
+            for block in response["output"]["message"]["content"]:
+                if "text" in block:
+                    content_parts.append(block["text"])
+                reasoning_content = block.get("reasoningContent")
+                if isinstance(reasoning_content, dict):
+                    reasoning_text = reasoning_content.get("reasoningText", {})
+                    if isinstance(reasoning_text, dict) and reasoning_text.get("text"):
+                        thinking_parts.append(reasoning_text["text"])
+
+            response_think = "".join(thinking_parts)
+            response_content = "".join(content_parts)
         except Exception as e:
             if Base.work_status == Base.STATUS.STOPING:
                 return True, None, None, None, None
@@ -103,4 +169,4 @@ class AmazonbedrockRequester(LogMixin, Base):
         except Exception:
             completion_tokens = 0
 
-        return False, "", response_content, prompt_tokens, completion_tokens
+        return False, response_think, response_content, prompt_tokens, completion_tokens

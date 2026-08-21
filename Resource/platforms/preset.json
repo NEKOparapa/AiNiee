@@ -86,17 +86,15 @@
             "api_format": "OpenAI",
             "icon": "openai",
             "rpm_limit": 3500,
-            "model": "gpt-3.5-turbo",
+            "model": "gpt-5.6-luna",
             "temperature": 1.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "gpt-3.5-turbo",
-                "gpt-4",
-                "gpt-4o",
-                "gpt-4o-mini",
-                "gpt-4-turbo"
+                "gpt-5.6-luna",
+                "gpt-5.6-terra",
+                "gpt-5.6-sol"
             ],
             "key_in_settings": [
                 "api_key",
@@ -143,21 +141,21 @@
             "api_format": "Anthropic",
             "icon": "anthropic",
             "rpm_limit": 2000,
-            "model": "claude-3-haiku",
-            "temperature": 1.0,
+            "model": "claude-sonnet-5",
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "claude-3-5-haiku",
-                "claude-sonnet-4",
-                "claude-opus-4"
+                "claude-sonnet-5",
+                "claude-opus-5",
+                "claude-fable-5"
             ],
             "key_in_settings": [
                 "api_key",
                 "model",
                 "rpm_limit",
-                "temperature"
+                "think_switch",
+                "think_depth"
             ]
         },
         "amazonbedrock": {
@@ -168,11 +166,11 @@
             "access_key": "",
             "secret_key": "",
             "api_key": "",
-            "api_url": "https://generativelanguage.googleapis.com",
+            "api_url": "",
             "api_format": "Amazon Bedrock",
             "icon": "amazonbedrock",
             "rpm_limit": 2000,
-            "model": "claude-3-haiku",
+            "model": "us.anthropic.claude-sonnet-5",
             "temperature": 1.0,
             "think_switch": false,
             "think_depth": "low",
@@ -184,15 +182,10 @@
                 "eu-west-1"
             ],
             "model_datas": [
-                "anthropic.claude-3-haiku-20240307-v1:0",
-                "anthropic.claude-3-sonnet-20240229-v1:0",
-                "us.anthropic.claude-3-5-haiku-20241022-v1:0",
-                "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
-                "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-                "amazon.nova-lite-v1:0",
-                "amazon.nova-micro-v1:0",
-                "amazon.nova-pro-v1:0",
-                "us.deepseek.r1-v1:0"
+                "us.amazon.nova-2-lite-v1:0",
+                "us.anthropic.claude-sonnet-5",
+                "us.anthropic.claude-opus-5",
+                "us.anthropic.claude-fable-5"
             ],
             "key_in_settings": [
                 "region",
@@ -200,7 +193,9 @@
                 "secret_key",
                 "model",
                 "rpm_limit",
-                "temperature"
+                "temperature",
+                "think_switch",
+                "think_depth"
             ]
         },
         "xai": {
@@ -212,22 +207,19 @@
             "api_format": "OpenAI",
             "icon": "xai",
             "rpm_limit": 600,
-            "model": "grok-3-fast-beta",
+            "model": "grok-4.6",
             "temperature": 1.0,
-            "think_switch": false,
+            "think_switch": true,
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "grok-3-fast-beta",
-                "grok-3-mini-beta",
-                "grok-3-beta"
+                "grok-4.6"
             ],
             "key_in_settings": [
                 "api_key",
                 "model",
                 "rpm_limit",
                 "temperature",
-                "think_switch",
                 "think_depth"
             ]
         },
@@ -270,16 +262,15 @@
             "api_format": "OpenAI",
             "icon": "dashscope",
             "rpm_limit": 150,
-            "model": "qwen-turbo",
+            "model": "qwen3.7-flash",
             "temperature": 1.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "qwen-turbo",
-                "qwen-plus",
-                "qwen-max",
-                "qwen-long"
+                "qwen3.7-flash",
+                "qwen3.7-plus",
+                "qwen3.8-max"
             ],
             "key_in_settings": [
                 "api_key",
@@ -298,23 +289,25 @@
             "api_format": "OpenAI",
             "icon": "zhipu",
             "rpm_limit": 30,
-            "model": "glm-4-flash",
+            "model": "glm-4.7-flash",
             "temperature": 1.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "glm-4.5-flash",
-                "glm-4.5-airx",
-                "glm-4.5-air",
-                "glm-4.5-x",
-                "glm-4.5"
+                "glm-4.7-flash",
+                "glm-4.7-flashx",
+                "glm-4.7",
+                "glm-5-turbo",
+                "glm-5.2"
             ],
             "key_in_settings": [
                 "api_key",
                 "model",
                 "rpm_limit",
-                "temperature"
+                "temperature",
+                "think_switch",
+                "think_depth"
             ]
         },
         "custom": {
@@ -337,8 +330,9 @@
                 "gpt-4o",
                 "gpt-4o-mini",
                 "gpt-4-turbo",
-                "claude-3-5-haiku",
-                "claude-3-5-sonnet"
+                "claude-sonnet-5",
+                "claude-opus-5",
+                "claude-fable-5"
             ],
             "format_datas": [
                 "OpenAI",

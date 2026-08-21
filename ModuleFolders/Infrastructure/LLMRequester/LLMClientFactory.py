@@ -6,6 +6,7 @@ import httpx
 from openai import OpenAI
 import anthropic
 import boto3
+from botocore.config import Config as BotocoreConfig
 from google import genai
 import json
 from curl_cffi import requests as curl_requests
@@ -191,7 +192,8 @@ class LLMClientFactory:
         region = config.get("region")
         access_key = config.get("access_key")
         secret_key = config.get("secret_key")
-        key = ("boto3_bedrock", region, access_key, secret_key)
+        request_timeout = config.get("request_timeout", 300)
+        key = ("boto3_bedrock", region, access_key, secret_key, request_timeout)
         return self._get_cached_client(key, lambda: self._create_boto3_bedrock(config))
 
     def get_google_client(self, config: Dict[str, Any]) -> genai.Client:
@@ -253,11 +255,16 @@ class LLMClientFactory:
         )
 
     def _create_boto3_bedrock(self, config):
+        request_timeout = config.get("request_timeout", 300)
         return boto3.client(
             "bedrock-runtime",
             region_name=config.get("region"),
             aws_access_key_id=config.get("access_key"),
-            aws_secret_access_key=config.get("secret_key")
+            aws_secret_access_key=config.get("secret_key"),
+            config=BotocoreConfig(
+                connect_timeout=request_timeout,
+                read_timeout=request_timeout,
+            ),
         )
 
     def _create_google_client(self, config):

@@ -178,7 +178,12 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         def init(widget):
             platform = config.get("platforms").get(self.key)
 
-            items = ["low", "medium", "high", "xhigh"]
+            platform_tag = str(platform.get("tag") or self.key or "").lower()
+            api_url = str(platform.get("api_url") or "").lower()
+            if platform_tag.startswith("xai") or "api.x.ai" in api_url:
+                items = ["low", "medium", "high", "xhigh"]
+            else:
+                items = ["low", "medium", "high", "xhigh", "max"]
             widget.set_items(items)
             current = platform.get("think_depth", "medium")
             if current not in items:
@@ -253,7 +258,7 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         parent.addWidget(
             ComboBoxCard(
                 self.tra("思考级别"),
-                self.tra("Gemini 3 专用，Pro 模型仅支持 low 和 high"),
+                self.tra("Gemini 3 专用，可用级别会随当前模型自动调整"),
                 [],
                 init=init,
                 current_text_changed=current_text_changed,

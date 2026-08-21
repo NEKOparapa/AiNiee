@@ -2,153 +2,51 @@ import re
 
 
 class ModelConfigHelper:
-    """模型配置辅助类，用于获取不同模型的输出限制等配置"""
+    """集中维护需要由多个请求器和界面共享的模型配置规则。"""
 
-    # Claude 模型输出限制映射
-    CLAUDE_OUTPUT_LIMITS = {
-        # Claude 4.5 系列
-        "claude-sonnet-4-5": 64000,
-        "claude-haiku-4-5": 64000,
-        "claude-opus-4-5": 64000,
-        # Claude 4.x 系列
-        "claude-opus-4-1": 32000,
-        "claude-sonnet-4": 64000,
-        "claude-opus-4": 32000,
-        # Claude 3.x 系列
-        "claude-3-7-sonnet": 64000,
-        "claude-3-5-haiku": 8000,
-        "claude-3-haiku": 4000,
-        "claude-3-opus": 4000,
-        "claude-3-sonnet": 4000,
-    }
-    CLAUDE_DEFAULT_LIMIT = 4000
-
-    # Google 模型输出限制映射
-    GOOGLE_OUTPUT_LIMITS = {
-        "gemini-3-pro": 65536,
-        "gemini-2.5-flash": 65536,
-        "gemini-2.5-flash-lite": 65536,
-        "gemini-2.5-pro": 65536,
-        "gemini-2.0-flash": 8192,
-        "gemini-2.0-flash-lite": 8192,
-    }
-    GOOGLE_DEFAULT_LIMIT = 8192
-
-    @staticmethod
-    def _extract_claude_version_info(model_name: str) -> tuple[float, str]:
-        """从 Claude 模型名称中提取版本号和模型类型
-
-        返回: (版本号, 模型类型)
-        """
-        # 提取模型类型
-        model_type = ""
-        if "haiku" in model_name.lower():
-            model_type = "haiku"
-        elif "sonnet" in model_name.lower():
-            model_type = "sonnet"
-        elif "opus" in model_name.lower():
-            model_type = "opus"
-
-        # 提取版本号
-        version_match = re.search(r'claude-(?:\w+-)?([\d-]+)', model_name)
-        if version_match:
-            version_str = version_match.group(1).replace('-', '.')
-            version_parts = version_str.split('.')[:2]
-            try:
-                if len(version_parts) == 1:
-                    version = float(version_parts[0])
-                else:
-                    version = float(f"{version_parts[0]}.{version_parts[1]}")
-                return version, model_type
-            except ValueError:
-                pass
-
-        return 0.0, model_type
-
-    @staticmethod
-    def _extract_google_version(model_name: str) -> float:
-        """从 Google 模型名称中提取版本号"""
-        match = re.search(r'gemini-(\d+(?:\.\d+)?)', model_name)
-        if match:
-            return float(match.group(1))
-        return 0.0
-
-    @classmethod
-    def is_gemini_3_or_newer(cls, model_name: str) -> bool:
-        """检测是否为 Gemini 3.x 或更新版本"""
-        version = cls._extract_google_version(model_name)
-        return version >= 3.0
-
-    @classmethod
-    def get_thinking_level_options(cls, model_name: str) -> list[str]:
-        """获取模型支持的 thinking_level 选项
-
-        不同 Gemini 3.x 型号支持的最低思考等级并不完全相同。
-        """
-        normalized_name = model_name.lower()
-        if "gemini-3.7-flash" in normalized_name:
-            return ["low", "medium", "high"]
-        elif "flash" in normalized_name:
-            return ["minimal", "low", "medium", "high"]
-        elif "gemini-3.1-pro" in normalized_name:
-            return ["low", "medium", "high"]
-        else:  # Gemini 3 Pro Preview 等早期 Pro 型号
-            return ["low", "high"]
+    CLAUDE_5_MODEL_IDS = (
+        "claude-fable-5",
+        "claude-mythos-5",
+        "claude-opus-5",
+        "claude-sonnet-5",
+    )
+    CLAUDE_5_MAX_OUTPUT_TOKENS = 128000
 
     @classmethod
     def get_claude_max_output_tokens(cls, model_name: str) -> int:
-        """获取 Claude 模型的最大输出 token 限制"""
-        # 优先检查已知模型
-        for known_model, limit in sorted(cls.CLAUDE_OUTPUT_LIMITS.items(),
-                                         key=lambda x: len(x[0]),
-                                         reverse=True):
-            if known_model in model_name:
-                return limit
+        normalized_name = str(model_name or "").lower()
+        if not any(model in normalized_name for model in cls.CLAUDE_5_MODEL_IDS):
+            raise ValueError("Anthropic 接口仅支持 Claude 5 系列模型")
+        return cls.CLAUDE_5_MAX_OUTPUT_TOKENS
 
-        # 根据版本号和类型推断
-        version, model_type = cls._extract_claude_version_info(model_name)
+    @staticmethod
+    def is_claude_always_thinking_model(model_name: str) -> bool:
+        normalized_name = str(model_name or "").lower()
+        return any(
+            model in normalized_name
+            for model in ("claude-fable-5", "claude-mythos-5")
+        )
 
-        if version > 0 and model_type:
-            # Claude 4.5+: 统一 64K
-            if version >= 4.5:
-                return 64000
+    @staticmethod
+    def _extract_google_version(model_name: str) -> float:
+        match = re.search(r"gemini-(\d+(?:\.\d+)?)", str(model_name or "").lower())
+        return float(match.group(1)) if match else 0.0
 
-            # Claude 4.x
-            elif version >= 4.0:
-                if model_type == "opus":
-                    return 32000
-                else:
-                    return 64000
-
-            # Claude 3.x
-            elif version >= 3.0:
-                if version >= 3.5:
-                    if model_type == "sonnet":
-                        return 64000
-                    elif model_type == "haiku":
-                        return 8000
-                return 4000
-
-        # 使用默认值
-        return cls.CLAUDE_DEFAULT_LIMIT
+    @classmethod
+    def is_gemini_3_or_newer(cls, model_name: str) -> bool:
+        return cls._extract_google_version(model_name) >= 3.0
 
     @classmethod
     def get_google_max_output_tokens(cls, model_name: str) -> int:
-        """获取 Google 模型的最大输出 token 限制"""
-        # 优先检查已知模型
-        for known_model, limit in sorted(cls.GOOGLE_OUTPUT_LIMITS.items(),
-                                         key=lambda x: len(x[0]),
-                                         reverse=True):
-            if known_model in model_name:
-                return limit
+        return 65536 if cls._extract_google_version(model_name) >= 2.5 else 8192
 
-        # 根据版本号推断
-        version = cls._extract_google_version(model_name)
-        if version > 0:
-            if version >= 2.5:
-                return 65536
-            else:
-                return 8192
-
-        # 使用默认值
-        return cls.GOOGLE_DEFAULT_LIMIT
+    @staticmethod
+    def get_thinking_level_options(model_name: str) -> list[str]:
+        normalized_name = str(model_name or "").lower()
+        if "gemini-3.7-flash" in normalized_name:
+            return ["low", "medium", "high"]
+        if "flash" in normalized_name:
+            return ["minimal", "low", "medium", "high"]
+        if "gemini-3.1-pro" in normalized_name:
+            return ["low", "medium", "high"]
+        return ["low", "high"]

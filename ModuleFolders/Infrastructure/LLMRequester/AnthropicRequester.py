@@ -9,32 +9,22 @@ class AnthropicRequester(LogMixin, Base):
     def __init__(self) -> None:
         pass
 
-    def _calculate_budget_tokens(self, think_depth: str, max_tokens: int) -> int:
-        """
-        根据思考深度档位计算 budget_tokens
-        参考比例：low ~10%, medium ~40%, high ~70%
-        Anthropic 要求 budget_tokens 最小值为 1024
-        """
-        ratio_map = {
-            "low": 0.1,
-            "medium": 0.4,
-            "high": 0.7,
-            "xhigh": 0.9,
-        }
-        ratio = ratio_map.get(think_depth, 0.5)  # 默认 medium
-        budget = int(max_tokens * ratio)
-        # Anthropic 的 budget_tokens 最小值是 1024
-        return max(1024, budget)
-
     def request_anthropic(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
         try:
             model_name = platform_config.get("model_name")
             request_timeout = platform_config.get("request_timeout", 60)
-            temperature = platform_config.get("temperature", 1.0)
             think_switch = platform_config.get("think_switch")
-            think_depth = platform_config.get("think_depth")
+            think_depth = platform_config.get("think_depth") or "medium"
 
             max_tokens = ModelConfigHelper.get_claude_max_output_tokens(model_name)
+
+            # Claude 5 不接受 assistant 末尾预填充。
+            if (
+                messages
+                and isinstance(messages[-1], dict)
+                and messages[-1].get("role") == "assistant"
+            ):
+                messages = messages[:-1]
 
             # 参数基础配置
             base_params = {
@@ -45,17 +35,19 @@ class AnthropicRequester(LogMixin, Base):
                 "max_tokens": max_tokens,
             }
 
-            # 添加思考模式配置
+            # Claude 5 统一使用 adaptive thinking + output_config.effort，且不发送采样温度。
             if think_switch:
-                budget_tokens = self._calculate_budget_tokens(think_depth, max_tokens)
                 base_params["thinking"] = {
-                    "type": "enabled",
-                    "budget_tokens": budget_tokens
+                    "type": "adaptive",
+                    "display": "summarized",
                 }
-                # 启用 extended thinking 时，temperature 必须为 1
-                base_params["temperature"] = 1.0
-            else:
-                base_params["temperature"] = temperature
+                base_params["output_config"] = {
+                    "effort": think_depth
+                    if think_depth in {"low", "medium", "high", "xhigh", "max"}
+                    else "medium"
+                }
+            elif not ModelConfigHelper.is_claude_always_thinking_model(model_name):
+                base_params["thinking"] = {"type": "disabled"}
 
             # 从工厂获取客户端
             client = LLMClientFactory().get_anthropic_client(platform_config)
@@ -63,14 +55,19 @@ class AnthropicRequester(LogMixin, Base):
             response = client.messages.create(**base_params)
 
             # 提取回复的文本内容和思考内容
-            response_think = ""
-            response_content = ""
+            thinking_parts = []
+            content_parts = []
             for block in response.content:
                 if hasattr(block, "type"):
                     if block.type == "thinking":
-                        response_think = block.thinking
+                        thinking_text = getattr(block, "thinking", "")
+                        if thinking_text:
+                            thinking_parts.append(thinking_text)
                     elif block.type == "text":
-                        response_content = block.text
+                        content_parts.append(block.text)
+
+            response_think = "".join(thinking_parts)
+            response_content = "".join(content_parts)
 
         except Exception as e:
             if Base.work_status == Base.STATUS.STOPING:

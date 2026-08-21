@@ -76,50 +76,66 @@ class OpenaiRequester(LogMixin, Base):
         extra_body = copy.deepcopy(raw_extra_body) if isinstance(raw_extra_body, dict) else {}
         params["extra_body"] = extra_body
 
-        # 判断是否打开了思考开关，没打开就不传任何思考相关参数
-        if not platform_config.get("think_switch"):
-            # 针对deepseek的特殊处理，思考开关关闭时也要传一个字段告诉它关闭思考，否则它会默认开启
-            if target_platform.startswith("deepseek") or "api.deepseek.com" in api_url:
-                extra_body["thinking"] = {"type": "disabled"}
-            
-            # 其他平台不传任何思考参数
-            return params
-
-        # 如果是OpenAI 平台----
-        if target_platform.startswith("openai") or "api.openai.com" in api_url:
-            # 推理模型使用顶层 reasoning_effort，普通模型不传该字段
-            if model_name_lower.startswith(("o1", "o3", "o4", "gpt-5")):
-                params["reasoning_effort"] = think_depth
-            return params
-
-        # 如果是DeepSeek 平台----
-        if target_platform.startswith("deepseek") or "api.deepseek.com" in api_url:
-            # 使用顶层 reasoning_effort；low/medium/high 统一映射为 high，xhigh 映射为 max
-            deepseek_effort = "max" if think_depth == "xhigh" else "high"
-            params["reasoning_effort"] = deepseek_effort
-            extra_body["thinking"] = {"type": "enabled"}
-            return params
-
-        # 如果是xAI 平台----
-        if target_platform.startswith("xai") or "api.x.ai" in api_url:
-            # xAI Chat Completions 当前不使用 extra_body.thinking 这种参数形状
-            return params
-
-        # 如果是智谱平台---- 
-        if target_platform.startswith("zhipu") or "bigmodel.cn" in api_url:
-
-            # GLM 新系列支持 extra_body.thinking，旧模型保持默认参数
-            if model_name_lower.startswith(("glm-4.5", "glm-4.6", "glm-4.7", "glm-5")):
-                extra_body["thinking"] = {"type": "enabled"}
-            return params
-
-        # 如果是阿里百炼平台----
-        if (
+        is_openai = target_platform.startswith("openai") or "api.openai.com" in api_url
+        is_deepseek = target_platform.startswith("deepseek") or "api.deepseek.com" in api_url
+        is_xai = target_platform.startswith("xai") or "api.x.ai" in api_url
+        is_zhipu = target_platform.startswith("zhipu") or "bigmodel.cn" in api_url
+        is_dashscope = (
             target_platform.startswith("dashscope")
             or "dashscope.aliyuncs.com" in api_url
             or "bailian" in api_url
             or ("aliyuncs.com" in api_url and "compatible-mode" in api_url)
-        ):
+        )
+
+        # Grok 4.6 的推理无法关闭，始终按界面强度发送 reasoning_effort。
+        if is_xai:
+            xai_effort = think_depth if think_depth in {"low", "medium", "high", "xhigh"} else "xhigh"
+            params["reasoning_effort"] = xai_effort
+            return params
+
+        # 关闭开关时，对默认启用思考的平台显式发送禁用参数。
+        if not platform_config.get("think_switch"):
+            if is_openai and model_name_lower.startswith("gpt-5.6"):
+                params["reasoning_effort"] = "none"
+            elif is_deepseek:
+                extra_body["thinking"] = {"type": "disabled"}
+            elif is_zhipu and model_name_lower.startswith(("glm-4.5", "glm-4.6", "glm-4.7", "glm-5")):
+                extra_body["thinking"] = {"type": "disabled"}
+            elif is_dashscope and model_name_lower.startswith("qwen3"):
+                extra_body["enable_thinking"] = False
+            return params
+
+        # 如果是OpenAI 平台----
+        if is_openai:
+            # 推理模型使用顶层 reasoning_effort，普通模型不传该字段
+            if model_name_lower.startswith(("o1", "o3", "o4", "gpt-5")):
+                valid_efforts = {"low", "medium", "high", "xhigh", "max"}
+                params["reasoning_effort"] = think_depth if think_depth in valid_efforts else "medium"
+                # 新一代推理模型开启 reasoning 时不发送采样温度。
+                params.pop("temperature", None)
+            return params
+
+        # 如果是DeepSeek 平台----
+        if is_deepseek:
+            # 使用顶层 reasoning_effort；low/medium/high 统一映射为 high，xhigh 映射为 max
+            deepseek_effort = "max" if think_depth in {"xhigh", "max"} else "high"
+            params["reasoning_effort"] = deepseek_effort
+            extra_body["thinking"] = {"type": "enabled"}
+            return params
+
+        # 如果是智谱平台---- 
+        if is_zhipu:
+
+            # GLM 新系列支持 extra_body.thinking，旧模型保持默认参数
+            if model_name_lower.startswith(("glm-4.5", "glm-4.6", "glm-4.7", "glm-5")):
+                extra_body["thinking"] = {"type": "enabled"}
+            if model_name_lower.startswith("glm-5.2"):
+                valid_efforts = {"low", "medium", "high", "xhigh", "max"}
+                params["reasoning_effort"] = think_depth if think_depth in valid_efforts else "high"
+            return params
+
+        # 如果是阿里百炼平台----
+        if is_dashscope:
             
             # 兼容模式使用 enable_thinking，并可选传入 thinking_budget
             extra_body["enable_thinking"] = True
