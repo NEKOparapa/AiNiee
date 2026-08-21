@@ -15,7 +15,6 @@ class GoogleRequester(LogMixin, Base):
     def request_google(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
         try:
             model_name = platform_config.get("model_name")
-            temperature = platform_config.get("temperature", 1.0)
             think_switch = platform_config.get("think_switch")
             thinking_budget = platform_config.get("thinking_budget")
 
@@ -47,7 +46,6 @@ class GoogleRequester(LogMixin, Base):
             gen_config = types.GenerateContentConfig(
                 system_instruction=system_prompt,
                 max_output_tokens=ModelConfigHelper.get_google_max_output_tokens(model_name),
-                temperature=temperature,
                 safety_settings=[
                     types.SafetySetting(category=category, threshold='BLOCK_NONE')
                     for category in TEXT_HARM_CATEGORIES

@@ -58,22 +58,20 @@
             "api_format": "Google",
             "icon": "google",
             "rpm_limit": 15,
-            "model": "gemini-2.5-flash",
+            "model": "gemini-3.7-flash",
             "temperature": 1.0,
             "think_switch": false,
             "thinking_level": "high",
             "auto_complete": false,
             "model_datas": [
-                "gemini-2.5-flash",
-                "gemini-2.5-pro",
-                "gemini-3-flash-preview",
-                "gemini-3-pro-preview"
+                "gemini-3.7-flash",
+                "gemini-3.5-flash-lite",
+                "gemini-3.1-pro-preview"
             ],
             "key_in_settings": [
                 "api_key",
                 "model",
                 "rpm_limit",
-                "temperature",
                 "think_switch",
                 "thinking_budget",
                 "thinking_level"
@@ -242,16 +240,17 @@
             "api_format": "OpenAI",
             "icon": "volcengine",
             "rpm_limit": 10000,
-            "model": "doubao-seed-1-6-flash-250615",
+            "model": "doubao-seed-2-1-turbo-260628",
             "temperature": 1.0,
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
-                "doubao-seed-1-6-flash-250615",
-                "doubao-seed-1-6-250615",
-                "deepseek-v3-250324",
-                "deepseek-r1-250528"
+                "doubao-seed-2-1-turbo-260628",
+                "doubao-seed-2-1-pro-260628",
+                "doubao-seed-evolving",
+                "deepseek-v4-flash-ga-260731",
+                "deepseek-v4-pro-ga-260813"
             ],
             "key_in_settings": [
                 "api_key",

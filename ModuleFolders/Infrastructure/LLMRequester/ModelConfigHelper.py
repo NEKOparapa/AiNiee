@@ -83,12 +83,16 @@ class ModelConfigHelper:
     def get_thinking_level_options(cls, model_name: str) -> list[str]:
         """获取模型支持的 thinking_level 选项
 
-        Gemini 3 Pro: low, high
-        Gemini 3 Flash: minimal, low, medium, high
+        不同 Gemini 3.x 型号支持的最低思考等级并不完全相同。
         """
-        if "flash" in model_name.lower():
+        normalized_name = model_name.lower()
+        if "gemini-3.7-flash" in normalized_name:
+            return ["low", "medium", "high"]
+        elif "flash" in normalized_name:
             return ["minimal", "low", "medium", "high"]
-        else:  # Pro 模型
+        elif "gemini-3.1-pro" in normalized_name:
+            return ["low", "medium", "high"]
+        else:  # Gemini 3 Pro Preview 等早期 Pro 型号
             return ["low", "high"]
 
     @classmethod
