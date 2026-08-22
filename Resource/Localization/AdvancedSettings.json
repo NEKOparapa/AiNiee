@@ -144,6 +144,18 @@
       "English": "Automatically Repair Punctuation",
       "日本語": "句読点を自動修復"
     },
+    "统一称呼翻译": {
+      "简中": "统一称呼翻译",
+      "繁中": "統一稱呼翻譯",
+      "English": "Unify Character Name Translations",
+      "日本語": "呼称翻訳の統一"
+    },
+    "默认关闭，可在本设置中手动开启。开启后，将以角色表中的本名为锚点，扫描全项目原文中的称呼变体（本名+敬称，如 空太先輩、空太くん），并在翻译提示词中要求同一角色（含敬称）必须复用本名推荐译名、同一称呼全文只能使用一种译法，避免「前辈/学姐」等译法混用。": {
+      "简中": "默认关闭，可在本设置中手动开启。开启后，将以角色表中的本名为锚点，扫描全项目原文中的称呼变体（本名+敬称，如 空太先輩、空太くん），并在翻译提示词中要求同一角色（含敬称）必须复用本名推荐译名、同一称呼全文只能使用一种译法，避免「前辈/学姐」等译法混用。",
+      "繁中": "預設關閉，可在本設定中手動開啟。開啟後，將以角色表中的本名為錨點，掃描全專案原文中的稱呼變體（本名+敬稱，如 空太先輩、空太くん），並在翻譯提示詞中要求同一角色（含敬稱）必須複用本名推薦譯名、同一稱呼全文只能使用一種譯法，避免「前輩/學姐」等譯法混用。",
+      "English": "Off by default; enable it here if needed. When enabled, uses the base names in the character table as anchors, scans the whole project for name variants (base name + honorific, e.g. 空太先輩, 空太くん), and instructs the translation prompt that every form of the same character must reuse the base name's recommended translation, with one consistent rendering per honorific throughout the whole text, avoiding mixed renderings like 前辈/学姐.",
+      "日本語": "デフォルトではオフです。必要な場合はこの設定で手動でオンにします。有効にすると、キャラクター表の本名を基準に、プロジェクト全体の原文から呼称バリアント（本名+敬称、例: 空太先輩、空太くん）をスキャンし、翻訳プロンプトで同じキャラクター（敬称を含む）が本名の推奨訳を必ず使い、同じ呼称は本文全体で一つの訳に統一するよう指示します。「先輩/先輩」のような混在訳を防ぎます。"
+    },
     "启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，适合日语翻译流程。": {
       "简中": "启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，适合日语翻译流程。",
       "繁中": "啟用後，將在翻譯任務中根據原文恢復譯文中改變的標點符號和文本符號，適合日語翻譯流程。",
