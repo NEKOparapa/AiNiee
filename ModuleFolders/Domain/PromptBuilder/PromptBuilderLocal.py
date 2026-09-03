@@ -227,6 +227,7 @@ class PromptBuilderLocal(Base):
         title_en: str,
         header_zh: str,
         header_en: str,
+        instruction: str = "",
     ) -> str:
         matched_rows = PromptBuilderLocal._match_project_table_rows(
             rows,
@@ -245,9 +246,15 @@ class PromptBuilderLocal(Base):
             return ""
 
         if PromptBuilderLocal._is_chinese_target(config):
-            prompt_lines = [f"\n###{title_zh}", header_zh]
+            prompt_lines = [f"\n###{title_zh}"]
+            if instruction:
+                prompt_lines.append(instruction)
+            prompt_lines.append(header_zh)
         else:
-            prompt_lines = [f"\n###{title_en}", header_en]
+            prompt_lines = [f"\n###{title_en}"]
+            if instruction:
+                prompt_lines.append(instruction)
+            prompt_lines.append(header_en)
 
         for row in normalized_rows:
             prompt_lines.append("|".join(row))
@@ -256,7 +263,21 @@ class PromptBuilderLocal(Base):
 
     # 生成项目角色表 - LocalLLM
     def build_project_characters_prompt(config: TaskConfig, source_text_dict: dict) -> str:
-        return PromptBuilderLocal._build_project_table_prompt(
+        # 统一称呼翻译开关：默认关闭。关闭时保持旧行为（仅注入角色表，无路由指令与称呼变体小节）
+        if not bool(getattr(config, "character_name_unify_switch", False)):
+            return PromptBuilderLocal._build_project_table_prompt(
+                config,
+                source_text_dict,
+                getattr(config, "project_characters_data", []),
+                "source",
+                ("source", "recommended_translation", "gender", "note"),
+                "角色表",
+                "Character Table",
+                "原文|推荐译名|性别|备注",
+                "Original Text|Recommended Translation|Gender|Remarks",
+            )
+
+        character_prompt = PromptBuilderLocal._build_project_table_prompt(
             config,
             source_text_dict,
             getattr(config, "project_characters_data", []),
@@ -266,7 +287,74 @@ class PromptBuilderLocal(Base):
             "Character Table",
             "原文|推荐译名|性别|备注",
             "Original Text|Recommended Translation|Gender|Remarks",
+            instruction=PromptBuilderLocal._get_character_table_instruction(config),
         )
+        variants_prompt = PromptBuilderLocal._build_character_variants_prompt(config, source_text_dict)
+        if variants_prompt:
+            return character_prompt + variants_prompt
+        return character_prompt
+
+    # 角色表路由指令：强制使用推荐译名，保持全文一致
+    def _get_character_table_instruction(config: TaskConfig) -> str:
+        if PromptBuilderLocal._is_chinese_target(config):
+            return (
+                "翻译时，以下角色名必须严格使用「推荐译名」列，不得意译或更改，全文保持一致；"
+                "同一角色的敬称/称呼变体（如 空太先輩、空太くん）必须复用本名的推荐译名。"
+            )
+        return (
+            "When translating, the character names below MUST use the Recommended Translation column exactly; "
+            "do not paraphrase or alter them. Keep them consistent throughout the text; "
+            "honorific/variant forms of the same character (e.g. 空太先輩, 空太くん) must reuse the base name's recommended translation."
+        )
+
+    # 构建角色称呼变体小节 - LocalLLM（与通用版一致）
+    def _build_character_variants_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        variants_map = getattr(config, "project_character_variants", {}) or {}
+        if not variants_map or not source_text_dict:
+            return ""
+
+        full_text = "\n".join(source_text_dict.values())
+        if not full_text:
+            return ""
+
+        translation_by_source = {
+            str(row.get("source", "") or "").strip(): str(row.get("recommended_translation", "") or "").strip()
+            for row in getattr(config, "project_characters_data", []) or []
+            if isinstance(row, dict) and str(row.get("source", "") or "").strip()
+        }
+
+        matched_lines = []
+        for base_name, variants in variants_map.items():
+            recommended = translation_by_source.get(base_name, "")
+            present_variants = [v for v in variants if v in full_text]
+            if not present_variants:
+                continue
+            matched_lines.append((base_name, recommended, present_variants))
+
+        if not matched_lines:
+            return ""
+
+        if PromptBuilderLocal._is_chinese_target(config):
+            lines = [
+                "\n###角色称呼变体",
+                "以下称呼均为对应角色的变体（含敬称）。翻译时必须复用本名的推荐译名；"
+                "敬称部分选择一种合理译法后全文保持一致，禁止同一称呼出现多种译法（如「先輩」不得时而「前辈」时而「学姐」）。",
+                "本名|推荐译名|原文称呼变体",
+            ]
+        else:
+            lines = [
+                "\n###Character Name Variants",
+                "The following are variant forms (including honorifics) of the corresponding characters. "
+                "Their translations MUST reuse the recommended translation of the base name. "
+                "Choose ONE consistent rendering for each honorific throughout the whole text; "
+                "never mix translations of the same honorific.",
+                "Base Name|Recommended Translation|Original Name Variants",
+            ]
+
+        for base_name, recommended, present_variants in matched_lines:
+            lines.append(f"{base_name}|{recommended if recommended else ' '}|{'、'.join(present_variants)}")
+
+        return "\n".join(lines)
 
     # 生成项目术语表 - LocalLLM
     def build_project_terms_prompt(config: TaskConfig, source_text_dict: dict) -> str:

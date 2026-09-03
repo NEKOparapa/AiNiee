@@ -7,6 +7,7 @@ import rapidjson as json
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Config.FilePathConfig import auto_output_dir, auto_polish_output_dir, default_polish_output_dir
+from ModuleFolders.Domain.PromptBuilder.CharacterNameHelper import CharacterNameHelper
 from ModuleFolders.Log.Log import LogMixin
 
 
@@ -32,6 +33,8 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         self.project_characters_data = []
         self.project_terms_data = []
         self.project_non_translate_data = []
+        # 角色称呼变体映射 {本名: [变体...]}，由 load_project_table_data 扫描全项目原文生成
+        self.project_character_variants = {}
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.get_vars()})"
@@ -75,6 +78,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         self.project_characters_data = []
         self.project_terms_data = []
         self.project_non_translate_data = []
+        self.project_character_variants = {}
 
         if cache_manager is None or not hasattr(cache_manager, "get_analysis_data"):
             return
@@ -98,6 +102,38 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             "marker",
             ("marker", "category", "note"),
         )
+
+        # 以已确认的本名为锚点，扫描全项目原文，收集角色称呼变体（本名+敬称等），
+        # 供 PromptBuilder 注入提示词并附一致性指令，保证同一角色（含敬称）译名统一。
+        # 仅当「统一称呼翻译」开关开启时才扫描，避免无谓开销。
+        if self.project_characters_data and getattr(self, "character_name_unify_switch", False):
+            full_text = self._collect_project_full_text(cache_manager)
+            if full_text:
+                self.project_character_variants = CharacterNameHelper.collect_project_variants(
+                    full_text,
+                    self.project_characters_data,
+                )
+
+    # 拼接全项目原文文本，供称呼变体扫描使用
+    def _collect_project_full_text(self, cache_manager) -> str:
+        try:
+            project = getattr(cache_manager, "project", None)
+            files = getattr(project, "files", None)
+            if not files:
+                return ""
+
+            texts = []
+            for cache_file in files.values():
+                items = getattr(cache_file, "items", None)
+                if not items:
+                    continue
+                for item in items:
+                    source_text = getattr(item, "source_text", "")
+                    if isinstance(source_text, str) and source_text.strip():
+                        texts.append(source_text)
+            return "\n".join(texts)
+        except Exception:
+            return ""
 
     # 规范化接口角色名称，非法值统一回退到 active
     def _normalize_interface_role(self, interface_role: str | None) -> str:
