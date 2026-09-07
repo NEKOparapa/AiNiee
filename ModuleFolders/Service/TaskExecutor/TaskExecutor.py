@@ -291,6 +291,15 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
     # 任务停止事件
     def task_stop(self, event: int, data: dict) -> None:
+        current_status = Base.work_status
+        # 没有正在运行的任务（如HTTP /api/stop在空闲时触发）：直接补发停止完成事件并返回，
+        # 否则会把状态永久卡在STOPING（启动按钮要求IDLE，永远无法恢复），且watcher线程空转
+        if current_status in (Base.STATUS.IDLE, Base.STATUS.TASKSTOPPED):
+            self.emit(Base.EVENT.TASK_STOP_DONE, {})
+            return
+        # 已在停止流程中，避免重复创建watcher线程
+        if current_status == Base.STATUS.STOPING:
+            return
         # 设置运行状态为停止中
         Base.work_status = Base.STATUS.STOPING
         self._cancel_active_executor()
@@ -306,14 +315,31 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                     self.emit(Base.EVENT.TASK_STOP_DONE, {})
                     break
 
-        # 子线程循环检测停止状态
-        threading.Thread(target = target).start()
+        # 子线程循环检测停止状态（daemon线程：即使出现异常状态也不会阻塞程序退出）
+        threading.Thread(target = target, daemon=True).start()
 
     # 任务开始事件
     def task_start(self, event: int, data: dict) -> None:
+        # 与analysis_task_start相同的守卫：状态非空闲时拒绝启动，
+        # 防止竞态（如过期的TASK_STOP_DONE提前解锁UI）下两个主任务并发写同一份缓存
+        if Base.work_status not in (Base.STATUS.IDLE, Base.STATUS.TASKSTOPPED):
+            self.warning("已有任务在运行或停止中，忽略本次启动请求 ...")
+            return
         # 获取配置信息
         continue_status = data.get("continue_status")
         current_mode = data.get("current_mode")
+
+        # 模式先校验再占状态，非法模式不能带着TASKING返回
+        if current_mode not in (TaskType.TRANSLATION, TaskType.POLISH):
+            self.print("")
+            self.error(f"非法的翻译模式：{current_mode}，请检查配置文件 ...")
+            self.print("")
+            return None
+
+        # 同步占用运行状态（原来是新线程里才置TASKING，HTTP/UI的check-then-act窗口
+        # 会让两个请求都通过守卫并发起任务；事件本身经queued connection串行到达主线程，
+        # 在这里置位即可关掉那个窗口）
+        Base.work_status = Base.STATUS.TASKING
 
         def run_task_target(target_func, *args) -> None:
             try:
@@ -334,7 +360,7 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 target = run_task_target,
                 args = (self.translation_start_target, continue_status,),
             ).start()
-        
+
         # 润色任务
         elif current_mode == TaskType.POLISH:
             threading.Thread(
@@ -342,14 +368,15 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 args = (self.polish_start_target, continue_status,),
             ).start()
 
-        else:
-            self.print("")
-            self.error(f"非法的翻译模式：{current_mode}，请检查配置文件 ...")
-            self.print("")
-            return None
-
     # 翻译主流程
     def translation_start_target(self, continue_status: bool) -> None:
+
+        # 启动前若已收到停止请求（task_stop把状态置为STOPING，此时TASKING已被task_start
+        # 同步占用）：必须落TASKSTOPPED让task_stop的watcher能退出，否则状态卡死在STOPING
+        if Base.work_status == Base.STATUS.STOPING:
+            Base.work_status = Base.STATUS.TASKSTOPPED
+            self.emit(Base.EVENT.TASK_STOP_DONE, {})
+            return
 
         # 设置翻译状态为正在翻译状态
         Base.work_status = Base.STATUS.TASKING
@@ -543,6 +570,12 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
     # 润色主流程
     def polish_start_target(self, continue_status: bool) -> None:
+
+        # 同translation_start_target：启动前收到停止请求则落TASKSTOPPED收尾
+        if Base.work_status == Base.STATUS.STOPING:
+            Base.work_status = Base.STATUS.TASKSTOPPED
+            self.emit(Base.EVENT.TASK_STOP_DONE, {})
+            return
 
         # 设置翻译状态为正在翻译状态
         Base.work_status = Base.STATUS.TASKING
