@@ -26,14 +26,21 @@ class TextProcessor():
     RE_DIGITAL_SEQ_REC_STR = r'^【(\d+)】'
     RE_WHITESPACE_AFFIX_STR = r'^(\s*)(.*?)(\s*)$'
 
+    # HTML换行标记（<br\b避免误伤<break>、<broom>等同前缀标签）
+    RE_BR_TAG_STR = r'<br\b[^>]*>'
+
     def __init__(self, config: Any):
         super().__init__()
+
+        # 数字序号预处理的已转换key记录（还原时只处理这些key，避免误改原文本就以【数字】开头的内容）
+        self._digital_seq_keys: set = set()
 
         current_regex_dir = self.DEFAULT_REGEX_DIR
 
         # 预编译固定处理的正则表达式
         self.RE_DIGITAL_SEQ_PRE = re.compile(self.RE_DIGITAL_SEQ_PRE_STR)
         self.RE_DIGITAL_SEQ_REC = re.compile(self.RE_DIGITAL_SEQ_REC_STR)
+        self.RE_BR_TAG = re.compile(self.RE_BR_TAG_STR, re.IGNORECASE)
 
         # 多行处理正则（使用MULTILINE标志）
         self.RE_WHITESPACE_AFFIX = re.compile(self.RE_WHITESPACE_AFFIX_STR, re.MULTILINE)
@@ -83,17 +90,15 @@ class TextProcessor():
         line_pos = 0  # 在标准化文本中的行位置
 
         while i < len(text):
-            # 检查HTML <br> 标记（不区分大小写）
-            if text[i:i + 3].lower() == '<br':
-                # 找到完整的br标记
-                br_end = text.find('>', i)
-                if br_end != -1:
-                    br_tag = text[i:br_end + 1]
-                    line_endings.append((line_pos, br_tag))
-                    normalized_text += '\n'
-                    i = br_end + 1
-                    line_pos += 1
-                    continue
+            # 检查HTML <br> 标记（不区分大小写，<br\b排除<break>等同前缀标签）
+            br_match = self.RE_BR_TAG.match(text, i)
+            if br_match:
+                br_tag = br_match.group(0)
+                line_endings.append((line_pos, br_tag))
+                normalized_text += '\n'
+                i = br_match.end()
+                line_pos += 1
+                continue
 
             # 检查传统换行符
             if i < len(text) - 1 and text[i:i + 2] == '\r\n':
@@ -510,6 +515,12 @@ class TextProcessor():
                     if target_platform == "sakura":
                         placeholder_val = "↓" * sakura_match_count
 
+                    # 避免与原文中真实存在的占位符字面量冲突（如游戏文本自带[P1]或↓）
+                    while placeholder_val in current_text:
+                        global_match_count += 1
+                        sakura_match_count += 1
+                        placeholder_val = f"[P{global_match_count}]" if target_platform != "sakura" else "↓" * sakura_match_count
+
                     single_pattern_replacements.append({
                         "placeholder": placeholder_val,
                         "original": original_match_val,
@@ -571,7 +582,8 @@ class TextProcessor():
                 try:
                     while True:
                         match = pattern_obj.match(current_text)
-                        if match:
+                        # match.group(0)为空说明是零宽匹配，继续循环会死循环，按不匹配处理
+                        if match and match.group(0):
                             prefix_text = match.group(0)
                             current_prefixes.append({"prefix": prefix_text, "pattern": pattern_obj.pattern})
                             current_text = current_text[len(prefix_text):]
@@ -591,7 +603,7 @@ class TextProcessor():
                         for match in pattern_obj.finditer(current_text):
                             if match.end() == len(current_text):
                                 best_match = match
-                        if best_match:
+                        if best_match and best_match.group(0):
                             suffix_text = best_match.group(0)
                             current_suffixes.insert(0, {"suffix": suffix_text, "pattern": pattern_obj.pattern})
                             current_text = current_text[:best_match.start()]
@@ -653,7 +665,12 @@ class TextProcessor():
 
                 # 如果有已经编译好的正则
                 if compiled_regex_obj:
-                    current_text = compiled_regex_obj.sub(dst_text, current_text)
+                    try:
+                        # 保持模板语义（支持\n、\1等合法用法），但dst含非法转义/无效组引用时
+                        # 不再抛错终止任务，而是按字面量替换
+                        current_text = compiled_regex_obj.sub(dst_text, current_text)
+                    except re.error:
+                        current_text = compiled_regex_obj.sub(lambda _m: dst_text, current_text)
                     continue
 
                 # 没有正则，则按照原文替换
@@ -679,7 +696,11 @@ class TextProcessor():
                 dst_text = rule.get("dst", "")
 
                 if compiled_regex_obj:
-                    current_text = compiled_regex_obj.sub(dst_text, current_text)
+                    try:
+                        # 保持模板语义，dst含非法转义/无效组引用时不再抛错，按字面量替换
+                        current_text = compiled_regex_obj.sub(dst_text, current_text)
+                    except re.error:
+                        current_text = compiled_regex_obj.sub(lambda _m: dst_text, current_text)
                     continue
 
                 elif src_text and src_text in current_text:
@@ -695,11 +716,16 @@ class TextProcessor():
         """
         遍历字典，仅当文本以 "数字." 格式开头时，将其替换为 "【数字】"。
         例如: "1. 这是标题" -> "【1】这是标题"
+        同时记录被转换的key，还原时只处理这些key。
         """
+        self._digital_seq_keys = set()
         for k in text_dict:
             # 使用新的正则表达式，它只匹配字符串开头的 "数字." 模式
             # r'【\1】' 移除了原来的点号
-            text_dict[k] = self.RE_DIGITAL_SEQ_PRE.sub(r'【\1】', text_dict[k], count=1)
+            new_text, count = self.RE_DIGITAL_SEQ_PRE.subn(r'【\1】', text_dict[k], count=1)
+            if count:
+                text_dict[k] = new_text
+                self._digital_seq_keys.add(k)
         return text_dict
 
     # 还原数字序列
@@ -707,11 +733,13 @@ class TextProcessor():
         """
         遍历字典，仅当文本以 "【数字】" 格式开头时，将其还原为 "数字."。
         例如: "【1】这是标题" -> "1. 这是标题"
+        只还原预处理阶段确实转换过的key，避免把原文本来就以【数字】开头的内容误改写。
         """
-        for k in text_dict:
-            # 使用新的正则表达式，它只匹配字符串开头的 "【数字】" 模式
-            # r'\1.' 将捕获到的数字后面加上点号
-            text_dict[k] = self.RE_DIGITAL_SEQ_REC.sub(r'\1.', text_dict[k], count=1)
+        for k in self._digital_seq_keys:
+            if k in text_dict:
+                # 使用新的正则表达式，它只匹配字符串开头的 "【数字】" 模式
+                # r'\1.' 将捕获到的数字后面加上点号
+                text_dict[k] = self.RE_DIGITAL_SEQ_REC.sub(r'\1.', text_dict[k], count=1)
         return text_dict
 
     # 处理前后缀的空格与换行，以及非日语文本（支持多行）

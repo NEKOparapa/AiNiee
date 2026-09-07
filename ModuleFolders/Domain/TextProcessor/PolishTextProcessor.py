@@ -13,6 +13,9 @@ class PolishTextProcessor():
     def __init__(self, config: Any):
         super().__init__()
 
+        # 数字序号预处理的已转换key记录（还原时只处理这些key）
+        self._digital_seq_keys: set = set()
+
         # 预编译固定处理的正则表达式
         self.RE_DIGITAL_SEQ_PRE = re.compile(self.RE_DIGITAL_SEQ_PRE_STR)
         self.RE_DIGITAL_SEQ_REC = re.compile(self.RE_DIGITAL_SEQ_REC_STR)
@@ -61,10 +64,14 @@ class PolishTextProcessor():
                 dst_text = rule.get("dst", "")
 
                 if compiled_regex:
-                    current_text = compiled_regex.sub(dst_text, current_text)
+                    try:
+                        # 保持模板语义，dst含非法转义/无效组引用时不再抛错，按字面量替换
+                        current_text = compiled_regex.sub(dst_text, current_text)
+                    except re.error:
+                        current_text = compiled_regex.sub(lambda _m: dst_text, current_text)
                 elif src_text and src_text in current_text:
                     current_text = current_text.replace(src_text, dst_text)
-            
+
             processed_text_dict[k] = current_text
         return processed_text_dict
 
@@ -84,7 +91,11 @@ class PolishTextProcessor():
                 dst_text = rule.get("dst", "")
 
                 if compiled_regex:
-                    current_text = compiled_regex.sub(dst_text, current_text)
+                    try:
+                        # 保持模板语义，dst含非法转义/无效组引用时不再抛错，按字面量替换
+                        current_text = compiled_regex.sub(dst_text, current_text)
+                    except re.error:
+                        current_text = compiled_regex.sub(lambda _m: dst_text, current_text)
                 elif src_text and src_text in current_text:
                     current_text = current_text.replace(src_text, dst_text)
 
@@ -95,22 +106,31 @@ class PolishTextProcessor():
     def digital_sequence_preprocessing(self, text_dict: Dict[str, str]) -> Dict[str, str]:
         """
         将每行开头的 "数字." 格式替换为 "【数字】"，以保护其在翻译过程中不被破坏。
+        同时记录被转换的key，还原时只处理这些key。
         """
         processed_dict = {}
+        self._digital_seq_keys = set()
         for k, text in text_dict.items():
             # 使用 sub 进行替换，count=1 确保只替换行首的第一个匹配项
-            processed_dict[k] = self.RE_DIGITAL_SEQ_PRE.sub(r'【\1】', text, count=1)
+            new_text, count = self.RE_DIGITAL_SEQ_PRE.subn(r'【\1】', text, count=1)
+            processed_dict[k] = new_text
+            if count:
+                self._digital_seq_keys.add(k)
         return processed_dict
 
     # 还原数字序列
     def digital_sequence_recovery(self, text_dict: Dict[str, str]) -> Dict[str, str]:
         """
         将 "【数字】" 格式还原为原始的 "数字." 格式。
+        只还原预处理阶段确实转换过的key，避免把原文本来就以【数字】开头的内容误改写。
         """
         processed_dict = {}
         for k, text in text_dict.items():
-            # 使用 sub 进行还原，count=1 确保只还原行首的第一个匹配项
-            processed_dict[k] = self.RE_DIGITAL_SEQ_REC.sub(r'\1.', text, count=1)
+            if k in self._digital_seq_keys:
+                # 使用 sub 进行还原，count=1 确保只还原行首的第一个匹配项
+                processed_dict[k] = self.RE_DIGITAL_SEQ_REC.sub(r'\1.', text, count=1)
+            else:
+                processed_dict[k] = text
         return processed_dict
 
     # 译前文本处理
