@@ -34,7 +34,8 @@ class ResponseExtractor:
             return translation_result
         except Exception as e:
             print(f"\033[1;33mWarning:\033[0m 回复内容无法正常提取，请反馈\n错误信息: {str(e)}")
-            return {},{},{}
+            # 调用方期望dict（失败后仍会进入行数检查/重试路径），返回空dict而不是多返回值元组
+            return {}
 
     # 提取翻译结果内容
     def extract_translation(self,source_text_dict,html_string):
@@ -99,6 +100,28 @@ class ResponseExtractor:
         # 1. 初步分割: 按主序号分割成块
         blocks = re.split(r'\n(?=\d+\.)', input_string.strip())
 
+        # 1.5 修复模型漏写引号的变形输出：N.[ 列表块会被序号分割打断（如 "1.[1.3.,A\n1.2.,B\n1.1.,C]"），
+        #     从出现 N.[ 但未闭合的块开始，重新合并到出现闭合 ] 的块为止，再走正常的列表块处理
+        merged_blocks = []
+        pending_block = None
+        for raw_block in blocks:
+            raw_block = raw_block.strip()
+            if not raw_block:
+                continue
+            if pending_block is not None:
+                pending_block += "\n" + raw_block
+                if pending_block.endswith(']'):
+                    merged_blocks.append(pending_block)
+                    pending_block = None
+                continue
+            if re.match(r'^\d+\.\s*\[', raw_block) and not raw_block.endswith(']'):
+                pending_block = raw_block
+                continue
+            merged_blocks.append(raw_block)
+        if pending_block is not None:
+            merged_blocks.append(pending_block)
+        blocks = merged_blocks
+
         extracted_items = []
 
         # 2. 处理每个块
@@ -116,10 +139,22 @@ class ResponseExtractor:
                 if list_content and ResponseExtractor.multiline_start_reg.match(list_content):
                     items = ResponseExtractor.extract_multiline_content(self, list_content)
                     extracted_items.extend(items)
-                else:
-                    # 如果方括号内的内容不像带引号列表 (例如 "9.[社团活动后]")
-                    # 将整个原始块（包括 N.[...] ）视为一个单独的文本项。
+                elif list_content and '\n' in list_content:
+                    # 方括号内容不是带引号列表且跨多行（模型漏了引号的变形输出）：剥掉外层N.[与]，
+                    # 并按行拆回多个条目，让后续按换行数对齐的逻辑能正确归位
+                    for line in list_content.split('\n'):
+                        line = line.strip()
+                        if line:
+                            extracted_items.append(line)
+                elif list_content:
+                    # 单行 N.[X]：括号属于内容本身（如游戏标签 [保存]→[Save]），整块保留，
+                    # 交给后续 remove_numbered_prefix 去掉 N. 传输标记；
+                    # 旧实现无条件剥括号会让本行丢失 N. 前缀、被前言过滤误删导致错位
                     extracted_items.append(block)
+                else:
+                    # "N.[]"空列表块：跳过。旧实现会把"N.[]"整块当正文塞进条目；
+                    # 空块会导致条目数与原文不匹配而触发重试，这比输出垃圾文本正确
+                    continue
             else:
                 # 4.2 文本块: 不是 N.[...] 格式，直接添加整个块内容
                 extracted_items.append(block)
@@ -169,8 +204,14 @@ class ResponseExtractor:
 
                     # 确保两个组都被成功捕获
                     if number_part is not None and text_part is not None:
-                        # 去除`text_part`中可能出现的`number_part`
-                        cleaned_text_part = text_part.replace(number_part, '').replace(number_part.rstrip('.'), '')
+                        # 仅去除正文开头重复出现的定位前缀（如 "1.3.,1.3.内容"），
+                        # 不做全文替换，避免误删正文中合法出现的同形内容（如版本号"1.3.4"、小数"2.1"）
+                        cleaned_text_part = re.sub(
+                            rf'^({re.escape(number_part)}|{re.escape(number_part.rstrip("."))})\s*',
+                            '',
+                            text_part,
+                            count=1,
+                        )
                         # 组合数字和文本，保留匹配到的 `text_part` 原始文本
                         assembled_content = f"{number_part},{cleaned_text_part}"
                         result.append(assembled_content)
@@ -296,27 +337,34 @@ class ResponseExtractor:
             if not isinstance(value, str):
                 output_dict[key] = value
                 continue
-                
-            translation_lines = value.split('\n')
-            cleaned_lines = []
-            
-            for line in translation_lines:
-                # 这里只清理提取流程附加的外层运输前缀，不继续删除后续数字编号。
-                # 正则匹配的内容包括：
-                # 1. 行首空白
-                # 2. 可选的特殊前缀符号，如 「『【（……□
-                # 3. 一段或多段数字序号，如 1. / 1.3. / 1.3.5.
-                # 4. 序号后可能跟随的分隔标点，如 , ， 、
-                # 5. 分隔标点后的空白
-                # 这样 "1.3.,2. Text" 会被清理成 "2. Text"，
-                # 但不会继续把真实正文编号 "2. " 再删掉。
-                cleaned_lines.append(
-                    re.sub(
-                        r'^\s*[「『【（\(……□\s]*\d+(\.\d+)*\.[,，、]?\s*',
-                        '',
-                        line,
-                    )
-                )
+
+            lines = value.split('\n')
+            if not lines:
+                output_dict[key] = value
+                continue
+
+            # 每个条目的运输序号与key一一对应（key="0" -> "1."），按key锚定匹配，
+            # 避免贪婪的通用序号正则把正文中合法的数字（如"1.3.14"、"1.5倍"）一并吞掉
+            try:
+                expected_num = int(key) + 1
+            except (ValueError, TypeError):
+                expected_num = None
+
+            if expected_num is None:
+                cleaned_lines = lines
+            else:
+                first_line = lines[0]
+                # 多行模式：首行为 "N.M.,text"（序号链后有分隔逗号），每行都要去除对应前缀
+                if re.match(rf'^\s*[「『【（\(……□\s]*{expected_num}(?:\.\d+)*\.[,，、]', first_line):
+                    cleaned_lines = [
+                        re.sub(rf'^\s*[「『【（\(……□\s]*{expected_num}(?:\.\d+)*\.[,，、]\s*', '', line)
+                        for line in lines
+                    ]
+                else:
+                    # 单行模式："N.text" —— 只去除首行开头的 "N."，正文原样保留
+                    lines = lines.copy()
+                    lines[0] = re.sub(rf'^\s*[「『【（\(……□\s]*{expected_num}\.\s*', '', first_line, count=1)
+                    cleaned_lines = lines
 
             processed_text = '\n'.join(cleaned_lines)
 
