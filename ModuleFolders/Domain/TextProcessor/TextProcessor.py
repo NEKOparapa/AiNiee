@@ -14,6 +14,7 @@ class TextProcessor():
         r'\uFF65-\uFF9F'
         r'\u4E00-\u9FFF'
         r'\u3400-\u4DBF'
+        r'\uF900-\uFAFF'  # CJK兼容表意文字（如 豈），与LanguageFilter的is_cjk保持一致，否则被当作非日语affix漏发（audit #9）
         r'\u3001-\u303F'
         r'\uff01-\uff5e'
     )
