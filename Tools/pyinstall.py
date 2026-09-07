@@ -79,6 +79,17 @@ if os.path.exists(_req_nodeps):
     for pkg in _hidden_imports_from(_req_nodeps):
         cmd.append("--hidden-import=" + pkg)
 
+# mediapipe 不在 requirements.txt（只以 no-deps pin 存在），PyInstaller 的
+# dependency graph 拿不到它，打包产物会缺包导致 AutoType 语言检测在运行期
+# 报 No module named 'mediapipe.tasks.c' 而整本书读取失败。显式 collect。
+try:
+    import mediapipe  # noqa: F401
+
+    cmd.append("--collect-all=mediapipe")
+except Exception:
+    print("[WARNING] mediapipe not installed; packaged AutoType language "
+          "detection will fall back / fail")
+
 sys.path.insert(0, ROOT)
 _exclude_opencc_binaries_from_upx()
 PyInstaller.__main__.run(cmd)
