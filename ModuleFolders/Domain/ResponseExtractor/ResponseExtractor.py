@@ -100,6 +100,28 @@ class ResponseExtractor:
         # 1. 初步分割: 按主序号分割成块
         blocks = re.split(r'\n(?=\d+\.)', input_string.strip())
 
+        # 1.5 修复模型漏写引号的变形输出：N.[ 列表块会被序号分割打断（如 "1.[1.3.,A\n1.2.,B\n1.1.,C]"），
+        #     从出现 N.[ 但未闭合的块开始，重新合并到出现闭合 ] 的块为止，再走正常的列表块处理
+        merged_blocks = []
+        pending_block = None
+        for raw_block in blocks:
+            raw_block = raw_block.strip()
+            if not raw_block:
+                continue
+            if pending_block is not None:
+                pending_block += "\n" + raw_block
+                if pending_block.endswith(']'):
+                    merged_blocks.append(pending_block)
+                    pending_block = None
+                continue
+            if re.match(r'^\d+\.\s*\[', raw_block) and not raw_block.endswith(']'):
+                pending_block = raw_block
+                continue
+            merged_blocks.append(raw_block)
+        if pending_block is not None:
+            merged_blocks.append(pending_block)
+        blocks = merged_blocks
+
         extracted_items = []
 
         # 2. 处理每个块
@@ -117,10 +139,22 @@ class ResponseExtractor:
                 if list_content and ResponseExtractor.multiline_start_reg.match(list_content):
                     items = ResponseExtractor.extract_multiline_content(self, list_content)
                     extracted_items.extend(items)
-                else:
-                    # 如果方括号内的内容不像带引号列表 (例如 "9.[社团活动后]")
-                    # 将整个原始块（包括 N.[...] ）视为一个单独的文本项。
+                elif list_content and '\n' in list_content:
+                    # 方括号内容不是带引号列表且跨多行（模型漏了引号的变形输出）：剥掉外层N.[与]，
+                    # 并按行拆回多个条目，让后续按换行数对齐的逻辑能正确归位
+                    for line in list_content.split('\n'):
+                        line = line.strip()
+                        if line:
+                            extracted_items.append(line)
+                elif list_content:
+                    # 单行 N.[X]：括号属于内容本身（如游戏标签 [保存]→[Save]），整块保留，
+                    # 交给后续 remove_numbered_prefix 去掉 N. 传输标记；
+                    # 旧实现无条件剥括号会让本行丢失 N. 前缀、被前言过滤误删导致错位
                     extracted_items.append(block)
+                else:
+                    # "N.[]"空列表块：跳过。旧实现会把"N.[]"整块当正文塞进条目；
+                    # 空块会导致条目数与原文不匹配而触发重试，这比输出垃圾文本正确
+                    continue
             else:
                 # 4.2 文本块: 不是 N.[...] 格式，直接添加整个块内容
                 extracted_items.append(block)
