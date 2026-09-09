@@ -57,7 +57,10 @@ class RenpyWriter(BaseTranslatedWriter):
         return -1
     
     def _escape_quotes_for_renpy(self, text: str) -> str:
-        """转义文本内的双引号，保留 \"、"" 和 " "。"""
+        """转义文本内的双引号与换行，保留 \"、"" 和 " "。"""
+        # Ren'Py对白字符串必须单行：真实换行转成\n转义序列（与AssWriter把换行转\N同理），
+        # 否则字面换行写回会破坏.rpy文件结构
+        text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\n")
         pattern = r'\\\"|\"\"|\" \"|\"'
         def replacer(match):
             matched_text = match.group(0)

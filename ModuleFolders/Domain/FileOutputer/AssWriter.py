@@ -44,22 +44,35 @@ class AssWriter(BaseBilingualWriter, BaseTranslatedWriter):
         line_generator: Callable[[CacheItem], Iterator[str]]
     ):
         header_footer = cache_file.extra.get('ass_header_footer', [])
-        
-        output_lines = []
-        events_written = False
 
+        # Dialogue行必须写在[Events]节的Format:行之后：reader把[Events]后的Format:行、
+        # Comment:行和解析失败的Dialogue行都存进了header_footer，旧实现一遇到[events]就
+        # 插入全部Dialogue，导致Format:行跑到所有Dialogue之后（严格解析器会按默认字段顺序误读）
+        pre_events = []
+        post_events_header = []
+        in_events = False
         for line in header_footer:
-            output_lines.append(line)
             if line.strip().lower() == '[events]':
-                for item in cache_file.items:
-                    for dialogue_line in line_generator(item):
-                        output_lines.append(dialogue_line)
-                events_written = True
-        
-        if not events_written:
-             for item in cache_file.items:
-                for dialogue_line in line_generator(item):
-                    output_lines.append(dialogue_line)
+                in_events = True
+                pre_events.append(line)
+                continue
+            (post_events_header if in_events else pre_events).append(line)
+
+        output_lines = []
+        output_lines.extend(pre_events)
+
+        # 找到Format:行的位置，Dialogue插在其后；没有Format:行时紧跟[Events]
+        insert_at = 0
+        for idx, line in enumerate(post_events_header):
+            if line.strip().lower().startswith('format:'):
+                insert_at = idx + 1
+                break
+
+        output_lines.extend(post_events_header[:insert_at])
+        for item in cache_file.items:
+            for dialogue_line in line_generator(item):
+                output_lines.append(dialogue_line)
+        output_lines.extend(post_events_header[insert_at:])
 
         translation_file_path.write_text("\n".join(output_lines), encoding=pre_write_metadata.encoding)
 
@@ -69,20 +82,23 @@ class AssWriter(BaseBilingualWriter, BaseTranslatedWriter):
             prefix = item.require_extra("dialogue_prefix")
             # 修改点 3: 从 extra 中获取行首标签，并与翻译文本组合
             leading_tags = item.extra.get("leading_tags", "")
-            yield f"{prefix},{leading_tags}{item.final_text}"
+            # 真实换行会截断Dialogue行，ASS的行内换行必须用 \N
+            text = item.final_text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\N")
+            yield f"{prefix},{leading_tags}{text}"
 
     def _yield_bilingual_lines(self, item: CacheItem) -> Iterator[str]:
         """生成原文和译文两条Dialogue行"""
         prefix = item.require_extra("dialogue_prefix")
         # 修改点 4: 同样，在写回原文和译文时，都加上行首标签
         leading_tags = item.extra.get("leading_tags", "")
-        
+
         if self._strip_text(item.source_text):
             # 组合行首标签和原文，以恢复原始行
             yield f"{prefix},{leading_tags}{item.source_text}"
         if self._strip_text(item.final_text):
-            # 组合行首标签和译文
-            yield f"{prefix},{leading_tags}{item.final_text}"
+            # 组合行首标签和译文（换行转\N，同上）
+            text = item.final_text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\\N")
+            yield f"{prefix},{leading_tags}{text}"
 
     def _strip_text(self, text: str):
         return (text or "").strip()

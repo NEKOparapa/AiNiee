@@ -53,6 +53,13 @@ class LocalLLMRequester(LogMixin, Base):
             # 提取回复内容
             message = response.choices[0].message
 
+            # finish_reason=length意味着回复被max_tokens截断：半截译文写进输出比请求失败更糟，
+            # 抛错交由下方except按失败返回、上层重试（与OpenaiRequester对称）
+            if getattr(response.choices[0], "finish_reason", None) == "length":
+                raise RuntimeError(
+                    f"Response truncated by max_tokens (finish_reason=length), model {getattr(response, 'model', '?')}"
+                )
+
             # 自适应提取推理过程
             if "</think>" in message.content:
                 splited = message.content.split("</think>")

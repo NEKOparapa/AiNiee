@@ -91,6 +91,16 @@ class GoogleRequester(LogMixin, Base):
                 # 尝试直接获取 .text 属性，这通常只包含最终回复
                 response_content = response.text
 
+            # finish_reason=MAX_TOKENS意味着回复被max_output_tokens截断，半截译文写进输出
+            # 比请求失败更糟，抛错交由下方except按失败返回、上层重试（与其他requester对称）。
+            # finish_reason在SDK里是枚举，用str包含判断兼容枚举与裸字符串两种形态。
+            if response.candidates:
+                _fr = getattr(response.candidates[0], "finish_reason", None)
+                if _fr is not None and "MAX_TOKENS" in str(_fr):
+                    raise RuntimeError(
+                        f"Response truncated (finish_reason=MAX_TOKENS), model {model_name}"
+                    )
+
         except Exception as e:
             if Base.work_status == Base.STATUS.STOPING:
                 return True, None, None, None, None

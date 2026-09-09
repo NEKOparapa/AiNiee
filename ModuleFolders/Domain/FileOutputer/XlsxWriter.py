@@ -1,10 +1,10 @@
 from pathlib import Path
 
 import openpyxl  # 需安装库pip install openpyxl
-from openpyxl.utils.escape import escape
 import re
 
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
@@ -26,68 +26,45 @@ class XlsxWriter(BaseTranslatedWriter):
         pre_write_metadata: PreWriteMetadata,
         source_file_path: Path = None,
     ):
-        # 1. 从 extra 中获取表头
-        header = cache_file.get_extra("header")
-        if not header:
-            print(f"Error: Header not found in cache for {translation_file_path.name}")
+        if not source_file_path or not source_file_path.exists():
+            print(f"Error: source file not found for {translation_file_path.name}")
             return
 
-        # 2. 构建数据映射以便快速查找: (row, col) -> final_text
-        # 使用 final_text 确保获取的是 润色后 > 翻译后 > 原文
-        data_map = {
-            (item.get_extra("row"), item.get_extra("col")): item.final_text 
-            for item in cache_file.items
-        }
-
-        # 3. 获取所有有数据的行号（去重并排序）
-        rows_with_data = sorted(set(r for r, c in data_map.keys()))
-        
-        # 计算最大列数
-        max_col = 0
-        if data_map:
-            max_col = max(c for r, c in data_map.keys())
-        
-        # 列数由表头决定，取表头长度和最大列数的最大值
-        num_cols = max(len(header), max_col + 1)
-
-        # 4. 创建工作簿并写入数据
         try:
-            wb = openpyxl.Workbook()
+            # 以源文件为模板写回：保留其余工作表、样式、列宽、公式和数值类型
+            # （旧实现重建单表工作簿，会丢失除活动表外的一切内容并把数字/日期变成文本）
+            wb = openpyxl.load_workbook(source_file_path)
             ws = wb.active
-            
-            # 写入表头
-            for col_idx, header_text in enumerate(header, start=1):
-                ws.cell(row=1, column=col_idx).value = header_text
-            
-            # 写入内容：只遍历有数据的行，每个单元格根据位置信息(row, col)写入
-            # row 从0开始计数（表头不算），所以写入时需要 +2（+1因为从0开始，+1因为表头占一行）
-            for r in rows_with_data:
-                for c in range(num_cols):
-                    cell_value = data_map.get((r, c), None)
-                    row_index = r + 2  # +1 因为从0开始，+1 因为表头占一行
-                    col_index = c + 1
-                    
-                    # 只写入有数据的单元格
-                    if cell_value is not None:
-                        # 如果文本是以 = 开始，则加一个空格
-                        # 因为 = 开头会被识别成 Excel 公式
-                        if isinstance(cell_value, str) and cell_value.startswith("="):
-                            cell_value = " " + cell_value
-                        
-                        # 防止含有特殊字符而不符合Excel公式时，导致的写入译文错误
-                        try:
-                            ws.cell(row=row_index, column=col_index).value = cell_value
-                        except:
-                            # 过滤非法控制字符并转义XML特殊字符
-                            if isinstance(cell_value, str):
-                                filtered_text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', cell_value)
-                                escaped_string = escape(filtered_text)
-                                ws.cell(row=row_index, column=col_index).value = escaped_string
-                            else:
-                                ws.cell(row=row_index, column=col_index).value = ""
-            
+
+            # 只取已翻译条目：未翻译单元格完全不改动
+            translated_map = {
+                (item.get_extra("row"), item.get_extra("col")): item.final_text
+                for item in cache_file.items
+                if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED)
+                and item.final_text and item.final_text.strip()
+            }
+
+            # row 从0开始计数（表头不算），写入时需要 +2（+1因为从0开始，+1因为表头占一行）；col +1
+            for (r, c), new_text in translated_map.items():
+                row_index = r + 2
+                col_index = c + 1
+                cell = ws.cell(row=row_index, column=col_index)
+
+                # 只替换字符串单元格：数值/日期/公式单元格保持原值与类型，
+                # 避免"数字存成文本"与公式被译文覆盖
+                if not isinstance(cell.value, str):
+                    continue
+
+                # 过滤非法控制字符（openpyxl会直接抛错），直接赋值由openpyxl负责XML转义，
+                # 不再调用escape()双重复转义（否则&会显示为&amp;）
+                filtered_text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", new_text)
+                try:
+                    cell.value = filtered_text
+                except Exception as cell_error:
+                    print(f"Error writing cell ({row_index},{col_index}): {cell_error}")
+
             # 保存工作簿
             wb.save(translation_file_path)
-            
+
         except Exception as e:
             print(f"Error writing translated XLSX: {e}")

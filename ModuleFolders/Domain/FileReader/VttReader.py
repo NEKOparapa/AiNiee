@@ -23,10 +23,15 @@ class VttReader(BaseSourceReader):
     def support_file(self):
         return "vtt"
 
-    TIME_CODE_PATTERN = re.compile(r"(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})")
+    # 支持可选小时位(1-2位)、MM:SS.mmm形式、逗号/点号毫秒分隔
+    TIME_CODE_PATTERN = re.compile(
+        r"(?:(?:\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{1,3}) --> (?:(?:\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{1,3})"
+    )
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
-        content = file_path.read_text(encoding=pre_read_metadata.encoding).strip()
+        content = file_path.read_text(encoding=pre_read_metadata.encoding)
+        # 去除UTF-8 BOM，避免影响首行 WEBVTT 头与首个cue的解析
+        content = content.lstrip('\ufeff').strip()
 
         header, body = self._split_header_body(content)
         blocks = self._split_blocks(body)
@@ -51,28 +56,23 @@ class VttReader(BaseSourceReader):
         if not lines:
             return None
 
-        # 解析时间轴
-        time_match = self.TIME_CODE_PATTERN.search(lines[0])
-        if not time_match:
+        # 定位时间轴行（前面可能存在cue序号/标识行，如ffmpeg输出的 "1"）
+        time_idx = -1
+        for idx, line in enumerate(lines[:2]):  # 标识行最多一行，检查前两行即可
+            if self.TIME_CODE_PATTERN.search(line):
+                time_idx = idx
+                break
+        if time_idx == -1:
             return None
 
-        full_timecode = lines[0]
-        text_lines = []
-        current_line = 1
-
-        # 处理可能的序号
-        if lines[0].isdigit() and len(lines) > 1:
-            if self.TIME_CODE_PATTERN.search(lines[1]):
-                full_timecode = lines[1]
-                current_line += 1
+        full_timecode = lines[time_idx]
 
         # 收集文本内容
-        while current_line < len(lines):
-            line = lines[current_line]
+        text_lines = []
+        for line in lines[time_idx + 1:]:
             if self.TIME_CODE_PATTERN.search(line):  # 防止异常时间轴
                 break
             text_lines.append(line)
-            current_line += 1
 
         source_text = '\n'.join(text_lines).strip()
         if not source_text:

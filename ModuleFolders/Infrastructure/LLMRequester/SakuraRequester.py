@@ -27,13 +27,16 @@ class SakuraRequester(LogMixin, Base):
             # 从工厂获取客户端
             client = LLMClientFactory().get_openai_client_sakura(platform_config)
 
+            # max_tokens原为硬编码512，长行会被截断成半句；优先取配置
+            max_tokens = platform_config.get("max_tokens") or 512
+
             response = client.chat.completions.create(
                 model=model_name,
                 messages=messages,
                 top_p=0.3,
                 temperature=temperature,
                 timeout=request_timeout,
-                max_tokens=512,
+                max_tokens=max_tokens,
                 extra_query={
                     "do_sample": True,
                     "num_beams": 1,
@@ -43,6 +46,9 @@ class SakuraRequester(LogMixin, Base):
 
             # 提取回复的文本内容
             response_content = response.choices[0].message.content
+            # 截断告警：finish_reason=length时内容必然不完整，记日志便于发现配置不足
+            if getattr(response.choices[0], "finish_reason", None) == "length":
+                self.warning(f"Sakura回复被max_tokens={max_tokens}截断，建议调大该平台max_tokens配置")
         except Exception as e:
             if Base.work_status == Base.STATUS.STOPING:
                 return True, None, None, None, None

@@ -364,15 +364,17 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
                 confidence = 0.0
                 text_content = getattr(item, check_target, "")
 
-                if res and res[0] and res[0][0] not in ['no_text', 'symbols_only', 'un']:
-                    result_tuple = res[0]
-                    detected_lang = result_tuple[0]
-                    if len(result_tuple) > 1:
-                        raw_confidence = result_tuple[1]
-                        if isinstance(raw_confidence, (tuple, list)) and raw_confidence:
-                           confidence = raw_confidence[0]
-                        elif isinstance(raw_confidence, (int, float)):
-                           confidence = raw_confidence
+                # 检测器共返回五种哨兵码（no_text/symbols_only/un/symbols_only_again/un_again，
+                # 后两种置信度为-1），全部不能当作有效语言参与统计，否则纯数字/符号行会
+                # 冒充"已检测语言"抬高total_valid_lines、稀释目标语言占比，造成误报语言不匹配
+                if res and res[0] and res[0][0] not in ['no_text', 'symbols_only', 'un', 'symbols_only_again', 'un_again']:
+                    detected_lang = res[0][0]
+                    # 置信度在res[1]（res[0]是语言代码列表，res[0][1]是第二个语言代码）
+                    raw_confidence = res[1] if len(res) > 1 else None
+                    if isinstance(raw_confidence, (tuple, list)) and raw_confidence:
+                        confidence = raw_confidence[0]
+                    elif isinstance(raw_confidence, (int, float)):
+                        confidence = raw_confidence
 
                     lang_counts[detected_lang] += 1
 
@@ -440,7 +442,8 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         # 统计文件内所有语言的行数
         lang_counts = defaultdict(int)
         for res in detection_results:
-            if res[0] and res[0][0] not in ['no_text', 'symbols_only', 'un']:
+            # 同上：五种哨兵码都不是有效语言
+            if res[0] and res[0][0] not in ['no_text', 'symbols_only', 'un', 'symbols_only_again', 'un_again']:
                 lang_counts[res[0][0]] += 1
 
         total_valid_lines = sum(lang_counts.values())

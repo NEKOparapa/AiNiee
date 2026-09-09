@@ -73,18 +73,29 @@ class DocxAccessor:
                 next_node = child_nodes[j]
 
                 # 遇到其他类型节点，停止合并
-                if not self._is_tag_of(current, "r"):
+                if not self._is_tag_of(next_node, "r"):
                     break
 
                 # 格式相同则合并文本内容
                 if self._get_style(merged_run) == self._get_style(next_node):
-                    current_t = merged_run.find("w:t")
                     next_t = next_node.find("w:t")
-                    if next_t:
+                    # 仅当该run除去rPr后只包含一个w:t时才合并；
+                    # 含空<w:t/>+<w:br/>等混合内容的run一旦被消费，其换行/图片会丢失
+                    # 注意：'xml'解析器的Tag.name是去掉命名空间前缀的局部名（"rPr"而非"w:rPr"），
+                    # 同时过滤标签间的空白文本节点
+                    content_children = [
+                        c for c in next_node.children
+                        if not (isinstance(c, Tag) and c.name == "rPr") and not self._is_empty_string(c)
+                    ]
+                    if next_t is not None and content_children == [next_t]:
+                        current_t = merged_run.find("w:t")
                         if next_t.get("xml:space") == "preserve":
                             current_t["xml:space"] = "preserve"
                         current_t.string += next_t.get_text()
-                    j += 1
+                        j += 1
+                    else:
+                        # 无文本/混合内容的run（换行/图片/制表符等），停止合并以保留该节点
+                        break
                 else:
                     break
             new_children.append(merged_run)

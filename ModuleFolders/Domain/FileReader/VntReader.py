@@ -27,9 +27,12 @@ class VntReader(BaseSourceReader):
         json_data = json.loads(file_path.read_text(encoding="utf-8"))
         items = []
         for entry in json_data:
-            source_text = entry["message"]
+            # message/name 可能是数字等非字符串（异常JSON），统一转str避免下游崩溃（与TPP对称）
+            source_text = str(entry["message"]) if entry.get("message") is not None else ""
             names = entry.get("names", [])  # 默认获取空列表
             name = entry.get("name", "")    # 默认获取空字符串
+            if name:
+                name = str(name)
 
             extra = {}
             if names:

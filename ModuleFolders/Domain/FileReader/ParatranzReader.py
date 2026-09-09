@@ -61,8 +61,9 @@ class ParatranzReader(BaseSourceReader):
                 translation_status = TranslationStatus.UNTRANSLATED
             else:
                 translation_status = TranslationStatus.TRANSLATED
-            source_text = json_item.get('original', '')  # 获取原文，如果没有则默认为空字符串
-            translated_text = json_item.get('translation', '')  # 获取翻译，如果没有则默认为空字符串
+            # 数字/布尔等非字符串字段统一转str，避免非str的source_text在下游re.sub等崩溃（与TPP对称）
+            source_text = str(json_item.get('original') or '')  # 获取原文，缺失/空则空字符串
+            translated_text = str(json_item.get('translation') or '')  # 获取翻译，缺失/空则空字符串
             extra = {
                 "key": json_item.get('key', ''),  # 获取键值，如果没有则默认为空字符串
                 "context": json_item.get('context', ''),  # 获取上下文信息，如果没有则默认为空字符串

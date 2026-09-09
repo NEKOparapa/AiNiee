@@ -69,6 +69,13 @@ class AnthropicRequester(LogMixin, Base):
             response_think = "".join(thinking_parts)
             response_content = "".join(content_parts)
 
+            # stop_reason=max_tokens意味着回复被截断，半截译文写进输出比请求失败更糟
+            # （与AmazonbedrockRequester的stop_reason检查对称）
+            if getattr(response, "stop_reason", None) == "max_tokens":
+                raise RuntimeError(
+                    f"Response truncated (stop_reason=max_tokens), model {model_name}"
+                )
+
         except Exception as e:
             if Base.work_status == Base.STATUS.STOPING:
                 return True, None, None, None, None

@@ -25,13 +25,18 @@ class LrcWriter(BaseTranslatedWriter):
         """
         output_lines = []
         if subtitle_title := cache_file.get_extra("subtitle_title"):
-            output_lines.append(f"[{subtitle_title}]\n")
+            output_lines.append(f"[ti:{subtitle_title}]\n")
+        # 保留读取时收集的非歌词行（[ar:]/[al:]/[offset:]等元数据）
+        for kind, line in cache_file.get_extra("other_lines") or []:
+            if kind == 'raw':
+                output_lines.append(line + "\n")
         # 转换中间字典的格式为最终输出格式
         for item in cache_file.items:
             # 获取字幕时间轴
             subtitle_time = item.require_extra("subtitle_time")
-            # 获取字幕文本内容
-            subtitle_text = item.final_text
+            # 获取字幕文本内容（真实换行会破坏LRC单行结构，替换为空格）
+            # splitlines()同时处理 \r\n / \r / \n（旧实现只split("\n")，残留的\r会造出无时间戳的裸行）
+            subtitle_text = " ".join(str(item.final_text).splitlines())
 
             output_lines.append(f"[{subtitle_time}]{subtitle_text}\n")
 

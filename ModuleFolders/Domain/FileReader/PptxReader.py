@@ -28,14 +28,14 @@ class PptxReader(BaseSourceReader):
         items = []
         try:
             prs = Presentation(file_path)
-            
+
             # 遍历幻灯片
             for slide_idx, slide in enumerate(prs.slides):
-                # 遍历形状
-                for shape in slide.shapes:
+                # 遍历形状（递归进入组合形状，否则组合内的文本完全丢失）
+                for shape in self._iter_shapes(slide.shapes):
                     if not shape.has_text_frame:
                         continue
-                    
+
                     # 遍历段落
                     for para_idx, paragraph in enumerate(shape.text_frame.paragraphs):
                         text = paragraph.text
@@ -50,9 +50,18 @@ class PptxReader(BaseSourceReader):
                                 }
                             )
                             items.append(item)
-                            
+
         except Exception as e:
             print(f"Error reading PPTX {file_path}: {e}")
             return None
 
         return CacheFile(items=items)
+
+    @staticmethod
+    def _iter_shapes(shapes):
+        """深度优先展开组合形状(GroupShape)，普通形状原样产出"""
+        for shape in shapes:
+            if shape.shape_type == 6:  # MSO_SHAPE_TYPE.GROUP
+                yield from PptxReader._iter_shapes(shape.shapes)
+            else:
+                yield shape

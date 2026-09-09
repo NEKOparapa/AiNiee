@@ -161,7 +161,9 @@ class WolfXlsxAccessor:
                 try:
                     sheet.cell(row=row_index, column=cls.TARGET_COL).value = sanitized_text
                 except Exception:
-                    sheet.cell(row=row_index, column=cls.TARGET_COL).value = escape(sanitized_text)
+                    # 只过滤非法控制字符，不做escape()：openpyxl保存时会自行做XML转义，
+                    # 手动escape会让&显示为&amp;
+                    sheet.cell(row=row_index, column=cls.TARGET_COL).value = sanitized_text
 
             workbook.save(translation_file_path)
         finally:
