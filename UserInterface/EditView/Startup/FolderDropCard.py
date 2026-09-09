@@ -129,7 +129,7 @@ class DragDropArea(ConfigMixin, Base, QWidget):
 
         # 底部按钮区域
         bottom_layout = QHBoxLayout()
-        self.satr_button = PrimaryPushButton(FluentIcon.PLAY, self.tra("直接读取"), self)
+        self.satr_button = PrimaryPushButton(FluentIcon.PLAY, self.tra("开始读取"), self)
         self.satr_button.clicked.connect(self._get_folder)
         self.selectButton = PrimaryPushButton(FluentIcon.FOLDER_ADD, self.tra("拖拽/选择输入文件夹"), self)
         self.selectButton.clicked.connect(self._select_folder)
