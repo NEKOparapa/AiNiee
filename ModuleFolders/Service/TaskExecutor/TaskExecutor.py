@@ -430,6 +430,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             print("")
             self.info(f"正在生成翻译任务 ...")
             for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成翻译任务", total=len(chunks)):
+                if Base.work_status == Base.STATUS.STOPING:
+                    break
+
                 # 确定该任务的主语言
                 language_stats = self.cache_manager.project.get_file(file_path).language_stats # 获取该文件的语言检测数据
                 file_source_lang = get_source_language_for_file(self.config.source_language,self.config.target_language,language_stats)
@@ -622,6 +625,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             print("")
             self.info(f"正在生成润色任务 ...")
             for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成润色任务", total=len(chunks)):
+                if Base.work_status == Base.STATUS.STOPING:
+                    break
+
                 task = PolisherTask(self.config, self.request_limiter)  # 实例化
                 task.set_items(chunk)  # 传入该任务待润色文
                 task.set_previous_items(previous_chunk)  # 传入该任务待润色文的上文
