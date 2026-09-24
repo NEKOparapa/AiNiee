@@ -443,6 +443,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 task.prepare(self.config.target_platform)  # 预先构建消息列表
                 tasks_list.append(task)
             GlossaryHelper.clear_cache()
+            if Base.work_status == Base.STATUS.STOPING:
+                Base.work_status = Base.STATUS.TASKSTOPPED
+                return None
             self.info(f"已经生成全部翻译任务 ...")
             self.print("")
 
@@ -634,6 +637,9 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 task.prepare()  # 预先构建消息列表
                 tasks_list.append(task)
             GlossaryHelper.clear_cache()
+            if Base.work_status == Base.STATUS.STOPING:
+                Base.work_status = Base.STATUS.TASKSTOPPED
+                return None
             self.info(f"已经生成全部润色任务 ...")
             self.print("")
 
