@@ -1,5 +1,7 @@
 
 
+import re
+
 # 检查接口是否拒绝翻译，而返回一段话
 def contains_special_chars(s: str) -> bool:
     special_chars = ['<', '>', '/']
@@ -27,8 +29,12 @@ def check_dict_order(source_text_dict,input_dict):
 
     for key in keys:
         value = input_dict[key]
-        prefix = str(expected_num) + "."
-        if not value.startswith(prefix):
+        if not isinstance(value, str):
+            return False
+        # 行首可有引用符号/空白，然后必须是 "N."（提取阶段add_number_prefix生成的运输前缀格式）
+        # 旧实现要求value整体以"N."开头，模型回复带前导引号/空白时被误判为串行而整批重试；
+        # 引导字符集与ResponseExtractor.remove_numbered_prefix保持一致，避免"检查比剥离更严"造成永久重试
+        if not re.match(rf'^\s*["“”「『【（\(……□\s]*\s*{expected_num}\.', value):
             return False  # 值没有以期望的序号开头
         expected_num += 1  # 序号递增
 
