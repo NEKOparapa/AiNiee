@@ -49,6 +49,13 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         """主入口统筹：准备 -> 第一阶段并发 -> 第二阶段聚合与并发 -> 最终兜底合并 -> 落盘"""
         try:
             # --- [准备阶段] ---
+            # 启动前收到停止请求则不覆盖状态（同translation_start_target）
+            if Base.work_status == Base.STATUS.STOPING:
+                # 必须落到TASKSTOPPED再发事件：否则work_status停在STOPING，
+                # stop watcher的退出条件(TASKSTOPPED/IDLE)永不满足而空转（与另两条路径对称）
+                Base.work_status = Base.STATUS.TASKSTOPPED
+                self.emit(Base.EVENT.TASK_STOP_DONE, {})
+                return
             Base.work_status = Base.STATUS.ANALYSIS_TASK
             self.info("开始执行文本分析任务 ...")
             self._emit_progress_update(
@@ -346,6 +353,9 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         raw_grouped_inputs = {}
         for result in first_stage_results:
             for row in result.get("characters", []):
+                # 兜底：模型仍可能混入非dict元素（重试后仍是坏块时该块已按空结果处理，
+                # 但多块合并路径不经过校验），跳过而不是让整个分析中断
+                if not isinstance(row, dict): continue
                 source = str(row.get("source", "")).strip()
                 if not source: continue
                 raw_grouped_inputs.setdefault(source, {"source": source, "merged_sources": [source], "candidates": []})
@@ -354,6 +364,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                     "gender": str(row.get("gender", "")).strip(), "category_path": "", "note": str(row.get("note", "")).strip(),
                 })
             for row in result.get("terms", []):
+                if not isinstance(row, dict): continue
                 source = str(row.get("source", "")).strip()
                 if not source: continue
                 raw_grouped_inputs.setdefault(source, {"source": source, "merged_sources": [source], "candidates": []})
@@ -507,6 +518,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         # 1. 吸收并规范化第二阶段 AI 的结果
         for result in second_stage_results:
             for row in result.get("characters", []):
+                if not isinstance(row, dict): continue
                 source = str(row.get("source", "")).strip()
                 source = self.grouped_stage_two_source_aliases.get(source, source)
                 if not source or source in assigned_sources: continue
@@ -518,6 +530,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 assigned_sources.add(source)
 
             for row in result.get("terms", []):
+                if not isinstance(row, dict): continue
                 source = str(row.get("source", "")).strip()
                 source = self.grouped_stage_two_source_aliases.get(source, source)
                 if not source or source in assigned_sources: continue
@@ -704,4 +717,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         for field in required_fields:
             if field not in parsed: return False, f"缺少必须字段: {field}"
             if not isinstance(parsed.get(field), list): return False, f"字段 {field} 必须是数组"
+            # 元素必须是dict：模型把数组回成["Alice"]这种字符串列表时，
+            # 下游row.get会AttributeError并使整个分析任务中断——校验不过让该块走重试
+            if not all(isinstance(x, dict) for x in parsed[field]): return False, f"字段 {field} 的元素必须是对象"
         return True, ""

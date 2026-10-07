@@ -338,11 +338,15 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                 self.success_toast(self.tra("完成"), self.tra("表格翻译任务完成，已更新 {} 行。").format(updated_item_count))
             elif status == "empty":
                 self.warning_toast(self.tra("提示"), self.tra("表格翻译任务结束，但没有可回写的结果。"))
+            elif status == "error":
+                self.error_toast(self.tra("错误"), self.tra("表格翻译任务异常终止，请查看日志。"))
         elif operation == "polish":
             if status == "success":
                 self.success_toast(self.tra("完成"), self.tra("表格润色任务完成，已更新 {} 行。").format(updated_item_count))
             elif status == "empty":
                 self.warning_toast(self.tra("提示"), self.tra("表格润色任务结束，但没有可回写的结果。"))
+            elif status == "error":
+                self.error_toast(self.tra("错误"), self.tra("表格润色任务异常终止，请查看日志。"))
 
     def _get_selected_rows_indices(self):
         return sorted(list(set(index.row() for index in self.table.selectedIndexes())))
@@ -372,6 +376,8 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
                 )
 
         if not items_to_translate:
+            # 状态已置TABLE_TASK却没有任务可发：立即恢复IDLE，避免状态卡死（与_polish_text的顺序一致）
+            Base.work_status = Base.STATUS.IDLE
             return
 
         language_stats = self.cache_manager.project.get_file(self.file_path).language_stats
