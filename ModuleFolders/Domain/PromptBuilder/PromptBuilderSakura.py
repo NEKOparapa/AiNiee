@@ -123,13 +123,53 @@ class PromptBuilderSakura(Base):
 
     # 生成项目角色表 - Sakura
     def build_project_characters_prompt(config: TaskConfig, source_text_dict: dict) -> str:
-        return PromptBuilderSakura._build_project_table_prompt(
+        character_prompt = PromptBuilderSakura._build_project_table_prompt(
             source_text_dict,
             getattr(config, "project_characters_data", []),
             "source",
             "recommended_translation",
             ("gender", "note"),
         )
+        # 统一称呼翻译开关：默认关闭，关闭时仅注入角色表，不注入称呼变体小节
+        if not bool(getattr(config, "character_name_unify_switch", False)):
+            return character_prompt
+        variants_prompt = PromptBuilderSakura._build_character_variants_prompt(config, source_text_dict)
+        if variants_prompt:
+            return character_prompt + variants_prompt
+        return character_prompt
+
+    # 构建角色称呼变体小节 - Sakura（紧凑格式，仅列出变体与本名对应关系）
+    def _build_character_variants_prompt(config: TaskConfig, source_text_dict: dict) -> str:
+        variants_map = getattr(config, "project_character_variants", {}) or {}
+        if not variants_map or not source_text_dict:
+            return ""
+
+        full_text = "\n".join(source_text_dict.values())
+        if not full_text:
+            return ""
+
+        translation_by_source = {
+            str(row.get("source", "") or "").strip(): str(row.get("recommended_translation", "") or "").strip()
+            for row in getattr(config, "project_characters_data", []) or []
+            if isinstance(row, dict) and str(row.get("source", "") or "").strip()
+        }
+
+        matched_lines = []
+        for base_name, variants in variants_map.items():
+            recommended = translation_by_source.get(base_name, "")
+            present_variants = [v for v in variants if v in full_text]
+            if not present_variants:
+                continue
+            matched_lines.append((base_name, recommended, present_variants))
+
+        if not matched_lines:
+            return ""
+
+        lines = ["\n# 角色称呼变体，翻译时必须复用本名译名，同一称呼全文只能一种译法"]
+        for base_name, recommended, present_variants in matched_lines:
+            lines.append(f"{base_name}->{recommended if recommended else base_name} #称呼: {'、'.join(present_variants)}")
+
+        return "\n".join(lines)
 
     # 生成项目术语表 - Sakura
     def build_project_terms_prompt(config: TaskConfig, source_text_dict: dict) -> str:
