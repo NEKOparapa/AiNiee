@@ -48,12 +48,13 @@ class SrtWriter(BaseBilingualWriter, BaseTranslatedWriter):
             translation_file_path.write_text("\n\n".join(output), encoding=pre_write_metadata.encoding)
 
     def _map_to_translated_item(self, item: CacheItem):
-        block = [
-            str(item.require_extra("subtitle_number")),
-            item.require_extra("subtitle_time"),
-            item.final_text.strip(),
-            "",
-        ]
+        # 与VttWriter一致：源文件没有cue序号行时不再凭空写出"None"，直接省略序号行
+        block = []
+        if "subtitle_number" in item.extra:
+            block.append(str(item.require_extra("subtitle_number")))
+        block.append(item.require_extra("subtitle_time"))
+        block.append(item.final_text.strip())
+        block.append("")
         return block
 
     def _yield_bilingual_block(self, item: CacheItem, counter: count):
@@ -69,7 +70,11 @@ class SrtWriter(BaseBilingualWriter, BaseTranslatedWriter):
         if self._strip_text(item.translated_text):
             number = next(counter)
             translated_block = self._map_to_translated_item(item)
-            translated_block[0] = str(number)
+            # 双语输出统一重新编号：有序号则替换首行，无序号则插入首行
+            if "subtitle_number" in item.extra:
+                translated_block[0] = str(number)
+            else:
+                translated_block.insert(0, str(number))
             yield translated_block
 
     def _strip_text(self, text: str):

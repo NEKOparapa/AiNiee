@@ -60,6 +60,11 @@ class AmazonbedrockRequester(LogMixin, Base):
 
             response = client.messages.create(**request_params)
 
+            # stop_reason=max_tokens意味着回复被截断，半截译文写进输出比请求失败更糟
+            stop_reason = getattr(response, "stop_reason", None)
+            if stop_reason == "max_tokens":
+                raise RuntimeError(f"Response truncated (stop_reason=max_tokens), model {model_name}")
+
             thinking_parts = []
             content_parts = []
             for block in response.content:
@@ -137,6 +142,10 @@ class AmazonbedrockRequester(LogMixin, Base):
                 }
 
             response = client.converse(**request_params)
+
+            # converse的stopReason=max_tokens同样代表截断，按失败返回让上层重试
+            if response.get("stopReason") == "max_tokens":
+                raise RuntimeError(f"Response truncated (stopReason=max_tokens), model {model_name}")
 
             thinking_parts = []
             content_parts = []

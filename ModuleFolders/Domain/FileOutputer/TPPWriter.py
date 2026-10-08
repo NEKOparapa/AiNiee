@@ -58,10 +58,9 @@ class TPPWriter(BaseTranslatedWriter):
                 try:
                     ws.cell(row=row_index, column=2).value = re.sub(r"^=", " =", translated_text)
                 except:
-                    # 过滤非法控制字符并转义XML特殊字符
+                    # 只过滤非法控制字符，不做escape()：openpyxl保存时会自行做XML转义
                     filtered_text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', translated_text)
-                    escaped_string = escape(filtered_text)
-                    ws.cell(row=row_index, column=2).value = escaped_string
+                    ws.cell(row=row_index, column=2).value = filtered_text
 
             else :
                 ws.cell(row=row_index, column=1).value = re.sub(r"^=", " =", source_text)

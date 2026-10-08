@@ -170,7 +170,9 @@ def check_dicts_equal(dict1, dict2):
 
 
 # 检查残留原文的算法
-def detecting_remaining_original_text(dictA, dictB, language):
+CHINESE_LANGUAGE_SET = ("chinese_simplified", "chinese_traditional")
+
+def detecting_remaining_original_text(dictA, dictB, language, target_language=None):
 
     # 使用复制变量，避免影响到原变量
     dict_src = dictA.copy()
@@ -178,6 +180,11 @@ def detecting_remaining_original_text(dictA, dictB, language):
 
     # 考量到代码文本，不支持的语言不作检查
     if language not in ("japanese","korean","chinese_simplified","chinese_traditional"):
+        return True
+
+    # 中文源→日文/中文目标时，译文合法地包含汉字（日语汉字/繁简汉字），
+    # 按字符回退检测必然误判（正确的译文也会被判为"残留原文"，导致整批永远无法通过）
+    if language in CHINESE_LANGUAGE_SET and target_language in ("japanese",) + CHINESE_LANGUAGE_SET:
         return True
 
     # 避免检查单或者少行字典

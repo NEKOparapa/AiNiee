@@ -92,8 +92,13 @@ class TextSymbolRepair:
                     # 检查译文是否以对应的替代标点开头和结尾
                     if translated_stripped.startswith(alt_start) and translated_stripped.endswith(alt_end):
 
-                        # 替换译文的首尾标点为原文的标点
                         inner_text = translated_stripped[len(alt_start):-len(alt_end)]    # 截取掉译文的首尾标点
+                        # 内部还残留同形替代引号说明译文有多对引号（与原文单对不符），
+                        # 此时强行包裹会产生「…”“混合括号，放弃本次包裹以避免损坏
+                        if alt_start in inner_text or alt_end in inner_text:
+                            break
+
+                        # 替换译文的首尾标点为原文的标点
                         translated_stripped = orig_start + inner_text + orig_end  # 用原文标点包裹
 
                         # 处理完当前原文标点对后，跳出循环
@@ -105,12 +110,19 @@ class TextSymbolRepair:
 
 
         # --- 阶段2: 处理其他类型文本 ---
-        # 1. 定义原文和译文的内部引号
-        orig_internal_start = '「'
-        orig_internal_end = '」'
+        # 1. 根据原文实际使用的内部引号选择替换目标（「」优先，其次『』）
+        if original_stripped.count('「') > 0 and original_stripped.count('「') == original_stripped.count('」'):
+            orig_internal_start = '「'
+            orig_internal_end = '」'
+        elif original_stripped.count('『') > 0 and original_stripped.count('『') == original_stripped.count('』'):
+            orig_internal_start = '『'
+            orig_internal_end = '』'
+        else:
+            orig_internal_start = '「'
+            orig_internal_end = '」'
         trans_internal_quote = '"' # 英文双引号，开始和结束相同
 
-        # 2. 检查原文中是否有成对的「 和 」，并计算对数
+        # 2. 检查原文中是否有成对的内部引号，并计算对数
         orig_start_count = original_stripped.count(orig_internal_start)
         orig_end_count = original_stripped.count(orig_internal_end)
 
@@ -118,10 +130,17 @@ class TextSymbolRepair:
         trans_quote_count = translated_stripped.count(trans_internal_quote)
 
         # 4. 条件判断：
-        #    - 原文中「 和 」数量相等且大于0
+        #    - 原文中内部引号数量相等且大于0
         #    - 译文中 " 数量是偶数且大于0
         #    - 原文中的对数 == 译文中的对数
-        if ((orig_start_count > 0 and orig_start_count == orig_end_count) and (trans_quote_count > 0 and trans_quote_count % 2 == 0) and (orig_start_count == trans_quote_count // 2)):
+        #    - 译文中不含 '<'/'>': 恢复回来的代码段（HTML属性等）中的 " 是代码的一部分，
+        #      按数量盲替换会把 class="red" 这类内容改成 class=「red」
+        if (
+            (orig_start_count > 0 and orig_start_count == orig_end_count)
+            and (trans_quote_count > 0 and trans_quote_count % 2 == 0)
+            and (orig_start_count == trans_quote_count // 2)
+            and ('<' not in translated_stripped and '>' not in translated_stripped)
+        ):
 
             # 5. 执行替换：从左到右，依次将 " 替换为 「 和 」
             temp_translated_list = list(translated_stripped) # 转为列表方便修改
@@ -154,8 +173,14 @@ class TextSymbolRepair:
 
         # 遍历标点映射表
         for original_punc, alternative_puncs in punctuation_map.items():
+            # 仅当原文确实使用了该标点时才替换，且原文本身使用替代形式时保留译文原样：
+            # 避免把恢复回来的代码/URL中的?、--、...改坏（如<a href="?id=3">、<!-- -->、C调用中的...）
+            if original_punc not in original_stripped:
+                continue
             # 遍历该原文标点对应的所有可能替代标点
             for alt_punc in alternative_puncs:
+                if alt_punc in original_stripped:
+                    continue
                 # 在译文中全局替换替代标点为原文标点
                 translated_stripped = translated_stripped.replace(alt_punc, original_punc)
 
@@ -187,7 +212,8 @@ class TextSymbolRepair:
                 orig_start = orig_line[0] if len(orig_line) > 0 else ''
 
                 # 如果原文首不符合要求，则去掉译文双引号
-                if orig_start not in {'"', '“', '「', """'"""} :
+                # （『』也是合法的原文引用起始符，不能漏，否则该行引号会被静默删除）
+                if orig_start not in {'"', '“', '「', '『', """'"""} :
                     trans_line = trans_line[1:]
 
             if len(trans_line) >= 2 and trans_line.endswith('"'):
@@ -195,7 +221,7 @@ class TextSymbolRepair:
                 orig_end = orig_line[-1] if len(orig_line) > 0 else ''
 
                 # 如果原文尾不符合要求，则去掉译文双引号
-                if orig_end not in {'"', '”', '」', """'"""}:
+                if orig_end not in {'"', '”', '」', '』', """'"""}:
                     trans_line = trans_line[:-1]
 
             modified_translation.append(trans_line)

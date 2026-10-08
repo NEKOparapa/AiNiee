@@ -59,6 +59,7 @@ class ResponseChecker():
                 source_text_dict, 
                 response_dict, 
                 source_language,
+                getattr(config, 'target_language', None),
             ):
                 return False, "【翻译残留】 - 译文中残留部分原文"
 

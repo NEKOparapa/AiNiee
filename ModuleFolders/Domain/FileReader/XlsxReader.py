@@ -65,8 +65,12 @@ class XlsxReader(BaseSourceReader):
                 for col in range(1, sheet.max_column + 1):
                     cell_value = sheet.cell(row=row, column=col).value
                     if cell_value is not None and str(cell_value).strip():
+                        # 跳过非字符串单元格（数字/日期）与公式单元格：
+                        # 翻译它们只会浪费API配额，写回时还会把公式/数值类型破坏掉
+                        if not isinstance(cell_value, str) or cell_value.startswith("="):
+                            continue
                         item = CacheItem(
-                            source_text=str(cell_value),
+                            source_text=cell_value,
                             translation_status=TranslationStatus.UNTRANSLATED,
                             extra={
                                 "row": row - 2,

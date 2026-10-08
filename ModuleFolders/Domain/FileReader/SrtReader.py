@@ -32,7 +32,16 @@ class SrtReader(BaseSourceReader):
 
             # 新字幕块开始
             if current_block is None:
-                if line.isdigit():
+                if "-->" in line:
+                    # 部分SRT没有cue序号行，时间轴行直接开始一个块
+                    # （与VTT同类bug：序号非纯数字或缺失时，旧逻辑把整个文件丢弃）
+                    current_block = {
+                        "number": None,
+                        "time": line,
+                        "text": []
+                    }
+                elif line:
+                    # cue标识行不一定是纯数字（如"cue-1"）；若下一行不是时间轴则整块按原逻辑丢弃
                     current_block = {
                         "number": line,
                         "time": None,
@@ -64,6 +73,9 @@ class SrtReader(BaseSourceReader):
 
     def _block_to_item(self, block):
         source_text = "\n".join(block["text"])
-        extra = {"subtitle_number": block["number"], "subtitle_time": block["time"]}
+        # 与VttReader一致：仅在存在cue标识时保存subtitle_number，writer据此决定是否还原
+        extra = {"subtitle_time": block["time"]}
+        if block["number"] is not None:
+            extra["subtitle_number"] = block["number"]
         item = CacheItem(source_text=source_text, extra=extra)
         return item

@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 
 # 假定这些导入相对于项目结构是正确的
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
+from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     BaseTranslatedWriter,
@@ -50,17 +51,36 @@ class I18nextWriter(BaseTranslatedWriter):
     ):
         """
         将 CacheItem 列表写入 i18next JSON 文件。
+
+        以源文件为模板：只把已翻译条目写回原路径，保留源JSON中的
+        数字/布尔/null/数组/空对象等非字符串叶子（旧实现从零重建，会全部删掉）。
+        源文件缺失时回退为从缓存重建（untranslated键用final_text=原文补齐，避免丢键）。
         """
-        output_data = {} # 用于构建最终 JSON 结构的字典
+        output_data = {}
+        template_loaded = False
+        if source_file_path and Path(source_file_path).exists():
+            try:
+                output_data = json.loads(Path(source_file_path).read_text(encoding="utf-8-sig"))
+                template_loaded = isinstance(output_data, dict)
+            except Exception as e:
+                print(f"Error reading source i18next file {source_file_path}: {e}")
+                template_loaded = False
 
-        for item in cache_file.items:
-            path: List[str] = item.require_extra("i18next_path")
-
-            # 获取翻译后的文本
-            translated_text = item.final_text  # 假设这个方法返回最终要写入的字符串
-
-            # 使用辅助函数将翻译文本按路径设置到 output_data 中
-            self._set_value_by_path(output_data, path, translated_text)
+        if not template_loaded:
+            # 回退：用全部条目重建（含untranslated的原文），避免输出丢键
+            for item in cache_file.items:
+                path: List[str] = item.require_extra("i18next_path")
+                self._set_value_by_path(output_data, path, item.final_text)
+        else:
+            for item in cache_file.items:
+                path = item.require_extra("i18next_path")
+                # 只写回已翻译条目；untranslated键保持模板原值
+                if item.translation_status not in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
+                    continue
+                translated_text = item.final_text
+                if not translated_text:
+                    continue
+                self._set_value_by_path(output_data, path, translated_text)
 
         json_content = json.dumps(output_data, ensure_ascii=False, indent=4)
 

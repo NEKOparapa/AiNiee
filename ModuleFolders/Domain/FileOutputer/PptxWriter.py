@@ -8,6 +8,7 @@ from ModuleFolders.Domain.FileOutputer.BaseWriter import (
     OutputConfig,
     PreWriteMetadata
 )
+from ModuleFolders.Domain.FileReader.PptxReader import PptxReader
 
 class PptxWriter(BaseTranslatedWriter):
     def __init__(self, output_config: OutputConfig):
@@ -40,12 +41,12 @@ class PptxWriter(BaseTranslatedWriter):
                     )
                     translation_map[key] = item.final_text
 
-            # 再次遍历并替换文本
+            # 再次遍历并替换文本（与Reader相同的组合形状递归顺序，保证slide_idx/shape_id/para_idx能对上）
             for slide_idx, slide in enumerate(prs.slides):
-                for shape in slide.shapes:
+                for shape in PptxReader._iter_shapes(slide.shapes):
                     if not shape.has_text_frame:
                         continue
-                    
+
                     for para_idx, paragraph in enumerate(shape.text_frame.paragraphs):
                         key = (slide_idx, shape.shape_id, para_idx)
                         if key in translation_map:
