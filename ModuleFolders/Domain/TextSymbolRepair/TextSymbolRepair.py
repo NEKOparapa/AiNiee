@@ -4,6 +4,31 @@ from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 
 
 class TextSymbolRepair:
+    """规则驱动的文本符号修复引擎。
+
+    核心思路（对应「原作符号不遵守，自动修复略无用」问题）：
+    1. 先屏蔽 URL / Markdown 链接 / 占位标签 / HTML 标签等「不可触碰」片段，
+       避免全局替换破坏它们（如 URL 中的 `?` 被改成 `？` 的历史问题）。
+    2. 所有标点替换均为「条件替换」：仅当原文确实使用了对应符号时，
+       才把译文中出现的替代符号还原为原文符号。
+    3. 成对引号（「」『』“”‘’）支持首尾包裹与内部成对两种还原。
+    4. 原文完全没有括号时，删除译文中「批注型括号段」——AI 额外添加的注释
+       （如（译者注：…）、【补充说明】等）。仅当括号段内部文本命中批注模式
+       （见 _ANNOTATION_PATTERNS）才删除，普通括号内容一律保留，防止误删。
+    """
+
+    # 需要整体屏蔽、不做任何修改的片段
+    # URL 主体排除 ()[]! 等字符（避免历史贪婪匹配问题），但允许紧跟一个平衡的
+    # 括号尾段，如 https://a.jp/item(a)，保证「原文无括号」判断不被 URL 内的括号干扰
+    _PROTECT_PATTERNS = [
+        re.compile(r"https?://[^\s<>\"'()\[\]!，。！？；：、）】」』…]+(?:\([^()\s]*\))?"),
+        re.compile(r"www\.[^\s<>\"'()\[\]!，。！？；：、）】」』…]+(?:\([^()\s]*\))?"),
+        re.compile(r"\[[^\]]*\]\([^)]*\)"),   # Markdown 链接 [text](url)
+        re.compile(r"<[^>]+>"),                # HTML / XML 标签
+        re.compile(r"\[P\d+\]"),               # 占位符 [P0]
+        re.compile(r"\{[^{}]*\}"),             # 花括号占位 {0}
+    ]
+
     def repair_response_dict(self, config: TaskConfig, response_dict: dict[str, str]) -> dict[str, str]:
         if self._is_enabled(config) == False:
             return response_dict
@@ -19,7 +44,48 @@ class TextSymbolRepair:
     def _is_enabled(self, config: TaskConfig) -> bool:
         return bool(getattr(config, 'text_symbol_repair_switch', False))
 
+    # ============================================================
+    # 保护段屏蔽 / 还原
+    # ============================================================
+    def _mask_protected(self, text: str) -> tuple[str, dict[str, str]]:
+        """将受保护片段替换为哨兵 token，返回 (屏蔽后文本, {token: 原文片段})。"""
+        spans = []
+        for pattern in self._PROTECT_PATTERNS:
+            for match in pattern.finditer(text):
+                spans.append(match.span())
 
+        if not spans:
+            return text, {}
+
+        spans.sort()
+        merged = []
+        for start, end in spans:
+            if merged and start <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+            else:
+                merged.append((start, end))
+
+        tokens = {}
+        result_parts = []
+        cursor = 0
+        for index, (start, end) in enumerate(merged):
+            result_parts.append(text[cursor:start])
+            token = f"\x00PROTECTED{index}\x01"
+            result_parts.append(token)
+            tokens[token] = text[start:end]
+            cursor = end
+        result_parts.append(text[cursor:])
+
+        return "".join(result_parts), tokens
+
+    def _unmask(self, text: str, tokens: dict[str, str]) -> str:
+        for token, original in tokens.items():
+            text = text.replace(token, original)
+        return text
+
+    # ============================================================
+    # 主入口
+    # ============================================================
     def repair_text_symbols(self, original_text: str, translated_text: str) -> str:
         """
         修复译文中的文本符号，分阶段处理首尾和内部标点。
@@ -48,125 +114,245 @@ class TextSymbolRepair:
         if not original_stripped or not translated_stripped:
             return translated_text
 
-        # 平常内容是:说话文本
-        # 或者是:说话文本+其他文本
-        # 或者是:其他文本+说话文本
-        # 但有些内容是:说话文本+说话文本+说话文本
-        # 也有些内容是:说话文本+其他文本+说话文本
-        # 也有些内容是:其他文本+说话文本+其他文本
-        # 例如：
-        # "source_text": '「文句を言う前に、俺に謝るのが筋じゃないか」と少年は砂を払いながら、掠れて大人びた声でいきなり言った。「人様の楽しみを無茶苦茶にしておいて、貴方は謝罪もできないのか」',
-        # "translated_text": '"在抱怨之前，先向我道歉才是道理吧"少年一边拍打身上的沙子，突然用沙哑而老成的语气说道。"把别人的快乐搅得一团糟，你连道歉都不会吗"',
+        # --- 屏蔽受保护片段（URL / 标签 / 占位符等），修复完成后还原 ---
+        translated_masked, protected_tokens = self._mask_protected(translated_stripped)
 
-        #"source_text": "「息子さんが結婚したの。それはおめでとうございます」乾杯。「めでたいものか、ちくしょう」「まあまあ」乾杯。「俺が育てたのに自分で勝手に育ったようなツラをする」「親はなくても子は育つ」「俺は居ても居なくても一緒かい」「そんなわけないでしょう社長さん」乾杯。",
-        #"translated_text": '"儿子结婚了啊。那可要恭喜""干杯。""有什么好恭喜的，混蛋""好啦好啦"干杯。"明明是我养大的，却摆出一副自己长大的嘴脸""没有父母孩子照样能长大""我在不在都一样是吧""怎么会呢社长"干杯。',
+        # 原文同样屏蔽一次：判断「原文是否含有括号」时忽略 URL 等受保护片段内的括号
+        original_masked, _ = self._mask_protected(original_stripped)
 
-        #"source_text": "「東堂さん」と私は叫び、続いて「お父さん」と呟いたのは新婦でした。",
-        #"translated_text": '"东堂先生"我喊道，接着轻声说出"爸爸"的是新娘。',
+        # --- 阶段 1: 引号还原（无中生有删除 / 位置对齐 / 单边补全） ---
+        translated_masked = self._repair_quotes(original_stripped, translated_masked)
 
-        #"source_text": "その日は銀閣寺交番の前で待ち合わせをしました。哲学の道沿いの桜並木もすっかり冬の風に葉を散らしてしまって、あの砂糖菓子のような満開の桜を想像することもできない淋しい風景です。ぴうぴう吹く風に私の髪も散ってしまいそう。寒い寒いようと思いながら大文字山を見上げ、「北風小僧の寒太郎」を口ずさんでいると、やがて紀子さんと元パンツ総番長が二人でやって来ました。彼らはお見舞いの品をたくさん持っています。「やあ、その後いかがですか」と、元パンツ総番長が晴れ晴れとした顔で言いました。彼は宿願であった紀子さんとの再会を果たし、パンツを決して穿き替えないという荒行から足を洗った身、下半身の病気ともサヨナラして、ずいぶんと御機嫌でした。まことに喜ばしいことです。",
-        #"translated_text": '那天我们在银阁寺派出所前碰头。哲学之道两旁的樱花树早已被冬风吹落叶子，完全想象不出那些像糖果般盛开的樱花，只剩一片萧瑟景象。寒风呼啸，我的头发都快被吹散了。我一边想着"好冷好冷"，一边仰望着大文字山，哼着《北风小子寒太郎》的调子，不久纪子小姐和前内裤总长就一起来了。他们带了很多慰问品。"哟，最近怎么样啊？"前内裤总长神清气爽地说道。他实现了与纪子小姐重逢的心愿，也告别了"绝不换内裤"的苦行，连下半身的疾病都痊愈了，显得特别高兴。真是可喜可贺。',
+        # --- 阶段 1.5: 批注删除（原文无括号时，删除译文中的括号及括号内文本） ---
+        translated_masked = self._repair_annotations(original_masked, translated_masked)
 
-        #"source_text": "“하악…! 허윽, 하악!”",
-        #"translated_text": '"哈啊…! 呃啊，哈啊!"',
+        # --- 阶段 2: 条件标点替换（仅当原文使用对应符号时才替换） ---
+        translated_masked = self._repair_conditional_punctuation(original_stripped, translated_masked)
 
+        # --- 还原受保护片段 ---
+        translated_stripped = self._unmask(translated_masked, protected_tokens)
 
-        # --- 阶段 1: 处理仅首尾有符号的说话文本 --
-        # 成对型标点检查映射
-        # 格式: (原文开始符, 原文结束符, [译文可能替代开始符], [译文可能替代结束符])
-        boundary_punctuation_pairs = [
-            ('「', '」', ['“', '‘', '"'], ['”', '’', '"']),
-            ('『', '』', ['“', '‘', '"'], ['”', '’', '"']),
-            ('“', '”', ['‘', '「', '"'], ['’', '」', '"']),
-            ('‘', '’', ['“', '「', '"'], ['”', '」', '"']),
-            # 可以添加更多首尾标点对，例如 ('(', ')', ['（'], ['）']) 等
-        ]
-
-        for orig_start, orig_end, alt_starts, alt_ends in boundary_punctuation_pairs:
-            # 检查原文的开头与结尾标点，且只有一个成对标点
-            if original_stripped.startswith(orig_start) and original_stripped.endswith(orig_end) and original_stripped.count(orig_start) == 1 and original_stripped.count(orig_end) == 1:
-                matched_alt = False
-                for i, alt_start in enumerate(alt_starts):
-
-                    alt_end = alt_ends[i]
-                    # 检查译文是否以对应的替代标点开头和结尾
-                    if translated_stripped.startswith(alt_start) and translated_stripped.endswith(alt_end):
-
-                        # 替换译文的首尾标点为原文的标点
-                        inner_text = translated_stripped[len(alt_start):-len(alt_end)]    # 截取掉译文的首尾标点
-                        translated_stripped = orig_start + inner_text + orig_end  # 用原文标点包裹
-
-                        # 处理完当前原文标点对后，跳出循环
-                        matched_alt = True
-                        break # 找到匹配的替代项后，不再尝试其他替代项
-
-                if matched_alt:
-                    break # 处理完当前原文标点对后，不再尝试其他原文标点对
-
-
-        # --- 阶段2: 处理其他类型文本 ---
-        # 1. 定义原文和译文的内部引号
-        orig_internal_start = '「'
-        orig_internal_end = '」'
-        trans_internal_quote = '"' # 英文双引号，开始和结束相同
-
-        # 2. 检查原文中是否有成对的「 和 」，并计算对数
-        orig_start_count = original_stripped.count(orig_internal_start)
-        orig_end_count = original_stripped.count(orig_internal_end)
-
-        # 3. 检查译文中是否有成对的英文双引号，并计算数量
-        trans_quote_count = translated_stripped.count(trans_internal_quote)
-
-        # 4. 条件判断：
-        #    - 原文中「 和 」数量相等且大于0
-        #    - 译文中 " 数量是偶数且大于0
-        #    - 原文中的对数 == 译文中的对数
-        if ((orig_start_count > 0 and orig_start_count == orig_end_count) and (trans_quote_count > 0 and trans_quote_count % 2 == 0) and (orig_start_count == trans_quote_count // 2)):
-
-            # 5. 执行替换：从左到右，依次将 " 替换为 「 和 」
-            temp_translated_list = list(translated_stripped) # 转为列表方便修改
-            quote_indices = [i for i, char in enumerate(temp_translated_list) if char == trans_internal_quote]
-
-            open_quote = True # 标记下一个应该是开引号还是闭引号
-            replacements_done = 0
-
-            # 确保找到的引号数量和预期一致
-            if len(quote_indices) == trans_quote_count:
-
-                for index in quote_indices:
-                    if open_quote:
-                        temp_translated_list[index] = orig_internal_start # 直接修改列表
-                    else:
-                        temp_translated_list[index] = orig_internal_end # 直接修改列表
-                        replacements_done += 1
-                    open_quote = not open_quote # 切换状态
-
-                translated_stripped = "".join(temp_translated_list) # 转换回字符串
-
-        # --- 阶段3: 处理内部可以全局替换的标点符号 ---
-        # 定义标点替换映射：key 是原文期望的标点，value 是译文中可能出现的需要被替换的标点列表
-        punctuation_map = {
-            '…': ['...', '。。。'], # 中文省略号 替换 英文省略号 或 多个句号
-            '—': ['--', '——'],   # 中文破折号 替换 两个连字符或 加长破折号
-            #'！': ['!'],          # 不能替换，因为rpgmaker游戏中感叹号是代码...
-            '？': ['?'],          # 中文问号 替换 英文问号
-        }
-
-        # 遍历标点映射表
-        for original_punc, alternative_puncs in punctuation_map.items():
-            # 遍历该原文标点对应的所有可能替代标点
-            for alt_punc in alternative_puncs:
-                # 在译文中全局替换替代标点为原文标点
-                translated_stripped = translated_stripped.replace(alt_punc, original_punc)
-
-        # --- 阶段4: 针对多行文本的双引号处理 ---
-        original_stripped , translated_stripped = self.check_and_adjust_quotes(original_stripped, translated_stripped)
+        # --- 阶段 3: 针对多行文本的双引号处理 ---
+        _, translated_stripped = self.check_and_adjust_quotes(original_stripped, translated_stripped)
 
         # --- 最终处理: 还原前后空白 ---
-        # 将处理过的核心文本与原文的前后空白结合
         result = leading_whitespace + translated_stripped + trailing_whitespace
         return result
 
+    # ============================================================
+    # 成对引号
+    # ============================================================
+    # 成对型标点检查映射
+    # 格式: (原文开始符, 原文结束符, [译文可能替代开始符], [译文可能替代结束符])
+    _BOUNDARY_PUNCTUATION_PAIRS = [
+        ('「', '」', ['“', '‘', '"'], ['”', '’', '"']),
+        ('『', '』', ['“', '‘', '"'], ['”', '’', '"']),
+        ('“', '”', ['‘', '「', '"'], ['’', '」', '"']),
+        ('‘', '’', ['“', '「', '"'], ['”', '」', '"']),
+    ]
+
+    # 参与位置对齐的全部引号字符（不含撇号 '，避免误伤 don't 等）
+    _QUOTE_CHARS = set('「」『』“”‘’"')
+
+    # 「无中生有」删除集：原文完全没有引号时，删除译文中凭空出现的引号
+    _STRIP_QUOTES = set('「」『』“”‘’"')
+
+    # 批注括号对：原文完全没有括号时，仅当译文括号段内部文本命中
+    # _ANNOTATION_PATTERNS（如（译者注：…）、【补充说明】）才删除整个括号段；
+    # 其余括号（普通说明、孤立括号等）一律保留。
+    # 不含《》〈〉（书名号/角括号，可能是译文有意引用的标题），也不含 [] {}
+    # （占位符 [P1] / 花括号 {0} 等由屏蔽阶段保护，[] 可能出现在游戏标签等合法内容中）
+    _BRACKET_PAIRS = [
+        ("（", "）"),
+        ("【", "】"),
+        ("〔", "〕"),
+        ("〖", "〗"),
+        ("(", ")"),
+    ]
+    _BRACKET_OPENERS = {pair[0] for pair in _BRACKET_PAIRS}
+    _BRACKET_CLOSERS = {pair[1] for pair in _BRACKET_PAIRS}
+    _BRACKET_ALL = _BRACKET_OPENERS | _BRACKET_CLOSERS
+
+    # 批注识别模式：译文括号段内部文本命中任一模式，才判定为「AI 额外添加的批注」。
+    # 维护提示：增删/调整批注判定只需改这个元组，其余逻辑无需改动。
+    _ANNOTATION_PATTERNS = (
+        # 1) 关键词 + 冒号 + 内容：如（译者注：…）【补充说明：…】(Note: …)
+        re.compile(r"^(译者注|译注|注释|备注|补充说明|补充|说明|注)\s*[：:]\s*\S"),
+        # 2) 括号内就是关键词本身：如（注）【补充】（译者注）
+        re.compile(r"^(译者注|译注|注释|备注|补充说明|补充|说明|注)$"),
+        # 3) 以“注/记”结尾的固定搭配：如（作者注）（编者注）（注记）
+        re.compile(r"^(作者注|编者注|译者注|注记)$"),
+        # 4) 英文批注：(TL: …) (t/n: …) (Note: …) (translator's note)
+        re.compile(r"^(tl|t/n|tn|note|translator['’]?s?\s+note)\b", re.IGNORECASE),
+    )
+
+    def _repair_quotes(self, original: str, translated: str) -> str:
+        """
+        统一引号修复入口，按优先级处理三类问题：
+        1. 无中生有：原文没有任何引号，译文却凭空出现引号 → 删除
+        2. 位置对齐：原文与译文引号数量一致 → 按出现顺序一一还原（支持嵌套）
+        3. 单边补全：原文首尾成对、译文只保留了一边 → 补全成对
+        """
+        # 1) 无中生有：原文完全没有引号 → 删除译文中凭空出现的引号
+        if not any(char in self._STRIP_QUOTES for char in original):
+            return self._strip_invented_quotes(translated)
+
+        # 2) 位置对齐：原文/译文引号数量一致 → 按位置一一还原
+        aligned = self._align_quote_positions(original, translated)
+        if aligned is not None:
+            return aligned
+
+        # 3) 单边补全：原文首尾成对、译文只保留了一边 → 补全成对
+        completed = self._complete_single_sided_quote(original, translated)
+        if completed is not None:
+            return completed
+
+        return translated
+
+    def _repair_annotations(self, original: str, translated: str) -> str:
+        """删除译文中的「AI 额外添加的批注」。
+
+        仅当原文完全没有括号，且译文括号段内部文本命中 _ANNOTATION_PATTERNS
+        时，才删除整个括号段（含括号本身）。其余括号一律保留——包括普通括号
+        说明、孤立的不成对括号等，避免误删译文中有意保留的内容。
+        支持同类型括号嵌套：命中批注模式的整段删除。
+        """
+        if any(char in self._BRACKET_ALL for char in original):
+            return translated
+
+        close_for = dict(self._BRACKET_PAIRS)
+        result = []
+        i = 0
+        length = len(translated)
+        while i < length:
+            char = translated[i]
+            if char in self._BRACKET_OPENERS:
+                close = close_for[char]
+                # 寻找配对闭合括号，支持同类型嵌套
+                depth = 1
+                j = i + 1
+                while j < length:
+                    current = translated[j]
+                    if current == char:
+                        depth += 1
+                    elif current == close:
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    j += 1
+
+                if depth == 0:
+                    if self._is_annotation(translated[i + 1:j]):
+                        i = j + 1  # 命中批注模式：删除整个括号段（含括号本身）
+                        continue
+                    # 非批注：整段保留，不再扫描其内部
+                    result.append(translated[i:j + 1])
+                    i = j + 1
+                    continue
+                # 孤立的左括号（无配对闭合）：保留，不删除
+                result.append(char)
+                i += 1
+                continue
+            result.append(char)
+            i += 1
+        return "".join(result)
+
+    def _is_annotation(self, inner: str) -> bool:
+        """判断括号段内部文本是否为批注（命中任一 _ANNOTATION_PATTERNS 模式）。"""
+        content = inner.strip()
+        if not content:
+            return False
+        return any(pattern.search(content) for pattern in self._ANNOTATION_PATTERNS)
+
+    def _strip_invented_quotes(self, translated: str) -> str:
+        """删除译文中凭空出现的引号（原文没有引号时）。"""
+        return "".join(char for char in translated if char not in self._STRIP_QUOTES)
+
+    def _align_quote_positions(self, original: str, translated: str):
+        """按出现顺序把译文的引号逐一还原为原文的引号。
+
+        仅在原文与译文的引号数量完全一致时执行，支持嵌套引号（如「「」」）。
+        数量不一致返回 None，交给其它规则处理。
+        """
+        orig_quotes = [char for char in original if char in self._QUOTE_CHARS]
+        if not orig_quotes:
+            return None
+
+        trans_quotes = [char for char in translated if char in self._QUOTE_CHARS]
+        if not trans_quotes or len(trans_quotes) != len(orig_quotes):
+            return None
+
+        result_parts = []
+        quote_index = 0
+        for char in translated:
+            if char in self._QUOTE_CHARS:
+                result_parts.append(orig_quotes[quote_index])
+                quote_index += 1
+            else:
+                result_parts.append(char)
+        return "".join(result_parts)
+
+    def _complete_single_sided_quote(self, original: str, translated: str):
+        """原文首尾成对（只此一对）、译文只保留了一边引号时，补全为原文引号对。
+
+        例如原文 「こんにちは」，译文 “你好 或 你好” → 「你好」。
+        """
+        for orig_start, orig_end, alt_starts, alt_ends in self._BOUNDARY_PUNCTUATION_PAIRS:
+            # 原文必须首尾成对且只有这一对
+            if not (original.startswith(orig_start) and original.endswith(orig_end)):
+                continue
+            if original.count(orig_start) != 1 or original.count(orig_end) != 1:
+                continue
+
+            # 译文中的引号位置
+            quote_positions = [(i, char) for i, char in enumerate(translated) if char in self._QUOTE_CHARS]
+
+            # 只保留了一个引号时补全；没有引号时不凭空添加
+            if len(quote_positions) != 1:
+                continue
+
+            pos, char = quote_positions[0]
+            if pos == 0 and char in alt_starts:
+                # 只有开头引号，缺结尾 → 补全
+                inner = translated[len(char):]
+                return orig_start + inner + orig_end
+
+            if pos == len(translated) - len(char) and char in alt_ends:
+                # 只有结尾引号，缺开头 → 补全
+                inner = translated[:pos]
+                return orig_start + inner + orig_end
+
+        return None
+
+    # ============================================================
+    # 条件标点替换
+    # ============================================================
+    def _repair_conditional_punctuation(self, original: str, translated: str) -> str:
+        """仅在原文使用了对应符号时，才把译文中出现的替代符号还原为原文符号。"""
+        replacements = []  # (目标符号, [替代符号])，按目标符号长度降序处理
+
+        if '？' in original:
+            replacements.append(('？', ['?']))
+        if '！' in original:
+            replacements.append(('！', ['!']))
+        if '……' in original:
+            replacements.append(('……', ['......']))
+        if '…' in original:
+            replacements.append(('…', ['...', '。。。']))
+        if '——' in original:
+            replacements.append(('——', ['--']))
+        elif '—' in original:
+            replacements.append(('—', ['--']))
+
+        # 先替换更长的目标符号，避免短目标先替换影响长目标匹配
+        replacements.sort(key=lambda item: len(item[0]), reverse=True)
+
+        for target, alternatives in replacements:
+            for alt in alternatives:
+                if alt in translated:
+                    translated = translated.replace(alt, target)
+
+        return translated
 
     # 处理多行文本的双引号问题，有些AI会在多行文本时，将每一行当作一句话进行翻译，导致每一行都加上了双引号
     def check_and_adjust_quotes(self, original, translation):
@@ -175,7 +361,7 @@ class TextSymbolRepair:
         translation_lines = translation.split("\n")
 
         # 检查行数一致
-        if  len(original_lines) != len(translation_lines):
+        if len(original_lines) != len(translation_lines):
             return original, translation
 
         modified_translation = []
@@ -187,7 +373,7 @@ class TextSymbolRepair:
                 orig_start = orig_line[0] if len(orig_line) > 0 else ''
 
                 # 如果原文首不符合要求，则去掉译文双引号
-                if orig_start not in {'"', '“', '「', """'"""} :
+                if orig_start not in {'"', '“', '「', """'"""}:
                     trans_line = trans_line[1:]
 
             if len(trans_line) >= 2 and trans_line.endswith('"'):
