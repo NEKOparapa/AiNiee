@@ -34,7 +34,15 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
     # 响应接口测试开始事件
     def api_test_start(self, event: int, data: dict):
-        thread = threading.Thread(target = self.api_test, args = (event, data))
+        def safe_target():
+            try:
+                self.api_test(event, data)
+            except Exception:
+                # 线程内未捕获异常会让done事件永远不发、work_status卡死，这里兜底
+                import traceback
+                traceback.print_exc()
+                self.emit(Base.EVENT.API_TEST_DONE, {"failure": "任务执行异常", "success": ""})
+        thread = threading.Thread(target = safe_target)
         thread.start()
 
     # 接口测试
@@ -172,7 +180,17 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
     # 响应术语表的简单翻译开始事件
     def glossary_translation_start(self, event: int, data: dict):
-        thread = threading.Thread(target = self.glossary_translation, args = (event, data))
+        def safe_target():
+            try:
+                self.glossary_translation(event, data)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+                self.emit(Base.EVENT.GLOSS_TASK_DONE, {
+                    "status": "error",
+                    "updated_data": data.get("prompt_dictionary_data"),
+                })
+        thread = threading.Thread(target = safe_target)
         thread.start()
 
     # 术语表的简单翻译
@@ -327,8 +345,38 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         })
 
     # 响应表格翻译开始事件，并启动新线程
+    # 响应表格翻译事件
     def handle_table_translation_start(self, event, data: dict):
-        thread = threading.Thread(target=self.process_table_translation, args=(data,), daemon=True)
+        # 与TaskExecutor.table_proofread_start同型的状态守卫：GLOSS_TASK/分析/整本任务
+        # 进行中拒绝启动，避免两套线程池同时跑、先后把work_status置回IDLE互相打架；
+        # TABLE_TASK本身是UI发起页在emit前置的（同table_proofread_start的约定），放行
+        if Base.work_status not in (Base.STATUS.IDLE, Base.STATUS.TABLE_TASK):
+            self.warning("正在执行其他任务中，表格翻译任务未启动")
+            return
+        Base.work_status = Base.STATUS.TABLE_TASK
+
+        def safe_target():
+            try:
+                self.process_table_translation(data)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+                done_event = data.get("done_event")
+                if done_event is not None:
+                    # 必须用表格handler认识的schema（operation/status/file_path/updated_item_count），
+                    # 旧的success_count/failed_count是词表handler的字段，会被_on_task_done的file_path门槛丢弃
+                    self.emit(done_event, {
+                        "operation": "translate",
+                        "status": "error",
+                        "file_path": data.get("file_path"),
+                        "updated_item_count": 0,
+                    })
+                # 异常收尾同样尊重全局状态：STOPING收尾为TASKSTOPPED，只有任务仍持有TABLE_TASK时才回IDLE
+                if Base.work_status == Base.STATUS.STOPING:
+                    Base.work_status = Base.STATUS.TASKSTOPPED
+                elif Base.work_status == Base.STATUS.TABLE_TASK:
+                    Base.work_status = Base.STATUS.IDLE
+        thread = threading.Thread(target=safe_target, daemon=True)
         thread.start()
 
     # 表格文本的分批翻译
@@ -368,6 +416,9 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         # 定义单个批次的工作函数
         def translate_worker(batch_idx, batch_items):
             batch_num = batch_idx + 1
+            # 用户已请求停止：未发出的批次直接放弃，避免停止后还在烧API
+            if Base.work_status == Base.STATUS.STOPING:
+                return None
             # 重新获取配置以支持Key轮询
             current_platform_config = config.get_active_platform_configuration()
 
@@ -454,6 +505,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             self.warning(" 未获得任何有效翻译结果，表格未更新。")
 
         # 更新软件状态
+        stopped = Base.work_status == Base.STATUS.STOPING
         if done_event is not None:
             self.emit(done_event, {
                 "operation": "translate",
@@ -465,12 +517,43 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
                 "total_items": total_items,
             })
 
-        Base.work_status = Base.STATUS.IDLE 
+        # 收尾尊重全局状态：停止流程里收尾必须落TASKSTOPPED（task_stop的watcher在等它），
+        # 无停止请求时才把TABLE_TASK收回IDLE；直接写IDLE会把STOPING状态静默覆盖，
+        # 让task_stop的watcher永远等不到退出条件（与TaskExecutor各target的收尾一致）
+        if Base.work_status == Base.STATUS.STOPING:
+            Base.work_status = Base.STATUS.TASKSTOPPED
+        elif Base.work_status == Base.STATUS.TABLE_TASK:
+            Base.work_status = Base.STATUS.IDLE
         self.info(f" 🐳 表格翻译任务结束")                         
 
     # 响应表格润色事件
     def handle_table_polish_start(self, event, data: dict):
-        thread = threading.Thread(target=self.process_table_polish, args=(data,), daemon=True)
+        # 与表格翻译同型的状态守卫（GLOSS_TASK/分析/整本任务进行中拒绝启动）
+        if Base.work_status not in (Base.STATUS.IDLE, Base.STATUS.TABLE_TASK):
+            self.warning("正在执行其他任务中，表格润色任务未启动")
+            return
+        Base.work_status = Base.STATUS.TABLE_TASK
+
+        def safe_target():
+            try:
+                self.process_table_polish(data)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+                done_event = data.get("done_event")
+                if done_event is not None:
+                    # 同翻译守卫：使用表格handler认识的schema，错误才能被用户看到
+                    self.emit(done_event, {
+                        "operation": "polish",
+                        "status": "error",
+                        "file_path": data.get("file_path"),
+                        "updated_item_count": 0,
+                    })
+                if Base.work_status == Base.STATUS.STOPING:
+                    Base.work_status = Base.STATUS.TASKSTOPPED
+                elif Base.work_status == Base.STATUS.TABLE_TASK:
+                    Base.work_status = Base.STATUS.IDLE
+        thread = threading.Thread(target=safe_target, daemon=True)
         thread.start()
 
     # 表格文本的分批润色
@@ -505,6 +588,9 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         # 定义工作函数
         def polish_worker(batch_idx, batch_items):
             batch_num = batch_idx + 1
+            # 用户已请求停止：未发出的批次直接放弃
+            if Base.work_status == Base.STATUS.STOPING:
+                return None
             current_platform_config = config.get_active_platform_configuration()
             
             source_text_dict = {str(idx): item['source_text'] for idx, item in enumerate(batch_items)}
@@ -596,7 +682,11 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
                 "total_items": total_items,
             })
 
-        Base.work_status = Base.STATUS.IDLE 
-        self.info(f" 🐳 表格润色任务结束")     
+        # 收尾尊重全局状态（同表格翻译）：STOPING→TASKSTOPPED，仅仍持TABLE_TASK时回IDLE
+        if Base.work_status == Base.STATUS.STOPING:
+            Base.work_status = Base.STATUS.TASKSTOPPED
+        elif Base.work_status == Base.STATUS.TABLE_TASK:
+            Base.work_status = Base.STATUS.IDLE
+        self.info(f" 🐳 表格润色任务结束")
 
 
