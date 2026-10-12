@@ -1,4 +1,5 @@
 import copy
+from typing import TYPE_CHECKING
 import rapidjson as json
 import pandas
 from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMenu,
@@ -18,8 +19,11 @@ from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from ModuleFolders.Service.NameExtractor.NameExtractor import NameExtractor
 from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.TerminologyMatchSettingsDialog import TerminologyMatchSettingsDialog
-from UserInterface import AppFluentWindow
+from UserInterface.Widget.SwitchTableItemDelegate import SwitchTableItemDelegate
 from UserInterface.Native.FileDialogProvider import get_existing_directory, get_open_file_name, get_save_file_name
+
+if TYPE_CHECKING:
+    from UserInterface import AppFluentWindow
 
 class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
@@ -29,7 +33,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     COLUMN_NAMES = {0: "原文",1: "译文",2: "描述",3: "正则",}
     INVALID_ROW_BRUSH = QBrush(QColor(255, 0, 0, 96))
 
-    def __init__(self, text: str, window: AppFluentWindow) -> None:
+    def __init__(self, text: str, window: "AppFluentWindow") -> None:
         super().__init__(parent=window)
         self.setObjectName(text.replace(" ", "-"))
 
@@ -44,6 +48,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.subscribe(Base.EVENT.GLOSS_TASK_DONE, self.glossary_translation_done)
         # 读取配置
         config = self.save_config(self.load_config_from_default())
+        self._loaded_rows = None
 
         # 搜索相关属性
         self._search_results = []
@@ -81,7 +86,10 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     def update_table(self) -> None:
         config = self.load_config()
         rows = GlossaryHelper.normalize_rows(config.get("prompt_dictionary_data", []))
+        if rows == self._loaded_rows:
+            return
         self._update_table_rows(rows)
+        self._loaded_rows = rows
         self._reset_search()
         self._reset_sort_indicator()
 
@@ -130,11 +138,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.table.insertRow(insert_pos)
         new_item = QTableWidgetItem("")
         self.table.setItem(insert_pos, 0, new_item)
-        TableHelper.clear_switch_cell(
-            self.table,
-            insert_pos,
-            self.REGEX_COLUMN_INDEX,
-        )
+        self._sync_regex_cell(insert_pos)
         self.table.scrollToItem(new_item, QAbstractItemView.ScrollHint.PositionAtCenter)
         self.table.selectRow(insert_pos)
         self.table.editItem(self.table.item(insert_pos, 0))
@@ -143,7 +147,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.success_toast("", self.tra("新行已插入") + "...")
 
     # 添加头部布局内容
-    def add_widget_head(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
+    def add_widget_head(self, parent: QLayout, config: dict, window: "AppFluentWindow") -> None:
         def init(widget: SwitchButtonCard) -> None:
             widget.set_checked(config.get("prompt_dictionary_switch"))
 
@@ -170,24 +174,24 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         TerminologyMatchSettingsDialog(self.window()).exec()
 
     # 添加主题布局内容
-    def add_widget_body(self, parent: QLayout, config: dict, window: AppFluentWindow) -> None:
+    def add_widget_body(self, parent: QLayout, config: dict, window: "AppFluentWindow") -> None:
         toolbar_widget = self._create_search_toolbar()
         parent.addWidget(toolbar_widget)
         parent.setSpacing(10)
 
         def item_changed(item: QTableWidgetItem) -> None:
-            item.setTextAlignment(Qt.AlignCenter)
-            if item.column() == 0:
-                TableHelper.sync_switch_cell(
-                    self.table,
-                    item.row(),
-                    0,
-                    self.REGEX_COLUMN_INDEX,
-                    self._on_regex_switch_changed,
-                )
-                self._refresh_row_highlight()
+            previous = self.table.blockSignals(True)
+            try:
+                item.setTextAlignment(Qt.AlignCenter)
+                if item.column() == 0:
+                    self._sync_regex_cell(item.row())
+                if item.column() in (0, self.REGEX_COLUMN_INDEX):
+                    self._refresh_row_highlight(item.row())
+            finally:
+                self.table.blockSignals(previous)
 
         self.table = TableWidget(self)
+        self.table.setItemDelegate(SwitchTableItemDelegate(self.table))
         parent.addWidget(self.table)
 
         self.table.setBorderRadius(8)
@@ -199,8 +203,9 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(
             self.REGEX_COLUMN_INDEX,
-            QHeaderView.ResizeToContents,
+            QHeaderView.Fixed,
         )
+        self.table.setColumnWidth(self.REGEX_COLUMN_INDEX, 72)
         self.table.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.SelectedClicked | QAbstractItemView.EditKeyPressed)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -515,39 +520,60 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         ]
 
     def _update_table_rows(self, rows: list[dict] | None) -> None:
-        normalized_rows = GlossaryHelper.normalize_rows(rows)
-        self.table.setRowCount(0)
+        # Keep the last value for each source, preserving the original order.
+        unique_rows = {}
+        for row in GlossaryHelper.normalize_rows(rows):
+            if row["src"]:
+                unique_rows[row["src"]] = row
+        normalized_rows = list(unique_rows.values())
         previous = self.table.blockSignals(True)
-        TableHelper.update_to_table(
-            self.table,
-            normalized_rows,
-            PromptDictionaryPage.KEYS,
-            self.SWITCH_KEYS,
-            self._on_regex_switch_changed,
-        )
-        self.table.blockSignals(previous)
-        self.table.resizeRowsToContents()
-        self._refresh_row_highlight()
+        updates_enabled = self.table.updatesEnabled()
+        self.table.setUpdatesEnabled(False)
+        try:
+            self.table.clearContents()
+            self.table.setRowCount(max(16, len(normalized_rows)))
+            for row_index in range(self.table.rowCount()):
+                row = normalized_rows[row_index] if row_index < len(normalized_rows) else {}
+                for column_index, key in enumerate(self.KEYS):
+                    item = QTableWidgetItem("" if key in self.SWITCH_KEYS else row.get(key, ""))
+                    item.setTextAlignment(Qt.AlignCenter)
+                    if key in self.SWITCH_KEYS:
+                        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                        if row.get("src"):
+                            item.setCheckState(Qt.Checked if row.get(key) else Qt.Unchecked)
+                    self.table.setItem(row_index, column_index, item)
+                self._set_row_highlight(row_index, GlossaryHelper.get_row_state(row))
+            self.table.resizeRowsToContents()
+        finally:
+            self.table.blockSignals(previous)
+            self.table.setUpdatesEnabled(updates_enabled)
 
-    def _on_regex_switch_changed(self, _checked: bool) -> None:
-        self._refresh_row_highlight()
+    def _sync_regex_cell(self, row_index: int) -> None:
+        source = self.table.item(row_index, 0)
+        item = self.table.item(row_index, self.REGEX_COLUMN_INDEX)
+        if item is None:
+            item = QTableWidgetItem("")
+            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(row_index, self.REGEX_COLUMN_INDEX, item)
+        if source is not None and source.text().strip():
+            if item.data(Qt.CheckStateRole) is None:
+                item.setCheckState(Qt.Unchecked)
+        else:
+            item.setData(Qt.CheckStateRole, None)
 
-    def _refresh_row_highlight(self) -> None:
+    def _refresh_row_highlight(self, row_index: int) -> None:
         previous = self.table.blockSignals(True)
-        for row_index in range(self.table.rowCount()):
+        try:
             first_item = self.table.item(row_index, 0)
-            switch = TableHelper.get_switch_from_cell(
-                self.table,
-                row_index,
-                self.REGEX_COLUMN_INDEX,
-            )
+            switch_item = self.table.item(row_index, self.REGEX_COLUMN_INDEX)
             row = {
                 "src": first_item.text().strip() if isinstance(first_item, QTableWidgetItem) else "",
-                "regex": switch.isChecked() if switch is not None else False,
+                "regex": switch_item is not None and switch_item.checkState() == Qt.Checked,
             }
             state = GlossaryHelper.get_row_state(row)
             self._set_row_highlight(row_index, state)
-        self.table.blockSignals(previous)
+        finally:
+            self.table.blockSignals(previous)
 
     def _set_row_highlight(self, row_index: int, state: str) -> None:
         if state == GlossaryHelper.STATE_INVALID:
@@ -565,9 +591,15 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
     # 保存方法
     def save_data(self) -> None:
         config = self.load_config()
-        config["prompt_dictionary_data"] = self._load_table_rows()
+        rows = self._load_table_rows()
+        unique_rows = list({row["src"]: row for row in rows}.values())
+        config["prompt_dictionary_data"] = unique_rows
         self.save_config(config)
-        self._update_table_rows(config["prompt_dictionary_data"])
+        # Only rebuild when editing has introduced duplicate sources.
+        if len(unique_rows) != len(rows):
+            self._update_table_rows(unique_rows)
+            self._reset_search()
+        self._loaded_rows = config["prompt_dictionary_data"]
         self.success_toast("", self.tra("数据已保存") + " ... ")
 
     # 重置方法
@@ -585,6 +617,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         config["prompt_dictionary_data"] = copy.deepcopy(self.default.get("prompt_dictionary_data", []))
         self.save_config(config)
         self._update_table_rows(config.get("prompt_dictionary_data"))
+        self._loaded_rows = config["prompt_dictionary_data"]
         self._reset_search() # 重置后重置搜索
         self._reset_sort_indicator() # 重置后重置排序
         self.success_toast("", self.tra("数据已重置") + " ... ")
@@ -622,6 +655,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         # 现在将可能已修改的表格状态保存回配置
         config["prompt_dictionary_data"] = self._load_table_rows()
         self.save_config(config)
+        self._loaded_rows = config["prompt_dictionary_data"]
         self._reset_search() # 导入后重置搜索
         self._reset_sort_indicator() # 导入后重置排序
         self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
@@ -702,6 +736,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
             config["prompt_dictionary_data"] = self._load_table_rows()
             self.save_config(config)
+            self._loaded_rows = config["prompt_dictionary_data"]
             self._reset_search()
             self._reset_sort_indicator()
             self.success_toast("", self.tra("术语信息已提取并添加") + f" ({len(new_data_filtered)} {self.tra('项')})...")
@@ -766,6 +801,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 config = self.load_config()
                 config["prompt_dictionary_data"] = prompt_dictionary_data_table
                 self.save_config(config)
+                self._loaded_rows = config["prompt_dictionary_data"]
                 self._reset_search()
                 self._reset_sort_indicator()
                 if status == "success":

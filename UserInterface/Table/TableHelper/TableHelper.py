@@ -28,7 +28,11 @@ class TableHelper():
             for i, key in enumerate(keys):
                 if key in switch_keys:
                     switch = TableHelper.get_switch_from_cell(table, row, i)
-                    row_data[key] = switch.isChecked() if isinstance(switch, SwitchButton) else False
+                    if isinstance(switch, SwitchButton):
+                        row_data[key] = switch.isChecked()
+                    else:
+                        item = data[i]
+                        row_data[key] = item is not None and item.checkState() == Qt.Checked
                 else:
                     row_data[key] = data[i].text().strip() if isinstance(data[i], QTableWidgetItem) else ""
             result.append(row_data)
