@@ -1,5 +1,17 @@
 {
   "ProofreadingCheck": {
+    "排除禁翻表内容": {
+      "简中": "排除禁翻表内容",
+      "繁中": "排除禁翻表內容",
+      "English": "Ignore non-translatable content",
+      "日本語": "翻訳禁止リストの内容を除外"
+    },
+    "检测前忽略公共禁翻表和项目禁翻表中的匹配内容，不修改原文或译文。": {
+      "简中": "检测前忽略公共禁翻表和项目禁翻表中的匹配内容，不修改原文或译文。",
+      "繁中": "檢測前忽略公共禁翻表和專案禁翻表中的匹配內容，不修改原文或譯文。",
+      "English": "Ignore matches from the global and project non-translation lists during detection. Source and translated text stay unchanged.",
+      "日本語": "検出時に共通とプロジェクトの翻訳禁止リストに一致する内容を除外します。原文や訳文は変更しません。"
+    },
     "语言检查": {
       "简中": "语言检查",
       "繁中": "語言檢查",

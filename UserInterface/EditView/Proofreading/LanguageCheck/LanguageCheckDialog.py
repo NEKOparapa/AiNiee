@@ -5,6 +5,7 @@ from qfluentwidgets import CaptionLabel, ComboBox, DoubleSpinBox, MessageBoxBase
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 
 
 class LanguageCheckDialog(ConfigMixin, Base, MessageBoxBase):
@@ -15,6 +16,7 @@ class LanguageCheckDialog(ConfigMixin, Base, MessageBoxBase):
             "check_lang_mode_text": "judge",
             "check_chunk_size": 20,
             "check_threshold_ratio": 0.75,
+            "check_exclude_non_translate": True,
         }
         self.config_data = self.save_config(self.load_config_from_default())
 
@@ -62,30 +64,47 @@ class LanguageCheckDialog(ConfigMixin, Base, MessageBoxBase):
         settings_layout.addWidget(self.threshold_label, 2, 0)
         settings_layout.addWidget(self.threshold_spin, 2, 1)
 
-        self.view_layout.addWidget(settings_container)
-
         note_label = CaptionLabel(self.tra("检测分块行数与检测阈值只在精准判断中生效"), self)
         note_label.setTextColor(QColor(120, 120, 120), QColor(160, 160, 160))
-        note_label.setAlignment(Qt.AlignCenter)
+        note_label.setAlignment(Qt.AlignLeft)
         note_label.setWordWrap(True)
-        self.view_layout.addWidget(note_label)
+        settings_layout.addWidget(note_label, 3, 0, 1, 2)
+        self.view_layout.addWidget(settings_container)
+
+        self.exclude_non_translate_card = SwitchButtonCard(
+            self.tra("排除禁翻表内容"),
+            self.tra("检测前忽略公共禁翻表和项目禁翻表中的匹配内容，不修改原文或译文。"),
+        )
+        self.exclude_non_translate_card.setBorderRadius(8)
+        self.exclude_non_translate_card.container.setContentsMargins(16, 14, 16, 14)
+        self.exclude_non_translate_card.container.setSpacing(16)
+        self.exclude_non_translate_card.container.setStretch(0, 1)
+        self.exclude_non_translate_card.container.setStretch(1, 0)
+        self.exclude_non_translate_card.vbox.setSpacing(4)
+        self.exclude_non_translate_card.description_label.setWordWrap(True)
+        self.exclude_non_translate_switch = self.exclude_non_translate_card.switch_button
+        self.exclude_non_translate_switch.setAccessibleName(self.tra("排除禁翻表内容"))
+        self.view_layout.addWidget(self.exclude_non_translate_card)
 
     def _restore_ui_state(self):
         mode_code = self.config_data.get("check_lang_mode_text", "judge")
         self.mode_combo.setCurrentText(self.tra("精准判断") if mode_code == "judge" else self.tra("宏观统计"))
         self.chunk_spin.setValue(max(1, int(self.config_data.get("check_chunk_size", 20))))
         self.threshold_spin.setValue(float(self.config_data.get("check_threshold_ratio", 0.75)))
+        self.exclude_non_translate_switch.setChecked(self.config_data.get("check_exclude_non_translate", True))
 
     def _connect_signals(self):
         self.mode_combo.currentTextChanged.connect(self._on_setting_changed)
         self.chunk_spin.valueChanged.connect(self._on_setting_changed)
         self.threshold_spin.valueChanged.connect(self._on_setting_changed)
+        self.exclude_non_translate_switch.checkedChanged.connect(self._on_setting_changed)
 
     def _on_setting_changed(self):
         config = self.load_config()
         config["check_lang_mode_text"] = "judge" if self.mode_combo.currentText() == self.tra("精准判断") else "report"
         config["check_chunk_size"] = self.chunk_spin.value()
         config["check_threshold_ratio"] = self.threshold_spin.value()
+        config["check_exclude_non_translate"] = self.exclude_non_translate_switch.isChecked()
         self.save_config(config)
         self.config_data = config
 
@@ -94,5 +113,6 @@ class LanguageCheckDialog(ConfigMixin, Base, MessageBoxBase):
             "mode": self.config_data.get("check_lang_mode_text", "judge"),
             "chunk_size": self.chunk_spin.value(),
             "threshold": self.threshold_spin.value(),
+            "exclude_non_translate": self.exclude_non_translate_switch.isChecked(),
         }
         super().accept()

@@ -7,6 +7,7 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Domain.FileReader import ReaderUtil
+from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
 from ModuleFolders.Service.Cache.CacheItem import CacheItem
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
@@ -18,10 +19,13 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
     双模式语言检查。
     """
 
+    NON_LANGUAGE_CODES = {"no_text", "symbols_only", "symbols_only_again", "un", "un_again"}
+
     def __init__(self, cache_manager: CacheManager):
         super().__init__()
         self.cache_manager = cache_manager
         self.config = self.load_config()
+        self._exclusion_patterns = []
         self._last_results = []
         self._last_target_language_name = self.config.get("target_language", "english")
         self._last_target_language_code = TranslatorUtil.map_language_name_to_code(self._last_target_language_name) or self._last_target_language_name
@@ -54,7 +58,10 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         except:
             threshold = 0.75
 
-        lang_result_code, lang_data = self.check_language(mode, chunk_size, threshold)
+        exclude_non_translate = params.get(
+            "exclude_non_translate", self.config.get("check_exclude_non_translate", True)
+        )
+        lang_result_code, lang_data = self.check_language(mode, chunk_size, threshold, exclude_non_translate)
 
         if lang_result_code.startswith("ERROR"):
             return lang_result_code, lang_data
@@ -171,7 +178,10 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         return report_rows
 
     # --- 语言检查主流程 ---
-    def check_language(self, mode: str, chunk_size: int = 20, threshold: float = 0.75) -> Tuple[str, Dict]:
+    def check_language(
+        self, mode: str, chunk_size: int = 20, threshold: float = 0.75,
+        exclude_non_translate: bool = True,
+    ) -> Tuple[str, Dict]:
         start_time = time.time()
         self._last_results = []
 
@@ -196,6 +206,7 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         if target_language_code == 'zh-Hant':
             target_language_code = 'zh'
         self._last_target_language_code = target_language_code
+        self._exclusion_patterns = self._prepare_exclusion_patterns() if exclude_non_translate else []
 
         self.info("开始检查项目的{}...".format(mode_text))
         if is_judging:
@@ -298,12 +309,62 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
 
         return None, {}
 
-    def _run_detection(self, items_to_check: List[CacheItem], check_target: str) -> list:
-        """辅助函数，对给定的 CacheItem 列表运行语言检测。"""
-        texts = [getattr(item, check_target, "") for item in items_to_check]
-        # 使用一个临时的、不包含任何复杂数据的 CacheItem 列表进行检测
-        dummy_items = [CacheItem(source_text=t) for t in texts]
-        return ReaderUtil.detect_language_with_mediapipe(dummy_items, 0, None)
+    def _prepare_exclusion_patterns(self) -> list:
+        """与规则检查一致，使用公共和项目禁翻表，检查开关独立于提示词开关。"""
+        rows = RegexSwitchHelper.normalize_exclusion_rows(self.config.get("exclusion_list_data", []))
+        if hasattr(self.cache_manager, "get_analysis_data"):
+            analysis_data = self.cache_manager.get_analysis_data() or {}
+            project_rows = analysis_data.get("non_translate", []) if isinstance(analysis_data, dict) else []
+            if isinstance(project_rows, list):
+                rows.extend(
+                    {"markers": row.get("marker"), "regex": False}
+                    for row in project_rows if isinstance(row, dict)
+                )
+
+        patterns = []
+        seen = set()
+        for row in rows:
+            pattern = RegexSwitchHelper.build_re_pattern(row, "markers")
+            if pattern is not None and (pattern.pattern, pattern.flags) not in seen:
+                seen.add((pattern.pattern, pattern.flags))
+                patterns.append(pattern)
+        return patterns
+
+    def _exclude_non_translate_content(self, text: str) -> str:
+        # 在原文本上收集匹配区间再合并，避免重叠规则留下残片或删除后产生新的匹配。
+        spans = sorted(
+            match.span()
+            for pattern in self._exclusion_patterns
+            for match in pattern.finditer(text)
+            if match.end() > match.start()
+        )
+        if not spans:
+            return text
+
+        parts = []
+        cursor = 0
+        for start, end in spans:
+            if end <= cursor:
+                continue
+            if start >= cursor:
+                parts.extend((text[cursor:start], " "))
+            cursor = end
+        parts.append(text[cursor:])
+        return "".join(parts)
+
+    def _prepare_detection_items(self, items: List[CacheItem], check_target: str) -> list:
+        """只清理用于检测的副本，保留原始行号和缓存文本；空行不参与分块。"""
+        prepared_items = []
+        for index, item in enumerate(items):
+            text = getattr(item, check_target, "") or ""
+            text = self._exclude_non_translate_content(text)
+            if text.strip():
+                prepared_items.append((index, CacheItem(source_text=text)))
+        return prepared_items
+
+    def _run_detection(self, items_to_check: List[CacheItem]) -> list:
+        """对已清理的临时 CacheItem 列表运行语言检测。"""
+        return ReaderUtil.detect_language_with_mediapipe(items_to_check, 0, None)
 
 
     def _analyze_file_in_chunks(self, cache_file, check_target: str, target_language_code: str, flag_key: str, chunk_size: int, threshold: float) -> Dict[str, Any] | None:
@@ -312,10 +373,7 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         修改优化：使用硬编码的 BATCH_SIZE 进行快速检测，使用 chunk_size (UI参数) 进行逻辑窗口评估。
         """
         # 1. 筛选出有效文本行 (保留原始索引)
-        items_with_text_and_indices = [
-            (idx, item) for idx, item in enumerate(cache_file.items)
-            if getattr(item, check_target, "").strip()
-        ]
+        items_with_text_and_indices = self._prepare_detection_items(cache_file.items, check_target)
         if not items_with_text_and_indices:
             return None
 
@@ -329,7 +387,7 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
 
         for i in range(0, len(all_items_to_detect), DETECTION_BATCH_SIZE):
             batch_items = all_items_to_detect[i : i + DETECTION_BATCH_SIZE]
-            batch_results = self._run_detection(batch_items, check_target)
+            batch_results = self._run_detection(batch_items)
             all_detection_results.extend(batch_results)
 
         #返回行数检查
@@ -359,22 +417,22 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
             lang_counts = defaultdict(int)
             line_by_line_details = []
 
-            for (original_idx, item), res in zip(chunk_with_indices, chunk_detection_results):
-                detected_lang = "N/A"
+            for (original_idx, _), res in zip(chunk_with_indices, chunk_detection_results):
+                if not res or not res[0] or res[0][0] in self.NON_LANGUAGE_CODES:
+                    continue
+                result_tuple = res[0]
+                detected_lang = result_tuple[0]
                 confidence = 0.0
-                text_content = getattr(item, check_target, "")
+                text_content = getattr(cache_file.items[original_idx], check_target, "")
 
-                if res and res[0] and res[0][0] not in ['no_text', 'symbols_only', 'un']:
-                    result_tuple = res[0]
-                    detected_lang = result_tuple[0]
-                    if len(result_tuple) > 1:
-                        raw_confidence = result_tuple[1]
-                        if isinstance(raw_confidence, (tuple, list)) and raw_confidence:
-                           confidence = raw_confidence[0]
-                        elif isinstance(raw_confidence, (int, float)):
-                           confidence = raw_confidence
+                if len(result_tuple) > 1:
+                    raw_confidence = result_tuple[1]
+                    if isinstance(raw_confidence, (tuple, list)) and raw_confidence:
+                        confidence = raw_confidence[0]
+                    elif isinstance(raw_confidence, (int, float)):
+                        confidence = raw_confidence
 
-                    lang_counts[detected_lang] += 1
+                lang_counts[detected_lang] += 1
 
                 line_by_line_details.append({
                     "original_line_num": original_idx + 1,
@@ -427,20 +485,17 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
 
     def _analyze_file_for_report(self, cache_file, check_target: str) -> Dict[str, Any] | None:
         """[宏观统计模式] 对单个文件进行整体语言统计。"""
-        items_with_text = [
-            item for item in cache_file.items
-            if getattr(item, check_target, "").strip()
-        ]
+        items_with_text = [item for _, item in self._prepare_detection_items(cache_file.items, check_target)]
         if not items_with_text:
             return None
 
         # 复用检测逻辑
-        detection_results = self._run_detection(items_with_text, check_target)
+        detection_results = self._run_detection(items_with_text)
 
         # 统计文件内所有语言的行数
         lang_counts = defaultdict(int)
         for res in detection_results:
-            if res[0] and res[0][0] not in ['no_text', 'symbols_only', 'un']:
+            if res and res[0] and res[0][0] not in self.NON_LANGUAGE_CODES:
                 lang_counts[res[0][0]] += 1
 
         total_valid_lines = sum(lang_counts.values())
