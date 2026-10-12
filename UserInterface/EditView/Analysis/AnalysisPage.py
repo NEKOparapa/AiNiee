@@ -1,7 +1,8 @@
 from typing import Any
+from pathlib import Path
 import rapidjson as json
 
-from PyQt5.QtCore import QPoint, Qt, QTimer
+from PyQt5.QtCore import QIODevice, QPoint, QSaveFile, Qt, QTimer
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QAbstractItemView,
@@ -30,6 +31,7 @@ from qfluentwidgets import (
     StrongBodyLabel,
     SubtitleLabel,
     TableWidget,
+    TransparentDropDownPushButton,
     TransparentPushButton,
     TreeWidget,
     setFont,
@@ -40,6 +42,7 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
 from ModuleFolders.Log.Log import LogMixin
+from UserInterface.Native.FileDialogProvider import get_open_file_name, get_save_file_name
 from UserInterface.Widget.Toast import ToastMixin
 
 
@@ -545,14 +548,26 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         detail_layout.addWidget(self.table_detail_label)
         detail_layout.addStretch(1)
 
-        self.save_public_table_button = TransparentPushButton(self.tra("保存到公共表"), self.table_detail_widget)
-        self.clear_current_table_button = TransparentPushButton(self.tra("清空"), self.table_detail_widget)
-        self.save_public_table_button.setFixedHeight(28)
-        self.clear_current_table_button.setFixedHeight(28)
-        self.save_public_table_button.clicked.connect(self._save_current_view_to_public_table)
-        self.clear_current_table_button.clicked.connect(self._clear_current_view_rows)
-        detail_layout.addWidget(self.save_public_table_button)
-        detail_layout.addWidget(self.clear_current_table_button)
+        self.table_more_button = TransparentDropDownPushButton(self.tra("更多"), self.table_detail_widget)
+        self.table_more_button.setFixedHeight(28)
+        self.table_more_menu = RoundMenu(parent=self.table_more_button)
+        self.import_table_action = Action(FIF.DOWNLOAD, self.tra("导入"), triggered=self._import_current_table)
+        self.export_table_action = Action(FIF.SHARE, self.tra("导出"), triggered=self._export_current_table)
+        self.import_table_action.setToolTip(self.tra("导入 JSON，相同原文将替换为新内容。"))
+        self.export_table_action.setToolTip(self.tra("将当前显示的内容导出为 JSON。"))
+        self.save_public_table_action = Action(
+            FIF.SAVE, self.tra("保存到公共表"), triggered=self._save_current_view_to_public_table,
+        )
+        self.clear_current_table_action = Action(
+            FIF.DELETE, self.tra("清空"), triggered=self._clear_current_view_rows,
+        )
+        self.table_more_menu.addAction(self.import_table_action)
+        self.table_more_menu.addAction(self.export_table_action)
+        self.table_more_menu.addSeparator()
+        self.table_more_menu.addAction(self.save_public_table_action)
+        self.table_more_menu.addAction(self.clear_current_table_action)
+        self.table_more_button.setMenu(self.table_more_menu)
+        detail_layout.addWidget(self.table_more_button)
 
         self.content_stack = QStackedWidget(self.page_card)
         self.characters_page = self._build_characters_page()
@@ -1445,6 +1460,112 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 table.editItem(item)
             return
 
+    def _normalize_table_file_rows(self, view_name: str, rows: list) -> tuple[list[dict], int]:
+        """只读写表格字段；原文去重后保留最后一条，排除内部标识和正则设置。"""
+        defaults = self._create_empty_row(view_name)
+        identity_field = self._get_row_identity_field(view_name)
+        normalized_rows = {}
+        skipped = 0
+        for row in rows:
+            if not isinstance(row, dict):
+                skipped += 1
+                continue
+            normalized = {}
+            for field, _ in self._get_table_field_specs(view_name):
+                value = row.get(field, defaults.get(field))
+                if field == "occurrence_count":
+                    normalized[field] = self._get_occurrence_count_value(value)
+                elif value is None or isinstance(value, (str, int, float, bool)):
+                    normalized[field] = self._normalize_row_key(value)
+                    if field in ("gender", "category_path", "category") and not normalized[field]:
+                        normalized[field] = defaults[field]
+                else:
+                    break
+            else:
+                identity = normalized.get(identity_field)
+                if identity:
+                    normalized_rows[identity] = normalized
+                    continue
+            skipped += 1
+        return list(normalized_rows.values()), skipped
+
+    def _import_current_table(self) -> None:
+        if not self.cache_manager or not self.cache_manager.project:
+            self.warning_toast(self.tra("提示"), self.tra("当前没有已加载的项目。"))
+            return
+        if self._is_analysis_running():
+            self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能导入。"))
+            return
+
+        view_name = self.current_view
+        path, _ = get_open_file_name(self, self.tra("导入") + " - " + self._get_view_display_name(view_name), "", "JSON (*.json)")
+        if not path:
+            return
+        try:
+            with open(path, "r", encoding="utf-8-sig") as reader:
+                data = json.load(reader)
+            if not isinstance(data, list):
+                raise ValueError(self.tra("JSON 内容必须是当前表格的条目列表。"))
+            imported_rows, skipped = self._normalize_table_file_rows(view_name, data)
+        except Exception as error:
+            self.error_toast(self.tra("导入失败"), str(error))
+            return
+        if not imported_rows:
+            self.warning_toast(self.tra("提示"), self.tra("未读取到有效条目，请使用当前表格导出的 JSON 格式。"))
+            return
+
+        key = self._get_analysis_key(view_name)
+        identity_field = self._get_row_identity_field(view_name)
+        incoming = {row[identity_field]: row for row in imported_rows}
+        merged_rows = []
+        replaced = set()
+        for row in self.analysis_data.get(key, []) or []:
+            identity = self._normalize_row_key(row.get(identity_field))
+            if identity in incoming:
+                if identity not in replaced:
+                    merged_rows.append(incoming[identity])
+                    replaced.add(identity)
+            else:
+                merged_rows.append(row)
+        merged_rows.extend(row for identity, row in incoming.items() if identity not in replaced)
+        self.analysis_data[key] = merged_rows
+        # 显示整张表，避免导入了其他分类后看不到新增或替换的条目。
+        self._set_filter_for_view(view_name, None)
+        self._persist_analysis_state(refresh_navigation=True)
+        self._refresh_all_views()
+        self.success_toast(self.tra("完成"), self.tra("导入完成：新增 {0} 条，替换 {1} 条，跳过 {2} 条无效内容。").format(
+            len(incoming) - len(replaced), len(replaced), skipped,
+        ))
+
+    def _export_current_table(self) -> None:
+        if not self.cache_manager or not self.cache_manager.project or self._is_analysis_running():
+            return
+        rows, _ = self._normalize_table_file_rows(self.current_view, self._get_visible_rows(self.current_view))
+        if not rows:
+            self.info_toast(self.tra("提示"), self.tra("当前显示内容中没有可导出的条目。"))
+            return
+        path, _ = get_save_file_name(
+            self, self.tra("导出"), self._get_view_display_name(self.current_view) + ".json", "JSON (*.json)",
+        )
+        if not path:
+            return
+        if Path(path).suffix.lower() != ".json":
+            path += ".json"
+        try:
+            payload = json.dumps(rows, indent=4, ensure_ascii=False).encode("utf-8")
+            writer = QSaveFile(path)
+            if not writer.open(QIODevice.WriteOnly):
+                raise OSError(writer.errorString())
+            if writer.write(payload) != len(payload):
+                writer.cancelWriting()
+                raise OSError(writer.errorString())
+            if not writer.commit():
+                raise OSError(writer.errorString())
+        except Exception as error:
+            self.error_toast(self.tra("导出失败"), str(error))
+            return
+        self.success_toast(self.tra("完成"), self.tra("已导出 {0} 条内容到：{1}").format(len(rows), path))
+
     def _save_current_view_to_public_table(self) -> None:
         if self._is_analysis_running():
             self.warning_toast(self.tra("提示"), self.tra("分析任务执行中，暂时不能保存到公共表。"))
@@ -1947,8 +2068,11 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         has_project = bool(self.cache_manager and self.cache_manager.project)
         running = self._is_analysis_running()
         has_visible_rows = bool(self._get_visible_rows(self.current_view))
-        self.save_public_table_button.setEnabled(has_project and not running)
-        self.clear_current_table_button.setEnabled(has_project and not running and has_visible_rows)
+        self.table_more_button.setEnabled(has_project and not running)
+        self.import_table_action.setEnabled(has_project and not running)
+        self.export_table_action.setEnabled(has_project and not running and has_visible_rows)
+        self.save_public_table_action.setEnabled(has_project and not running and has_visible_rows)
+        self.clear_current_table_action.setEnabled(has_project and not running and has_visible_rows)
 
     def _get_table_detail_display_text(self) -> str:
         table_name = self._get_view_display_name(self.current_view)
