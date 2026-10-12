@@ -77,23 +77,22 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
                 if not isinstance(row, dict):
                     continue
 
-                if row_type == "glossary" and not GlossaryHelper.is_row_valid(row):
-                    continue
-
                 src_term = self._normalize_identity(row.get(source_field))
                 dst_term = self._normalize_identity(row.get(target_field))
-                if not src_term or not dst_term or src_term in seen_sources:
+                regex_enabled = row_type == "glossary" and row.get(GlossaryHelper.REGEX_KEY) is True
+                identity = (src_term, regex_enabled)
+                if not src_term or not dst_term or identity in seen_sources:
+                    continue
+                if regex_enabled and not GlossaryHelper.validate_source_text(src_term):
                     continue
 
                 merged_rows.append({
                     "src": src_term,
                     "dst": dst_term,
                     "row_type": row_type,
-                    GlossaryHelper.REGEX_KEY: (
-                        row.get(GlossaryHelper.REGEX_KEY) is True if row_type == "glossary" else False
-                    ),
+                    GlossaryHelper.REGEX_KEY: regex_enabled,
                 })
-                seen_sources.add(src_term)
+                seen_sources.add(identity)
 
         return merged_rows
 
@@ -111,28 +110,11 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
             if not src_term or not dst_term:
                 continue
 
-            if term.get("row_type") == "glossary":
-                regex_enabled = term.get(GlossaryHelper.REGEX_KEY) is True
-                pattern = GlossaryHelper.build_search_pattern(
-                    src_term,
-                    regex_enabled,
-                    **({} if regex_enabled else match_options),
-                )
-                if pattern is None:
-                    continue
-
-                term_data.append({
-                    "type": "pattern",
-                    "pattern": pattern,
-                    "src": src_term,
-                    "dst": dst_term,
-                })
-                continue
-
+            regex_enabled = term.get("row_type") == "glossary" and term.get(GlossaryHelper.REGEX_KEY) is True
             pattern = GlossaryHelper.build_search_pattern(
                 src_term,
-                False,
-                **match_options,
+                regex_enabled,
+                **({} if regex_enabled else match_options),
             )
             if pattern is None:
                 continue

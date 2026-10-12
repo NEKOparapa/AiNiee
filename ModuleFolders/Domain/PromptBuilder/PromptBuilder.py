@@ -553,31 +553,28 @@ class PromptBuilder(Base):
                 for field_name in fields_to_keep
             }
 
-            try:
-                pattern = re.compile(key_value, re.IGNORECASE)
-                found_texts = set(match.group() for match in pattern.finditer(full_text))
+            # 项目表保存的是提取出的原文，始终按普通文本匹配。
+            # 不读取遗留的 regex 字段；正则功能仅由公共表提供。
+            if key_field == "marker":
+                pattern = RegexSwitchHelper.build_re_pattern({key_field: key_value}, key_field)
+            else:
+                pattern = GlossaryHelper.build_search_pattern(key_value, False)
+            if pattern is None:
+                continue
 
-                for match_text in found_texts:
-                    if not match_text:
-                        continue
+            for match in pattern.finditer(full_text):
+                match_text = match.group(0)
+                if not match_text:
+                    continue
 
-                    current_row = normalized_row.copy()
-                    current_row[key_field] = match_text
-                    dedupe_key = tuple(current_row[field_name] for field_name in fields_to_keep)
-                    if dedupe_key in seen_keys:
-                        continue
+                current_row = normalized_row.copy()
+                current_row[key_field] = match_text
+                dedupe_key = tuple(current_row[field_name] for field_name in fields_to_keep)
+                if dedupe_key in seen_keys:
+                    continue
 
-                    matched_rows.append(current_row)
-                    seen_keys.add(dedupe_key)
-
-            except re.error:
-                if key_value.lower() in full_text.lower():
-                    dedupe_key = tuple(normalized_row[field_name] for field_name in fields_to_keep)
-                    if dedupe_key in seen_keys:
-                        continue
-
-                    matched_rows.append(normalized_row)
-                    seen_keys.add(dedupe_key)
+                matched_rows.append(current_row)
+                seen_keys.add(dedupe_key)
 
         return matched_rows
 

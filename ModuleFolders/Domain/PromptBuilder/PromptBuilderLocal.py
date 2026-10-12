@@ -169,52 +169,9 @@ class PromptBuilderLocal(Base):
         key_field: str,
         fields_to_keep: tuple[str, ...],
     ) -> list[dict]:
-        full_text = "\n".join(source_text_dict.values()) if source_text_dict else ""
-        if not full_text:
-            return []
-
-        matched_rows = []
-        seen_keys = set()
-
-        for row in rows or []:
-            if not isinstance(row, dict):
-                continue
-
-            key_value = str(row.get(key_field, "") or "").strip()
-            if not key_value:
-                continue
-
-            normalized_row = {
-                field_name: str(row.get(field_name, "") or "").strip()
-                for field_name in fields_to_keep
-            }
-
-            try:
-                pattern = re.compile(key_value, re.IGNORECASE)
-                found_texts = set(match.group() for match in pattern.finditer(full_text))
-
-                for match_text in found_texts:
-                    if not match_text:
-                        continue
-
-                    current_row = normalized_row.copy()
-                    current_row[key_field] = match_text
-                    dedupe_key = tuple(current_row[field_name] for field_name in fields_to_keep)
-                    if dedupe_key in seen_keys:
-                        continue
-
-                    matched_rows.append(current_row)
-                    seen_keys.add(dedupe_key)
-            except re.error:
-                if key_value.lower() in full_text.lower():
-                    dedupe_key = tuple(normalized_row[field_name] for field_name in fields_to_keep)
-                    if dedupe_key in seen_keys:
-                        continue
-
-                    matched_rows.append(normalized_row)
-                    seen_keys.add(dedupe_key)
-
-        return matched_rows
+        return PromptBuilder._match_project_table_rows(
+            rows, source_text_dict, key_field, fields_to_keep
+        )
 
     # 构建通用项目表片段
     def _build_project_table_prompt(
