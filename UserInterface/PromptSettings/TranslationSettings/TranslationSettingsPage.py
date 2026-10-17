@@ -172,7 +172,7 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
         parent.addWidget(
             SwitchButtonCard(
                 self.tra("自动修复标点符号"),
-                self.tra("启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，适合日语翻译流程。"),
+                self.tra("默认关闭，可在本设置中手动开启。开启后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，适合日语翻译流程。已翻译的内容可在校对页使用「符号修复」一键后处理。"),
                 widget_init,
                 widget_callback,
             )

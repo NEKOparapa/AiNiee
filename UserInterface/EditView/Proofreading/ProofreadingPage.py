@@ -12,6 +12,7 @@ from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.TranslationChecker.CheckResult import CheckResult
 from ModuleFolders.Service.TranslationChecker.LanguageChecker import LanguageChecker
 from ModuleFolders.Service.TranslationChecker.RuleChecker import RuleChecker
+from ModuleFolders.Service.TranslationChecker.SymbolRepairChecker import SymbolRepairChecker
 from ModuleFolders.Service.TranslationChecker.TerminologyChecker import TerminologyChecker
 from UserInterface.EditView.Proofreading.LanguageCheck.LanguageCheckDialog import LanguageCheckDialog
 from UserInterface.EditView.Proofreading.LanguageCheck.LanguageCheckResultPage import LanguageCheckResultPage
@@ -21,6 +22,7 @@ from UserInterface.EditView.Proofreading.RuleCheck.RuleCheckDialog import RuleCh
 from UserInterface.EditView.Proofreading.RuleCheck.RuleCheckResultPage import RuleCheckResultPage
 from UserInterface.EditView.Proofreading.Search.SearchDialog import SearchDialog
 from UserInterface.EditView.Proofreading.Search.SearchResultPage import SearchResultPage
+from UserInterface.EditView.Proofreading.SymbolRepair.SymbolRepairResultPage import SymbolRepairResultPage
 from UserInterface.EditView.Proofreading.Table.TabInterface import TabInterface
 from UserInterface.EditView.Proofreading.TerminologyCheck.TerminologyCheckResultPage import TerminologyCheckResultPage
 from UserInterface.Widget.TerminologyMatchSettingsDialog import TerminologyMatchSettingsDialog
@@ -31,6 +33,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
     languageCheckFinished = pyqtSignal(tuple)
     terminologyCheckFinished = pyqtSignal(tuple)
     ruleCheckFinished = pyqtSignal(tuple)
+    symbolRepairFinished = pyqtSignal(tuple)
 
     def __init__(self, cache_manager, parent=None):
         super().__init__(parent)
@@ -83,6 +86,11 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.rule_check_button.setMinimumWidth(128)
         check_layout.addWidget(self.rule_check_button, 0, Qt.AlignHCenter)
 
+        self.symbol_repair_button = PushButton(FIF.SYNC, self.tra("符号修复"), self.check_card)
+        self.symbol_repair_button.setFixedHeight(34)
+        self.symbol_repair_button.setMinimumWidth(128)
+        check_layout.addWidget(self.symbol_repair_button, 0, Qt.AlignHCenter)
+
         left_layout.addWidget(self.check_card)
 
         self.right_panel = QWidget(self)
@@ -107,9 +115,11 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.language_check_button.clicked.connect(self._open_language_check_dialog)
         self.terminology_check_button.clicked.connect(self._open_terminology_check_dialog)
         self.rule_check_button.clicked.connect(self._open_rule_check_dialog)
+        self.symbol_repair_button.clicked.connect(self._open_symbol_repair)
         self.languageCheckFinished.connect(self._on_language_check_finished)
         self.terminologyCheckFinished.connect(self._on_terminology_check_finished)
         self.ruleCheckFinished.connect(self._on_rule_check_finished)
+        self.symbolRepairFinished.connect(self._on_symbol_repair_finished)
         self._update_action_state()
 
     def showEvent(self, event) -> None:
@@ -193,6 +203,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.language_check_button.setEnabled(has_project_files)
         self.terminology_check_button.setEnabled(has_project_files)
         self.rule_check_button.setEnabled(has_project_files)
+        self.symbol_repair_button.setEnabled(has_project_files)
 
     def _open_search_dialog(self) -> None:
         dialog = SearchDialog(self.window())
@@ -220,6 +231,39 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         dialog = TerminologyMatchSettingsDialog(self.window(), start_check=True)
         if dialog.exec():
             self.perform_terminology_check(dialog.check_params)
+
+    def _open_symbol_repair(self) -> None:
+        self.perform_symbol_repair()
+
+    def perform_symbol_repair(self) -> None:
+        self.info("开始执行符号修复任务。")
+        thread = threading.Thread(target=self._symbol_repair_worker, daemon=True)
+        thread.start()
+
+    def _symbol_repair_worker(self) -> None:
+        checker = SymbolRepairChecker(self.cache_manager)
+        result_code, data = checker.run_repair({})
+        self.symbolRepairFinished.emit((result_code, data))
+
+    def _on_symbol_repair_finished(self, result: tuple) -> None:
+        result_code, data = result
+        if result_code == CheckResult.SUCCESS_SYMBOL_REPAIR_RESULT:
+            self._show_symbol_repair_result_page(data)
+            return
+
+        title = self.tra("符号修复")
+        if result_code == CheckResult.ERROR_CACHE:
+            content = self.tra("修复失败，请检查项目文件夹缓存是否正常")
+        elif result_code == CheckResult.ERROR_NO_TRANSLATION:
+            content = self.tra("修复失败，请先执行翻译流程")
+        else:
+            content = str(data or "")
+
+        self._show_single_button_message(title, content)
+
+    def _show_symbol_repair_result_page(self, result_data: dict) -> None:
+        page = SymbolRepairResultPage(result_data, self.cache_manager, self)
+        self._replace_result_tab(self.tra("符号修复结果"), f"symbol_repair_{int(time.time())}", page)
 
     def perform_search(self, params: dict) -> None:
         query = params["query"]
