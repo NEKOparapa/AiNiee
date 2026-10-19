@@ -8,6 +8,7 @@ import chardet
 import charset_normalizer
 import rich
 from bs4 import BeautifulSoup
+from bs4.exceptions import ParserRejectedMarkup
 from mediapipe.tasks.python import text, BaseOptions
 from mediapipe.tasks.python.text import LanguageDetector
 
@@ -613,7 +614,12 @@ def remove_html_tags(source_text):
     # 这些字符在 UTF-8 中不能单独存在
     cleaned_text = source_text.encode('utf-8', errors='ignore').decode('utf-8')
 
-    soup = BeautifulSoup(cleaned_text, 'html.parser')
+    try:
+        soup = BeautifulSoup(cleaned_text, 'html.parser')
+    except ParserRejectedMarkup:
+        # 原文也可能是正则表达式（如 (?<![A-Za-z])），其中的 <![ 会被误判为 HTML 声明。
+        # 解析失败时保留文本供语言检测使用，避免单条非 HTML 内容中断整个文件的载入。
+        return cleaned_text
     return soup.get_text()
 
 
