@@ -5,6 +5,7 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.FilePathConfig import prompt_path
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 
 class PromptBuilderSakura(Base):
@@ -46,13 +47,7 @@ class PromptBuilderSakura(Base):
 
     # 构造术语表
     def build_glossary(config: TaskConfig, input_dict: dict) -> str:
-        result = GlossaryHelper.collect_matched_rows(
-            getattr(config, "prompt_dictionary_data", []),
-            input_dict,
-            include_invalid=False,
-            case_sensitive=bool(getattr(config, "prompt_dictionary_match_case_sensitive", False)),
-            whole_word=bool(getattr(config, "prompt_dictionary_match_whole_word", False)),
-        )
+        result = GlossaryHelper.collect_matched_table_rows(config, input_dict)
 
         if len(result) == 0:
             return ""
@@ -176,7 +171,7 @@ class PromptBuilderSakura(Base):
 
         # 如果开启术语表
         glossary = ""
-        if config.prompt_dictionary_switch == True:
+        if TableConfigHelper.has_enabled_tables(config, "prompt_dictionary"):
             glossary = PromptBuilderSakura.build_glossary(config, source_text_dict)
             if glossary != "":
                 extra_log.append(glossary)

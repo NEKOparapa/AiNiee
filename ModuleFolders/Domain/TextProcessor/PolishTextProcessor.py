@@ -2,6 +2,7 @@ import re
 from typing import List, Dict, Optional, Any
 
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 
 # 与TextProcessor基本一样
 class PolishTextProcessor():
@@ -19,10 +20,10 @@ class PolishTextProcessor():
 
         # 预编译文本前后替换规则
         self.pre_translation_rules_compiled = self._compile_translation_rules(
-            getattr(config, 'pre_translation_data', None)
+            TableConfigHelper.get_enabled_rows(config, "pre_translation")
         )
         self.post_translation_rules_compiled = self._compile_translation_rules(
-            getattr(config, 'post_translation_data', None)
+            TableConfigHelper.get_enabled_rows(config, "post_translation")
         )
 
     def _compile_translation_rules(self, rules_data: Optional[List[Dict]]) -> List[Dict]:
@@ -119,7 +120,7 @@ class PolishTextProcessor():
         processed_text = {k: v for k, v in text_dict.items()}
 
         # 获取各个配置信息,减少再次传递
-        pre_translation_switch = config.pre_translation_switch
+        pre_translation_switch = bool(self.pre_translation_rules_compiled)
 
         # 译前替换
         if pre_translation_switch:
@@ -135,7 +136,7 @@ class PolishTextProcessor():
         restored = text_dict.copy()
 
         # 获取各个配置信息
-        post_translation_switch = config.post_translation_switch
+        post_translation_switch = bool(self.post_translation_rules_compiled)
 
         # 译后替换
         if post_translation_switch:

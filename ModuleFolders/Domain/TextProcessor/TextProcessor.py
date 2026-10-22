@@ -4,6 +4,7 @@ from typing import List, Dict, Tuple, Any, Optional
 
 from ModuleFolders.Config.FilePathConfig import regex_path
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 
 class TextProcessor():
     # 定义日语字符集的正则表达式
@@ -48,15 +49,15 @@ class TextProcessor():
 
         # 预编译文本前后替换正则
         self.pre_translation_rules_compiled = self._compile_translation_rules(
-            config.pre_translation_data
+            TableConfigHelper.get_enabled_rows(config, "pre_translation")
         )
         self.post_translation_rules_compiled = self._compile_translation_rules(
-            config.post_translation_data
+            TableConfigHelper.get_enabled_rows(config, "post_translation")
         )
 
         # 预编译自动处理正则
         code_pattern_strings = self._prepare_code_pattern_strings(
-            config.exclusion_list_data, current_regex_dir
+            TableConfigHelper.get_enabled_rows(config, "exclusion_list"), current_regex_dir
         )
 
         special_placeholder_pattern_strings = self._build_dynamic_pattern_strings(
@@ -385,6 +386,12 @@ class TextProcessor():
                 if p:
                     try:
                         enhanced = format_string.format(p=p)
+                        try:
+                            re.compile(enhanced)
+                        except re.error:
+                            # Global inline flags such as (?i) must stay at the
+                            # start. Use the original rule when padding is invalid.
+                            enhanced = p
                         enhanced_patterns.append(enhanced)
                     except KeyError:
                         enhanced_patterns.append(p)
@@ -401,7 +408,7 @@ class TextProcessor():
         affix_whitespace_storage: Dict[str, Dict] = {}
 
         # 获取各个配置信息,减少再次传递
-        pre_translation_switch = config.pre_translation_switch
+        pre_translation_switch = bool(self.pre_translation_rules_compiled)
         auto_process_text_code_segment = config.auto_process_text_code_segment
         target_platform = config.target_platform
 
@@ -446,7 +453,7 @@ class TextProcessor():
 
         # 获取各个配置信息
         auto_process_text_code_segment = config.auto_process_text_code_segment
-        post_translation_switch = config.post_translation_switch
+        post_translation_switch = bool(self.post_translation_rules_compiled)
 
         # 代码段自动还原 - 根据开关决定
         if auto_process_text_code_segment:

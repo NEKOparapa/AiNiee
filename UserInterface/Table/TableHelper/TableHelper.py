@@ -1,13 +1,46 @@
 import openpyxl
 import rapidjson as json
 from qfluentwidgets import SwitchButton, TableWidget
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QHBoxLayout, QTableWidgetItem, QWidget
+from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtWidgets import QHeaderView, QHBoxLayout, QTableWidgetItem, QWidget
 
 class TableHelper():
 
     def __init__(self) -> None:
         super().__init__()
+
+    @staticmethod
+    def style_public_table_editor(table: TableWidget) -> None:
+        """Keep public editors compact, including their unused editable rows."""
+        table.setAlternatingRowColors(False)
+        table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        table.verticalHeader().setDefaultSectionSize(36)
+        table.verticalHeader().setMinimumSectionSize(36)
+        table.horizontalHeader().setFixedHeight(36)
+
+    @staticmethod
+    def style_public_table_toolbar(page) -> None:
+        page.search_input.setMinimumWidth(120)
+        page.search_input.setMaximumWidth(260)
+        page.search_input.setFixedHeight(32)
+        for name in (
+            "search_field_button", "search_prev_button", "search_next_button",
+            "save_button", "import_button", "table_tools_button",
+        ):
+            button = getattr(page, name, None)
+            if button is not None:
+                button.setFixedHeight(32)
+                button.setIconSize(QSize(16, 16))
+                if name in ("search_prev_button", "search_next_button"):
+                    button.setFixedWidth(32)
+
+        def update_search_visibility(text):
+            searching = bool(text.strip())
+            for widget in (page.search_results_label, page.search_prev_button, page.search_next_button):
+                widget.setVisible(searching)
+
+        page.search_input.textChanged.connect(update_search_visibility)
+        update_search_visibility(page.search_input.text())
 
     # 从表格加载数据
     def load_from_table(table: TableWidget, keys: list[str], switch_keys=None) -> list[dict]:

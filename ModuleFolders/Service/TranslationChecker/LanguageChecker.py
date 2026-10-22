@@ -8,6 +8,7 @@ from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Domain.FileReader import ReaderUtil
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Service.Cache.CacheItem import CacheItem
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
@@ -310,8 +311,8 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         return None, {}
 
     def _prepare_exclusion_patterns(self) -> list:
-        """与规则检查一致，使用公共和项目禁翻表，检查开关独立于提示词开关。"""
-        rows = RegexSwitchHelper.normalize_exclusion_rows(self.config.get("exclusion_list_data", []))
+        """与规则检查一致，使用已启用的公共禁翻表和项目禁翻表。"""
+        rows = TableConfigHelper.get_enabled_rows(self.config, "exclusion_list")
         if hasattr(self.cache_manager, "get_analysis_data"):
             analysis_data = self.cache_manager.get_analysis_data() or {}
             project_rows = analysis_data.get("non_translate", []) if isinstance(analysis_data, dict) else []

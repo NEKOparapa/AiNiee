@@ -11,11 +11,12 @@ from ModuleFolders.Config.FilePathConfig import (
 )
 from ModuleFolders.Infrastructure.Platform.RuntimeSetup import migrate_config_if_needed
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 
 
 class ConfigMixin:
     CONFIG_PATH = config_path()
-    CONFIG_FILE_LOCK = threading.Lock()
+    CONFIG_FILE_LOCK = threading.RLock()
 
     multilingual_interface_dict = {}
     current_interface_language = "简中"
@@ -76,6 +77,7 @@ class ConfigMixin:
                     config = {}
 
                 needs_write = RegexSwitchHelper.normalize_config(config)
+                needs_write = TableConfigHelper.normalize_config(config) or needs_write
 
                 # 旧版 DeepSeek 配置临时兼容块。
                 # 当旧版内置配置不再需要自动修复时，可直接删除此块。
@@ -123,7 +125,7 @@ class ConfigMixin:
 
         return config
 
-    def save_config(self, new: dict) -> dict:
+    def save_config(self, new: dict, *, _table_update: bool = False) -> dict:
         with ConfigMixin.CONFIG_FILE_LOCK:
             migrate_config_if_needed()
             ConfigMixin.CONFIG_PATH = config_path()
@@ -140,7 +142,16 @@ class ConfigMixin:
             if old == new:
                 return old
 
+            table_keys = {
+                f"{kind}_{suffix}"
+                for kind in TableConfigHelper.KINDS
+                for suffix in ("tables", "active_table_id")
+            }
             for key, value in new.items():
+                # Settings/task initialization may save an old full config snapshot.
+                # Existing tables can only be changed through the atomic edit API.
+                if not _table_update and key in table_keys and key in old:
+                    continue
                 old[key] = value
 
             os.makedirs(os.path.dirname(ConfigMixin.CONFIG_PATH), exist_ok=True)
@@ -150,6 +161,15 @@ class ConfigMixin:
             os.replace(tmp_path, ConfigMixin.CONFIG_PATH)
 
         return old
+
+    def update_config(self, updater) -> dict:
+        """Apply an edit to the latest config under one lock, including table edits by ID."""
+        with ConfigMixin.CONFIG_FILE_LOCK:
+            config = self.load_config()
+            TableConfigHelper.normalize_config(config)
+            updater(config)
+            TableConfigHelper.normalize_config(config)
+            return self.save_config(config, _table_update=True)
 
     def fill_config(self, old: dict, new: dict) -> dict:
         for key, value in new.items():

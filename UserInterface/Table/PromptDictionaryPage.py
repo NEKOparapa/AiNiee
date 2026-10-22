@@ -1,14 +1,12 @@
+from UserInterface.Table.MultiTablePageMixin import MultiTablePageMixin
 import copy
+from uuid import uuid4
 from typing import TYPE_CHECKING
-import rapidjson as json
-import pandas
-from qfluentwidgets import (Action, FluentIcon, MessageBox, TableWidget, RoundMenu,
-                            LineEdit, DropDownPushButton, ToolButton, TransparentPushButton, TransparentToolButton, BodyLabel)
+from qfluentwidgets import Action, FluentIcon, TableWidget, RoundMenu
 
-from PyQt5.QtCore import QEvent, Qt, QPoint, QTimer
+from PyQt5.QtCore import Qt, QPoint, QTimer
 from PyQt5.QtGui import QBrush, QColor
-from PyQt5.QtWidgets import ( QFrame, QHeaderView, QLayout, QVBoxLayout,
-                             QTableWidgetItem, QHBoxLayout, QWidget,QAbstractItemView)
+from PyQt5.QtWidgets import QFrame, QHeaderView, QLayout, QVBoxLayout, QTableWidgetItem, QAbstractItemView
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
@@ -17,15 +15,17 @@ from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
 from ModuleFolders.Service.NameExtractor.NameExtractor import NameExtractor
-from UserInterface.Widget.SwitchButtonCard import SwitchButtonCard
 from UserInterface.Widget.TerminologyMatchSettingsDialog import TerminologyMatchSettingsDialog
 from UserInterface.Widget.SwitchTableItemDelegate import SwitchTableItemDelegate
-from UserInterface.Native.FileDialogProvider import get_existing_directory, get_open_file_name, get_save_file_name
+from UserInterface.Native.FileDialogProvider import get_existing_directory
 
 if TYPE_CHECKING:
     from UserInterface import AppFluentWindow
 
-class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
+class PromptDictionaryPage(MultiTablePageMixin, QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
+
+    TABLE_KIND = "prompt_dictionary"
+    TABLE_TITLE = "术语表"
 
     KEYS = ("src", "dst", "info", "regex",)
     SWITCH_KEYS = ("regex",)
@@ -37,17 +37,12 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         super().__init__(parent=window)
         self.setObjectName(text.replace(" ", "-"))
 
-        self.default = {
-            "prompt_dictionary_switch": False,
-            "prompt_dictionary_data": [],
-            "prompt_dictionary_match_case_sensitive": False,
-            "prompt_dictionary_match_whole_word": False,
-        }
 
         # 订阅术语表翻译完成事件
         self.subscribe(Base.EVENT.GLOSS_TASK_DONE, self.glossary_translation_done)
         # 读取配置
-        config = self.save_config(self.load_config_from_default())
+        config = self.update_config(lambda _config: None)
+        self._init_multi_table_state(config)
         self._loaded_rows = None
 
         # 搜索相关属性
@@ -63,35 +58,17 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._sort_column_index = -1
         self._sort_order = Qt.AscendingOrder
 
-        # 工具栏切换状态
-        self._secondary_toolbar_visible = False # 新增：追踪副工具栏状态
-
         self.container = QVBoxLayout(self)
         self.container.setSpacing(8)
         self.container.setContentsMargins(24, 24, 24, 24)
 
         self.add_widget_head(self.container, config, window)
         self.add_widget_body(self.container, config, window)
+        self._finish_multi_table_setup()
 
     # 翻译字段名字
     def _get_translated_column_name(self, index: int) -> str:
         return self.tra(self.COLUMN_NAMES.get(index, f"字段{index+1}"))
-
-    # 打开页面事件
-    def showEvent(self, event: QEvent) -> None:
-        super().showEvent(event)
-        self.update_table()
-
-    # 更新表格内容及状态
-    def update_table(self) -> None:
-        config = self.load_config()
-        rows = GlossaryHelper.normalize_rows(config.get("prompt_dictionary_data", []))
-        if rows == self._loaded_rows:
-            return
-        self._update_table_rows(rows)
-        self._loaded_rows = rows
-        self._reset_search()
-        self._reset_sort_indicator()
 
     # 右键菜单内容
     def show_table_context_menu(self, pos: QPoint):
@@ -146,32 +123,15 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._reset_sort_indicator()
         self.success_toast("", self.tra("新行已插入") + "...")
 
-    # 添加头部布局内容
-    def add_widget_head(self, parent: QLayout, config: dict, window: "AppFluentWindow") -> None:
-        def init(widget: SwitchButtonCard) -> None:
-            widget.set_checked(config.get("prompt_dictionary_switch"))
-
-        def checked_changed(widget: SwitchButtonCard, checked: bool) -> None:
-            config = self.load_config()
-            config["prompt_dictionary_switch"] = checked
-            self.save_config(config)
-
-        settings_button = TransparentToolButton(FluentIcon.SETTING, self)
-        settings_button.setToolTip(self.tra("原文匹配方式"))
-        settings_button.clicked.connect(self._open_match_settings_dialog)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("术语表"),
-                self.tra("通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△匹配方式: 正则开关关闭时按原文字面匹配，开启时将原文作为正则表达式  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字"),
-                init=init,
-                checked_changed=checked_changed,
-                action_widget=settings_button,
-            )
-        )
 
     def _open_match_settings_dialog(self) -> None:
-        TerminologyMatchSettingsDialog(self.window()).exec()
+        current = self._current_table()
+        if current is None:
+            return
+        table_id = current["id"]
+        dialog = TerminologyMatchSettingsDialog(self.window(), match_options=current["match_options"])
+        if dialog.exec():
+            self._update_table_metadata(table_id, match_options=dialog.match_options)
 
     # 添加主题布局内容
     def add_widget_body(self, parent: QLayout, config: dict, window: "AppFluentWindow") -> None:
@@ -199,7 +159,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.table.setWordWrap(True)
         self.table.setColumnCount(len(PromptDictionaryPage.KEYS))
         self.table.verticalHeader().hide()
-        self.table.setAlternatingRowColors(True)
+        TableHelper.style_public_table_editor(self.table)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(
             self.REGEX_COLUMN_INDEX,
@@ -218,7 +178,6 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.table.setSortingEnabled(False)
         self.table.horizontalHeader().setSortIndicatorShown(True)
         self.table.horizontalHeader().sectionClicked.connect(self._sort_table_by_column)
-        self.table.resizeRowsToContents()
         self._reset_sort_indicator()
 
     def _reset_sort_indicator(self):
@@ -259,119 +218,7 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self.tra("升序") if self._sort_order == Qt.AscendingOrder else self.tra("降序")
         ))
 
-    # 工具栏
-    def _create_search_toolbar(self) -> QWidget:
-        toolbar_widget = QWidget(self)
-        layout = QHBoxLayout(toolbar_widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
 
-        # 搜索输入框
-        self.search_input = LineEdit(self)
-        self.search_input.setPlaceholderText(self.tra("搜索表格内容..."))
-        self.search_input.setClearButtonEnabled(True)
-        self.search_input.textChanged.connect(self._on_search_text_changed)
-        layout.addWidget(self.search_input, 1)
-
-        # 搜索字段下拉菜单
-        self.search_field_button = DropDownPushButton(self.tra("全部"), self)
-        self.search_field_menu = RoundMenu(parent=self.search_field_button)
-        all_action = Action(self.tra("全部"))
-        all_action.triggered.connect(lambda: self._set_search_field(-1, self.tra("全部")))
-        self.search_field_menu.addAction(all_action)
-        self.search_field_menu.addSeparator()
-        for i, key in enumerate(PromptDictionaryPage.KEYS):
-            if key in self.SWITCH_KEYS:
-                continue
-            col_name = self._get_translated_column_name(i)
-            action = Action(col_name)
-            action.triggered.connect(lambda checked=False, index=i, name=col_name: self._set_search_field(index, name))
-            self.search_field_menu.addAction(action)
-        self.search_field_button.setMenu(self.search_field_menu)
-        layout.addWidget(self.search_field_button)
-
-        # 搜索结果标签
-        self.search_results_label = BodyLabel("", self)
-        layout.addWidget(self.search_results_label)
-
-        # 导航按钮
-        self.search_prev_button = TransparentToolButton(FluentIcon.UP, self)
-        self.search_prev_button.setToolTip(self.tra("上一个结果"))
-        self.search_prev_button.clicked.connect(self._navigate_previous)
-        self.search_prev_button.setEnabled(False)
-        layout.addWidget(self.search_prev_button)
-
-        self.search_next_button = TransparentToolButton(FluentIcon.DOWN, self)
-        self.search_next_button.setToolTip(self.tra("下一个结果"))
-        self.search_next_button.clicked.connect(self._navigate_next)
-        self.search_next_button.setEnabled(False)
-        layout.addWidget(self.search_next_button)
-
-        layout.addStretch(1) # 将后续按钮推到右侧
-
-        # --- 主操作按钮组 ---
-        self.main_action_buttons_widget = QWidget(self)
-        main_action_layout = QHBoxLayout(self.main_action_buttons_widget)
-        main_action_layout.setContentsMargins(0,0,0,0)
-        main_action_layout.setSpacing(8)
-
-        self.save_button = ToolButton(FluentIcon.SAVE, self)
-        self.save_button.setToolTip(self.tra("保存"))
-        self.save_button.clicked.connect(self.save_data)
-        main_action_layout.addWidget(self.save_button)
-
-        self.reset_button = ToolButton(FluentIcon.DELETE, self)
-        self.reset_button.setToolTip(self.tra("重置"))
-        self.reset_button.clicked.connect(self.reset_data)
-        main_action_layout.addWidget(self.reset_button)
-
-        self.import_button = ToolButton(FluentIcon.DOWNLOAD, self)
-        self.import_button.setToolTip(self.tra("导入"))
-        self.import_button.clicked.connect(self.import_data)
-        main_action_layout.addWidget(self.import_button)
-
-        self.export_button = ToolButton(FluentIcon.SHARE, self)
-        self.export_button.setToolTip(self.tra("导出"))
-        self.export_button.clicked.connect(self.export_data)
-        main_action_layout.addWidget(self.export_button)
-        layout.addWidget(self.main_action_buttons_widget)
-
-        # --- 副操作按钮组 (角色提取和简单翻译) ---
-        self.secondary_action_buttons_widget = QWidget(self)
-        secondary_action_layout = QHBoxLayout(self.secondary_action_buttons_widget)
-        secondary_action_layout.setContentsMargins(0,0,0,0)
-        secondary_action_layout.setSpacing(8)
-
-        self.name_extractor_button = TransparentPushButton(FluentIcon.PEOPLE,self.tra("角色提取"), self)
-        self.name_extractor_button.clicked.connect(self.name_extractor)
-        secondary_action_layout.addWidget(self.name_extractor_button)
-
-        self.glossary_translation_button = TransparentPushButton(FluentIcon.SEND_FILL,self.tra("简单翻译"), self)
-        self.glossary_translation_button.clicked.connect(self.glossary_translation)
-        secondary_action_layout.addWidget(self.glossary_translation_button)
-        layout.addWidget(self.secondary_action_buttons_widget)
-        self.secondary_action_buttons_widget.setVisible(False) # 初始隐藏
-
-        # --- 工具栏切换按钮 ---
-        self.toggle_toolbar_button = TransparentToolButton(FluentIcon.MORE, self)
-        #self.toggle_toolbar_button.setToolTip(self.tra("切换到副工具栏"))
-        self.toggle_toolbar_button.clicked.connect(self._toggle_toolbar_view)
-        layout.addWidget(self.toggle_toolbar_button)
-
-        return toolbar_widget
-
-    # 切换工具栏视图
-    def _toggle_toolbar_view(self):
-        self._secondary_toolbar_visible = not self._secondary_toolbar_visible
-        if self._secondary_toolbar_visible:
-            self.main_action_buttons_widget.setVisible(False)
-            self.secondary_action_buttons_widget.setVisible(True)
-            self.toggle_toolbar_button.setIcon(FluentIcon.MENU) 
-            #self.toggle_toolbar_button.setToolTip(self.tra("切换回主工具栏"))
-        else:
-            self.main_action_buttons_widget.setVisible(True)
-            self.secondary_action_buttons_widget.setVisible(False)
-            self.toggle_toolbar_button.setIcon(FluentIcon.MORE)
             #self.toggle_toolbar_button.setToolTip(self.tra("切换到副工具栏"))
 
     # 设置搜索字段
@@ -543,7 +390,6 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                             item.setCheckState(Qt.Checked if row.get(key) else Qt.Unchecked)
                     self.table.setItem(row_index, column_index, item)
                 self._set_row_highlight(row_index, GlossaryHelper.get_row_state(row))
-            self.table.resizeRowsToContents()
         finally:
             self.table.blockSignals(previous)
             self.table.setUpdatesEnabled(updates_enabled)
@@ -588,225 +434,99 @@ class PromptDictionaryPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
             item.setBackground(brush)
 
-    # 保存方法
-    def save_data(self) -> None:
-        config = self.load_config()
-        rows = self._load_table_rows()
-        unique_rows = list({row["src"]: row for row in rows}.values())
-        config["prompt_dictionary_data"] = unique_rows
-        self.save_config(config)
-        # Only rebuild when editing has introduced duplicate sources.
-        if len(unique_rows) != len(rows):
-            self._update_table_rows(unique_rows)
-            self._reset_search()
-        self._loaded_rows = config["prompt_dictionary_data"]
-        self.success_toast("", self.tra("数据已保存") + " ... ")
 
-    # 重置方法
-    def reset_data(self) -> None:
-        info_cont1 = self.tra("是否确认重置为默认数据") + " ... ？"
-        message_box = MessageBox(self.tra("警告"), info_cont1, self.window())
-        message_box.yesButton.setText(self.tra("确认"))
-        message_box.cancelButton.setText(self.tra("取消"))
-
-        if not message_box.exec():
-            return
-
-        self.table.setRowCount(0)
-        config = self.load_config()
-        config["prompt_dictionary_data"] = copy.deepcopy(self.default.get("prompt_dictionary_data", []))
-        self.save_config(config)
-        self._update_table_rows(config.get("prompt_dictionary_data"))
-        self._loaded_rows = config["prompt_dictionary_data"]
-        self._reset_search() # 重置后重置搜索
-        self._reset_sort_indicator() # 重置后重置排序
-        self.success_toast("", self.tra("数据已重置") + " ... ")
-
-    # 导入方法
-    def import_data(self) -> None:
-        path, _ = get_open_file_name(self, self.tra("选择文件"), "", "json 文件 (*.json);;xlsx 文件 (*.xlsx)")
-        if not isinstance(path, str) or path == "":
-            return
-        data = GlossaryHelper.normalize_rows(
-            TableHelper.load_from_file(path, PromptDictionaryPage.KEYS, self.SWITCH_KEYS)
-        )
-        config = self.load_config()
-
-        # 去重逻辑
-        current_data = self._load_table_rows()
-        current_src_set = {item['src'] for item in current_data if item.get('src')} # 处理潜在的空 src
-        new_data_filtered = [item for item in data if item.get('src') and item['src'] not in current_src_set] # 确保导入的项目具有 src
-
-        if not new_data_filtered and data: # 如果所有导入的项目都已存在，则通知
-            self.info_toast(self.tra("信息"), self.tra("导入的数据项均已存在于当前表格中"))
-            return
-        elif not new_data_filtered and not data: # 如果文件为空或格式无效，则通知
-            self.warning_toast(self.tra("警告"), self.tra("未从文件中加载到有效数据"))
-            return
-
-        # 更新并保存
-        # 合并现有数据（来自表格状态）+ 新的已过滤数据
-        combined_data = GlossaryHelper.normalize_rows(current_data + new_data_filtered)
-        config["prompt_dictionary_data"] = combined_data # 直接更新配置
-
-        # 在再次从表格保存配置*之前*更新表格
-        self._update_table_rows(config["prompt_dictionary_data"])
-
-        # 现在将可能已修改的表格状态保存回配置
-        config["prompt_dictionary_data"] = self._load_table_rows()
-        self.save_config(config)
-        self._loaded_rows = config["prompt_dictionary_data"]
-        self._reset_search() # 导入后重置搜索
-        self._reset_sort_indicator() # 导入后重置排序
-        self.success_toast("", self.tra("数据已导入并更新") + f" ({len(new_data_filtered)} {self.tra('项')})...")
-
-    # 导出方法
-    def export_data(self) -> None:
-        data = self._load_table_rows()
-        if not data:
-            self.warning_toast("", self.tra("表格中没有数据可导出"))
-            return
-
-        default_filename = self.tra("导出_术语表")
-
-        
-        file_filter = "JSON 文件 (*.json);;XLSX 文件 (*.xlsx)"
-        path, selected_filter = get_save_file_name(
-            self, self.tra("导出文件"), default_filename, file_filter
-        )
-
-        if not path:
-            return
-
-        # 根据选择的过滤器确保文件扩展名正确
-        if "(*.xlsx)" in selected_filter and not path.lower().endswith(".xlsx"):
-            path += ".xlsx"
-        elif "(*.json)" in selected_filter and not path.lower().endswith(".json"):
-            path += ".json"
-
-        try:
-            if path.lower().endswith(".json"):
-                with open(path, "w", encoding="utf-8") as writer:
-                    writer.write(json.dumps(data, indent=4, ensure_ascii=False))
-            elif path.lower().endswith(".xlsx"):
-                # 使用 pandas 将数据转换为 DataFrame
-                df = pandas.DataFrame(data)
-                # 使用 reindex 确保所有列都存在且顺序正确
-                df = df.reindex(columns=list(self.KEYS), fill_value="")
-                # 将列名重命名为用户友好的译文
-                df.columns = [self._get_translated_column_name(i) for i in range(len(self.KEYS))]
-                # 将 DataFrame 导出到 Excel 文件，不包含索引列
-                df.to_excel(path, index=False)
-            else:
-                self.error_toast(self.tra("导出失败"), self.tra("不支持的文件类型。请选择 .json 或 .xlsx"))
-                return
-
-            self.success_toast("", self.tra("数据已导出到") + f": {path}")
-
-        except Exception as e:
-            self.logger.error(f"Failed to export data to {path}: {e}", exc_info=True)
-            self.error_toast(self.tra("导出失败"), str(e))
-
-
-    # 角色提取方法
     def name_extractor(self) -> None:
+        if self._current_table() is None:
+            return
         path = get_existing_directory(self, self.tra("选择文件夹"), "")
         if not path:
             return
-
         try:
-            data = NameExtractor.extract_names_from_folder(self, path)
-            if not data:
+            rows = NameExtractor.extract_names_from_folder(self, path)
+            if not rows:
                 self.info_toast(self.tra("信息"), self.tra("在指定文件夹中未找到符合条件的角色名"))
                 return
+            if self._merge_current_rows(rows):
+                self.success_toast("", self.tra("术语信息已提取并添加"))
+        except Exception as error:
+            self.error_toast(self.tra("提取失败"), str(error))
 
-            config = self.load_config()
-            current_data = self._load_table_rows()
-            current_src_set = {item['src'] for item in current_data if item.get('src')}
-            new_data_filtered = [item for item in data if item.get('src') and item['src'] not in current_src_set]
-
-            if not new_data_filtered:
-                self.info_toast(self.tra("信息"), self.tra("均已存在于术语表中"))
-                return
-
-            combined_data = GlossaryHelper.normalize_rows(current_data + new_data_filtered)
-            config["prompt_dictionary_data"] = combined_data
-
-            self._update_table_rows(config["prompt_dictionary_data"])
-
-            config["prompt_dictionary_data"] = self._load_table_rows()
-            self.save_config(config)
-            self._loaded_rows = config["prompt_dictionary_data"]
-            self._reset_search()
-            self._reset_sort_indicator()
-            self.success_toast("", self.tra("术语信息已提取并添加") + f" ({len(new_data_filtered)} {self.tra('项')})...")
-
-        except Exception as e:
-            self.error_toast(self.tra("提取失败"), str(e))
-            self.logger.error(f"Name extraction failed: {e}", exc_info=True)
-
-    # 简单翻译方法
     def glossary_translation(self) -> None:
-        if Base.work_status == Base.STATUS.IDLE:
-            Base.work_status = Base.STATUS.GLOSS_TASK
-            glossary_rows = self._load_table_rows()
-            data = {}
-            data["prompt_dictionary_data"] = glossary_rows
-
-            if not self._get_translatable_rows(glossary_rows):
-                    self.info_toast(self.tra("提示"), self.tra("没有需要翻译的术语"))
-                    Base.work_status = Base.STATUS.IDLE
-                    return
-
-            self.emit(Base.EVENT.GLOSS_TASK_START, data)
-            self.info_toast(self.tra("提示"), self.tra("术语表翻译任务已开始..."))
-        else:
+        if self._current_table() is None or not self._save_current_table():
+            return
+        if Base.work_status != Base.STATUS.IDLE:
             self.warning_toast("", self.tra("软件正在执行其他任务中，请稍后再试"))
+            return
+        rows = self._canonical_rows(self._load_table_rows())
+        untranslated = self._get_translatable_rows(rows)
+        if not untranslated:
+            self.info_toast(self.tra("提示"), self.tra("没有需要翻译的术语"))
+            return
+        request_id = str(uuid4())
+        self._pending_glossary_requests[request_id] = {
+            "table_id": self._active_table_id,
+            "rows": {row["src"]: copy.deepcopy(row) for row in untranslated},
+        }
+        Base.work_status = Base.STATUS.GLOSS_TASK
+        self.emit(Base.EVENT.GLOSS_TASK_START, {
+            "table_id": self._active_table_id,
+            "request_id": request_id,
+            "prompt_dictionary_data": rows,
+        })
+        self.info_toast(self.tra("提示"), self.tra("术语表翻译任务已开始..."))
 
-    # 简单翻译完成订阅方法
     def glossary_translation_done(self, event: int, data: dict):
+        request_id = data.get("request_id")
+        pending = self._pending_glossary_requests.get(request_id)
+        if pending is None or data.get("table_id") != pending["table_id"]:
+            return
         Base.work_status = Base.STATUS.IDLE
         status = data.get("status")
-
-        if status == "null":
-            self.error_toast("", self.tra("术语表内容为空") + "...")
+        if status not in ("success", "partial"):
+            self._pending_glossary_requests.pop(request_id, None)
+            if status == "error":
+                self.error_toast(self.tra("术语表翻译失败"), data.get("message", self.tra("未知错误")))
+            else:
+                self.info_toast(self.tra("提示"), self.tra("没有需要翻译的术语"))
             return
-        elif status == "error":
-            error_msg = data.get("message", self.tra("未知错误"))
-            self.error_toast(self.tra("术语表翻译失败"), error_msg + "...")
+        if self._active_table_id == pending["table_id"] and not self._save_current_table():
+            # Keep the result in memory when disk persistence fails.
+            pending["result"] = data
             return
-        elif status in ("success", "partial"):
-            updated_data = data.get("updated_data")
-            if not updated_data:
-                self.warning_toast(self.tra("完成"), self.tra("翻译完成，但没有数据被更新"))
-                return
+        translations = {
+            row["src"]: row["dst"] for row in data.get("updated_data", []) or []
+            if isinstance(row, dict) and row.get("src") and row.get("dst")
+        }
+        changed = []
+        try:
+            def update(config):
+                target = next((table for table in config[self._table_key] if table["id"] == pending["table_id"]), None)
+                if target is None:
+                    return
+                for row in target["rows"]:
+                    original = pending["rows"].get(row.get("src"))
+                    if original is not None and row == original and row["src"] in translations:
+                        row["dst"] = translations[row["src"]]
+                        changed.append(row["src"])
+            config = self.update_config(update)
+        except Exception as error:
+            pending["result"] = data
+            self.error_toast(self.tra("保存失败"), str(error))
+            return
+        self._pending_glossary_requests.pop(request_id, None)
+        from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
+        self._tables = TableConfigHelper.get_tables(config, self.TABLE_KIND)
+        if self._active_table_id == pending["table_id"]:
+            self._display_current_table(force=True)
+        self._refresh_tabs()
+        if changed:
+            self.success_toast("", self.tra("术语表翻译成功并已更新"))
 
-            prompt_dictionary_data_table = self._load_table_rows()
-            updated_map = {item['src']: item['dst'] for item in updated_data if item.get('src') and item.get('dst')}
-
-            something_updated = False
-            for i in range(len(prompt_dictionary_data_table)):
-                src_text = prompt_dictionary_data_table[i].get("src")
-                current_dst = prompt_dictionary_data_table[i].get("dst")
-                if src_text in updated_map and (not current_dst or current_dst.strip() == ""):
-                    prompt_dictionary_data_table[i]["dst"] = updated_map[src_text]
-                    something_updated = True
-
-            if something_updated:
-                prompt_dictionary_data_table = GlossaryHelper.normalize_rows(prompt_dictionary_data_table)
-                self.table.setUpdatesEnabled(False)
-                self._update_table_rows(prompt_dictionary_data_table)
-                self.table.setUpdatesEnabled(True)
-
-                config = self.load_config()
-                config["prompt_dictionary_data"] = prompt_dictionary_data_table
-                self.save_config(config)
-                self._loaded_rows = config["prompt_dictionary_data"]
-                self._reset_search()
-                self._reset_sort_indicator()
-                if status == "success":
-                    self.success_toast("", self.tra("术语表翻译成功并已更新") + "...")
-                else:
-                    success_count = data.get("success_count", 0)
-                    total_count = data.get("total_count", 0)
-                    self.success_toast("", self.tra("部分术语翻译完成并已更新") + f" ({success_count}/{total_count})...")
+    def save_data(self):
+        if not self._save_current_table():
+            return
+        for pending in list(self._pending_glossary_requests.values()):
+            result = pending.get("result")
+            if result is not None:
+                self.glossary_translation_done(Base.EVENT.GLOSS_TASK_DONE, result)
+        self.success_toast("", self.tra("数据已保存") + " ... ")

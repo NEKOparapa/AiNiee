@@ -177,12 +177,30 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
 
     # 术语表的简单翻译
     def glossary_translation(self, event, data: dict):
+        try:
+            self._translate_glossary(data)
+        except Exception as error:
+            self.error(f"术语表翻译失败: {error}")
+            self._emit_glossary_result(data, {
+                "status": "error",
+                "message": str(error),
+                "updated_data": None,
+            })
+
+    def _emit_glossary_result(self, request: dict, result: dict) -> None:
+        self.emit(Base.EVENT.GLOSS_TASK_DONE, {
+            **result,
+            "table_id": request.get("table_id"),
+            "request_id": request.get("request_id"),
+        })
+
+    def _translate_glossary(self, data: dict):
 
         # 获取表格数据
         prompt_dictionary_data = data.get("prompt_dictionary_data")
         if not prompt_dictionary_data:
             self.info("没有需要翻译的术语")
-            self.emit(Base.EVENT.GLOSS_TASK_DONE, {
+            self._emit_glossary_result(data, {
                 "status": "null",
                 "updated_data": prompt_dictionary_data
             })
@@ -195,7 +213,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         ]
         if not untranslated_items:
             self.info("没有需要翻译的术语")
-            self.emit(Base.EVENT.GLOSS_TASK_DONE, {
+            self._emit_glossary_result(data, {
                 "status": "null",
                 "updated_data": prompt_dictionary_data
             })
@@ -297,7 +315,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         self.info(f" 所有组处理完毕。成功: {success_groups}, 失败: {failed_groups}")
 
         if not successful_pairs:
-            self.emit(Base.EVENT.GLOSS_TASK_DONE, {
+            self._emit_glossary_result(data, {
                 "status": "error",
                 "message": "所有组翻译均未成功",
                 "updated_data": None
@@ -319,7 +337,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
         self.info(f" 术语表翻译完成 \n"
                 f"├ 成功术语: {len(successful_pairs)}/{len(untranslated_items)}\n"
                 f"└ 状态: {status}")
-        self.emit(Base.EVENT.GLOSS_TASK_DONE, {
+        self._emit_glossary_result(data, {
             "status": status,
             "updated_data": updated_data,
             "success_count": len(successful_pairs),

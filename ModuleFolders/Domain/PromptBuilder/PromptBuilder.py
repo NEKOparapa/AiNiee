@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
 from ModuleFolders.Config.FilePathConfig import prompt_path
@@ -442,13 +443,7 @@ class PromptBuilder(Base):
 
     # 构造术语表
     def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
-        result = GlossaryHelper.collect_matched_rows(
-            getattr(config, "prompt_dictionary_data", []),
-            input_dict,
-            include_invalid=False,
-            case_sensitive=bool(getattr(config, "prompt_dictionary_match_case_sensitive", False)),
-            whole_word=bool(getattr(config, "prompt_dictionary_match_whole_word", False)),
-        )
+        result = GlossaryHelper.collect_matched_table_rows(config, input_dict)
 
         # 数据校验
         if len(result) == 0:
@@ -493,7 +488,7 @@ class PromptBuilder(Base):
     def build_ntl_prompt(config: TaskConfig, source_text_dict) -> str:
 
         # 获取禁翻表内容
-        exclusion_list_data = RegexSwitchHelper.normalize_exclusion_rows(config.exclusion_list_data)
+        exclusion_list_data = TableConfigHelper.get_enabled_rows(config, "exclusion_list")
 
 
         exclusion_dict = {}  # 用字典存储并自动去重
@@ -517,9 +512,9 @@ class PromptBuilder(Base):
 
         # 构建结果字符串
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = "\n###禁翻表，以下特殊标记符无需翻译"+ "\n特殊标记符|备注"
+            result = "\n###禁翻表，以下原文保持不变\n原文|备注"
         else:
-            result = "\n###Non-Translation List,Leave the following marked content untranslated"+ "\nSpecial marker|Remarks"
+            result = "\n###Non-Translation List, keep the following source text unchanged\nSource text|Remarks"
 
         for markers, info in exclusion_dict.items():
             result += f"\n{markers}|{info}" if info else f"\n{markers}|"
@@ -889,14 +884,14 @@ class PromptBuilder(Base):
 
 
         # 如果开启术语表
-        if config.prompt_dictionary_switch == True:
+        if TableConfigHelper.has_enabled_tables(config, "prompt_dictionary"):
             glossary = PromptBuilder.build_glossary_prompt(config, source_text_dict)
             if glossary != "":
                 system += glossary
                 extra_log.append(glossary)
 
         # 如果开启禁翻表
-        if config.exclusion_list_switch == True:
+        if TableConfigHelper.has_enabled_tables(config, "exclusion_list"):
             ntl = PromptBuilder.build_ntl_prompt(config, source_text_dict)
             if ntl != "":
                 system += ntl

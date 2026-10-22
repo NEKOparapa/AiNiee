@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Tuple
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
@@ -47,6 +48,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
         match_options = {
             "case_sensitive": bool(self.config.get("prompt_dictionary_match_case_sensitive", False)),
             "whole_word": bool(self.config.get("prompt_dictionary_match_whole_word", False)),
+            "split_match": bool(self.config.get("prompt_dictionary_match_split", False)),
         }
         if not isinstance(params, dict):
             return match_options
@@ -55,77 +57,95 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
             match_options["case_sensitive"] = bool(params.get("case_sensitive"))
         if "whole_word" in params:
             match_options["whole_word"] = bool(params.get("whole_word"))
+        if "split_match" in params:
+            match_options["split_match"] = bool(params.get("split_match"))
 
         return match_options
 
-    def _collect_merged_term_rows(self) -> List[Dict[str, str]]:
-        merged_rows: List[Dict[str, str]] = []
-        seen_sources = set()
+    def _collect_merged_term_rows(self) -> List[Dict[str, Any]]:
+        merged_rows = []
+        project_sources = set()
         analysis_data = self._get_project_analysis_data()
 
-        row_sources = (
-            (analysis_data.get("characters", []), "source", "recommended_translation", "project"),
-            (analysis_data.get("terms", []), "source", "recommended_translation", "project"),
-            (GlossaryHelper.normalize_rows(self.config.get("prompt_dictionary_data", [])), "src", "dst", "glossary"),
-        )
-
-        for rows, source_field, target_field, row_type in row_sources:
-            if not isinstance(rows, list):
-                continue
-
-            for row in rows:
+        for rows in (analysis_data.get("characters", []), analysis_data.get("terms", [])):
+            for row in rows if isinstance(rows, list) else []:
                 if not isinstance(row, dict):
                     continue
-
-                src_term = self._normalize_identity(row.get(source_field))
-                dst_term = self._normalize_identity(row.get(target_field))
-                regex_enabled = row_type == "glossary" and row.get(GlossaryHelper.REGEX_KEY) is True
-                identity = (src_term, regex_enabled)
-                if not src_term or not dst_term or identity in seen_sources:
+                src = self._normalize_identity(row.get("source"))
+                dst = self._normalize_identity(row.get("recommended_translation"))
+                identity = (src, False)
+                if not src or not dst or identity in project_sources:
                     continue
-                if regex_enabled and not GlossaryHelper.validate_source_text(src_term):
-                    continue
+                merged_rows.append({"src": src, "dst": dst, "row_type": "project", "regex": False})
+                project_sources.add(identity)
 
+        for table in TableConfigHelper.get_tables(self.config, "prompt_dictionary", enabled_only=True):
+            for row in table["rows"]:
+                if not row.get("src"):
+                    continue
+                if GlossaryHelper.source_identity(row) in project_sources:
+                    continue
+                if not GlossaryHelper.is_row_valid(row):
+                    continue
                 merged_rows.append({
-                    "src": src_term,
-                    "dst": dst_term,
-                    "row_type": row_type,
-                    GlossaryHelper.REGEX_KEY: regex_enabled,
+                    **row,
+                    "row_type": "glossary",
+                    "table_id": table["id"],
+                    "match_options": table["match_options"],
                 })
-                seen_sources.add(identity)
-
         return merged_rows
 
     def _prepare_term_data(
         self,
-        term_rows: List[Dict[str, str]],
+        term_rows: List[Dict[str, Any]],
         match_options: Dict[str, bool] | None = None,
     ) -> List[Dict[str, Any]]:
         term_data = []
-        match_options = match_options or {}
-
         for term in term_rows:
             src_term = term.get("src")
-            dst_term = term.get("dst")
-            if not src_term or not dst_term:
+            dst_term = term.get("dst", "")
+            if not src_term:
                 continue
 
+            # 公共术语始终使用所属表的设置；校对弹窗参数只影响项目表。
+            options = TableConfigHelper.normalize_match_options(term.get("match_options", match_options))
+            literal_options = {key: options[key] for key in ("case_sensitive", "whole_word")}
             regex_enabled = term.get("row_type") == "glossary" and term.get(GlossaryHelper.REGEX_KEY) is True
-            pattern = GlossaryHelper.build_search_pattern(
-                src_term,
-                regex_enabled,
-                **({} if regex_enabled else match_options),
-            )
+            split_match = options["split_match"] and term.get("row_type") == "glossary" and not regex_enabled
+            pattern = GlossaryHelper.build_search_pattern(src_term, regex_enabled, **literal_options)
             if pattern is None:
                 continue
 
-            term_data.append({
+            prepared_term = {
                 "type": "pattern",
                 "pattern": pattern,
+                "selection_pattern": GlossaryHelper.build_search_pattern(
+                    src_term, regex_enabled, split_match=split_match, **literal_options,
+                ),
                 "src": src_term,
                 "dst": dst_term,
-            })
+                "regex": regex_enabled,
+                "table_id": term.get("table_id"),
+                "match_options": options,
+                "split_terms": [],
+            }
+            term_data.append(prepared_term)
+            if not split_match:
+                continue
 
+            source_parts = GlossaryHelper.split_source_text(src_term)
+            target_parts = GlossaryHelper.split_source_text(dst_term)
+            # 无法按位置对应时仍参与优先级选择，但只验证完整译名。
+            if len(source_parts) < 2 or len(source_parts) != len(target_parts):
+                continue
+            prepared_term["split_terms"] = [
+                {
+                    "pattern": GlossaryHelper.build_search_pattern(source_part, **literal_options),
+                    "src": source_part,
+                    "dst": target_part,
+                }
+                for source_part, target_part in zip(source_parts, target_parts)
+            ]
         return term_data
 
     # --- 术语检查主流程 ---
@@ -167,22 +187,55 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
 
     # --- 术语检查辅助方法 ---
     def _rule_check_terminology(self, src, dst, prepared_data):
-        """
-        检查术语一致性
-        prepared_data: 包含预编译正则或字符串信息的列表
-        """
+        selected_terms = []
+        claimed_sources = set()
+        for term in prepared_data:
+            identity = GlossaryHelper.source_identity(term)
+            pattern = term.get("selection_pattern", term["pattern"])
+            if identity in claimed_sources or not pattern.search(src):
+                continue
+            claimed_sources.add(identity)
+            selected_terms.append(term)
+
+        # 只让实际入选的表参与拆分歧义判断，低优先级译名不能干扰赢家。
+        exact_translations = {}
+        insensitive_translations = {}
+        folded_translations = {}
+        for term in selected_terms:
+            if term.get("regex"):
+                continue
+            for part in [term, *term.get("split_terms", [])]:
+                if not part["dst"]:
+                    continue
+                source = part["src"]
+                folded = source.casefold()
+                folded_translations.setdefault(folded, set()).add(part["dst"])
+                if term["match_options"]["case_sensitive"]:
+                    exact_translations.setdefault(source, set()).add(part["dst"])
+                else:
+                    insensitive_translations.setdefault(folded, set()).add(part["dst"])
+
+        def is_unambiguous(part, options):
+            source = part["src"]
+            if options["case_sensitive"]:
+                targets = exact_translations.get(source, set()) | insensitive_translations.get(source.casefold(), set())
+            else:
+                targets = folded_translations.get(source.casefold(), set())
+            return len(targets) == 1
+
         errs = []
-        for term_item in prepared_data:
-            match_found = False
-
-            if term_item["pattern"].search(src):
-                match_found = True
-
-            if match_found:
-                src_term = term_item["src"]
-                dst_term = term_item["dst"]
-                if dst_term not in dst:
-                    err_msg = "术语缺失(原文: {}, 译文: {})".format(src_term, dst_term)
+        for term in selected_terms:
+            if term["pattern"].search(src):
+                matched_terms = [term]
+            else:
+                matched_terms = [
+                    part for part in term.get("split_terms", [])
+                    if part["pattern"].search(src)
+                    and is_unambiguous(part, term["match_options"])
+                ]
+            for matched_term in matched_terms:
+                if matched_term["dst"] not in dst:
+                    err_msg = "术语缺失(原文: {}, 译文: {})".format(matched_term["src"], matched_term["dst"])
                     if err_msg not in errs:
                         errs.append(err_msg)
         return errs

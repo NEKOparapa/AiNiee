@@ -132,6 +132,15 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.add_pages(cache_manager, file_reader)
         self.install_macos_menu()
 
+    def switchTo(self, interface) -> None:
+        current = self.stackedWidget.currentWidget()
+        if current is not None and current is not interface:
+            prepare_to_leave = getattr(current, "prepare_to_leave", None)
+            if callable(prepare_to_leave) and not prepare_to_leave():
+                self.navigationInterface.setCurrentItem(current.objectName())
+                return
+        super().switchTo(interface)
+
     # 窗口关闭函数
     def closeEvent(self, event) -> None:
         info_cont = self.tra("确定是否退出程序") + " ... ？"
@@ -140,6 +149,11 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         message_box.cancelButton.setText(self.tra("取消"))
 
         if message_box.exec():
+            current = self.stackedWidget.currentWidget()
+            prepare_to_leave = getattr(current, "prepare_to_leave", None)
+            if callable(prepare_to_leave) and not prepare_to_leave():
+                event.ignore()
+                return
             self.emit(Base.EVENT.APP_SHUT_DOWN, {})
             self.info(self.tra("主窗口已关闭，稍后应用将自动退出") + " ... ")
             if hasattr(self, "systemThemeListener"):

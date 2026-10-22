@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Domain.PromptBuilder.PromptBuilder import PromptBuilder
 from ModuleFolders.Domain.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
 from ModuleFolders.Config.FilePathConfig import prompt_path
@@ -137,13 +138,7 @@ class PromptBuilderLocal(Base):
 
     # 构造术语表
     def build_glossary_prompt(config: TaskConfig, input_dict: dict) -> str:
-        result = GlossaryHelper.collect_matched_rows(
-            getattr(config, "prompt_dictionary_data", []),
-            input_dict,
-            include_invalid=False,
-            case_sensitive=bool(getattr(config, "prompt_dictionary_match_case_sensitive", False)),
-            whole_word=bool(getattr(config, "prompt_dictionary_match_whole_word", False)),
-        )
+        result = GlossaryHelper.collect_matched_table_rows(config, input_dict)
 
         if not result:
             return ""
@@ -400,7 +395,7 @@ class PromptBuilderLocal(Base):
         system = PromptBuilderLocal.build_system(config, source_lang)
 
         # 术语表
-        if getattr(config, "prompt_dictionary_switch", False):
+        if TableConfigHelper.has_enabled_tables(config, "prompt_dictionary"):
             glossary = PromptBuilderLocal.build_glossary_prompt(config, source_text_dict)
             system = PromptBuilderLocal._append_system_section(system, extra_log, glossary, prepend_newline=True)
 

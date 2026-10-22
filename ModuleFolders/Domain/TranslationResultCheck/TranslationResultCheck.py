@@ -5,6 +5,7 @@ import time
 
 from ModuleFolders.Config.FilePathConfig import check_regex_path
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Service.Cache.CacheProject import CacheProject
 
@@ -52,8 +53,8 @@ class TranslationResultCheck:
             os.makedirs(output_path, exist_ok=True)
 
         # 获取配置项
-        exclusion_list_switch = config.exclusion_list_switch
-        exclusion_list_data = config.exclusion_list_data if exclusion_list_switch else [] # 仅在开关打开时获取
+        exclusion_list_switch = TableConfigHelper.has_enabled_tables(config, "exclusion_list")
+        exclusion_list_data = TableConfigHelper.get_enabled_rows(config, "exclusion_list")
         auto_process_text_code_segment = config.auto_process_text_code_segment
 
         # 仅在需要时准备正则模式
@@ -341,7 +342,7 @@ class TranslationResultCheck:
                 original_marker = (
                     f"正则 '{markers}'"
                     if RegexSwitchHelper.is_regex_enabled(item)
-                    else f"标记符 '{markers}'"
+                    else f"禁翻原文 '{markers}'"
                 )
 
             if pattern_to_check and original_marker:

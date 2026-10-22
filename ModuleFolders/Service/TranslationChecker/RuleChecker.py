@@ -7,6 +7,7 @@ from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
 from ModuleFolders.Config.FilePathConfig import check_regex_path
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Log.Log import LogMixin
 from ModuleFolders.Service.Cache.CacheManager import CacheManager
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
@@ -74,9 +75,7 @@ class RuleChecker(ConfigMixin, LogMixin, Base):
                 })
                 seen_markers.add(marker)
 
-        public_rows = RegexSwitchHelper.normalize_exclusion_rows(
-            self.config.get("exclusion_list_data", [])
-        )
+        public_rows = TableConfigHelper.get_enabled_rows(self.config, "exclusion_list")
         if isinstance(public_rows, list):
             for row in public_rows:
                 if not isinstance(row, dict):

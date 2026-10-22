@@ -6,6 +6,7 @@ import rapidjson as json
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Config.FilePathConfig import auto_output_dir, auto_polish_output_dir, default_polish_output_dir
 from ModuleFolders.Log.Log import LogMixin
 
@@ -195,6 +196,8 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         # 将字典中的每一项赋值到类中的同名属性
         for key, value in config.items():
             setattr(self, key, value)
+
+        TableConfigHelper.apply_runtime_snapshot(self)
 
     # API_URL 自动处理方法
     def process_api_url(self, raw_url: str, target_platform: str, auto_complete: bool, api_format: str = "") -> str:

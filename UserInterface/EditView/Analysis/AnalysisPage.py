@@ -40,10 +40,11 @@ from qfluentwidgets import (
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
-from ModuleFolders.Domain.PromptBuilder.GlossaryHelper import GlossaryHelper
+from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Native.FileDialogProvider import get_open_file_name, get_save_file_name
 from UserInterface.Widget.Toast import ToastMixin
+from UserInterface.Widget.PublicTableSelectDialog import PublicTableSelectDialog
 
 
 class AnalysisCategorySelectDialog(MessageBoxBase):
@@ -1579,15 +1580,53 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self.info_toast(self.tra("提示"), self.tra("当前显示内容中没有可保存的条目。"))
             return
 
-        config = self.load_config()
-        added_count = self._append_public_table_rows(config, self.current_view, public_rows)
-
+        added_count = self._choose_and_append_public_table_rows(self.current_view, public_rows)
+        if added_count is None:
+            return
         if added_count <= 0:
             self.info_toast(self.tra("提示"), self.tra("当前内容均已存在于公共表中。"))
             return
 
-        self.save_config(config)
         self.success_toast(self.tra("完成"), self.tra("已保存到公共表，新增 {0} 条内容。").format(added_count))
+
+    def _choose_and_append_public_table_rows(self, view_name: str, public_rows: list[dict]) -> int | None:
+        """Return added count after a successful save; cancellation/failure returns None."""
+        config = self.load_config()
+        kind = "exclusion_list" if view_name == self.VIEW_NON_TRANSLATE else "prompt_dictionary"
+        dialog = PublicTableSelectDialog(
+            TableConfigHelper.get_tables(config, kind),
+            config.get(f"{kind}_active_table_id"),
+            self.window(),
+        )
+        if not dialog.exec():
+            return
+
+        table_id = dialog.table_id
+        new_table_name = dialog.new_table_name
+        added_count = 0
+
+        def append_to_target(latest_config):
+            nonlocal table_id, added_count
+            if table_id is None:
+                tables = latest_config[f"{kind}_tables"]
+                names = {table["name"] for table in tables}
+                name = new_table_name
+                number = 2
+                while name in names:
+                    name = f"{new_table_name} ({number})"
+                    number += 1
+                table = TableConfigHelper.new_table(kind, name=name)
+                table_id = table["id"]
+                tables.append(table)
+                latest_config[f"{kind}_active_table_id"] = table_id
+            added_count = self._append_public_table_rows(latest_config, view_name, public_rows, table_id)
+
+        try:
+            self.update_config(append_to_target)
+        except Exception as error:
+            self.error_toast(self.tra("保存失败"), str(error))
+            return None
+        return added_count
 
     def _build_public_table_rows(self, view_name: str, source_rows: list[dict] | None = None) -> list[dict]:
         rows = []
@@ -1639,39 +1678,29 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             "regex": False,
         }
 
-    def _append_public_table_rows(self, config: dict, view_name: str, public_rows: list[dict]) -> int:
-        added_count = 0
-        if view_name == self.VIEW_NON_TRANSLATE:
-            current_rows = list(config.get("exclusion_list_data", []) or [])
-            existing_keys = {
-                self._normalize_row_key(item.get("markers"))
-                for item in current_rows
-                if self._normalize_row_key(item.get("markers"))
-            }
-            for row in public_rows:
-                row_key = self._normalize_row_key(row.get("markers"))
-                if not row_key or row_key in existing_keys:
-                    continue
-                current_rows.append(row)
-                existing_keys.add(row_key)
-                added_count += 1
-            config["exclusion_list_data"] = current_rows
-            return added_count
-
-        current_rows = list(config.get("prompt_dictionary_data", []) or [])
+    def _append_public_table_rows(
+        self, config: dict, view_name: str, public_rows: list[dict], table_id: str,
+    ) -> int:
+        kind = "exclusion_list" if view_name == self.VIEW_NON_TRANSLATE else "prompt_dictionary"
+        source_key = "markers" if kind == "exclusion_list" else "src"
+        table = next((item for item in config.get(f"{kind}_tables", []) if item["id"] == table_id), None)
+        if table is None:
+            raise ValueError(self.tra("目标表已删除，请重新选择。"))
+        current_rows = TableConfigHelper.normalize_rows(kind, table["rows"])
         existing_keys = {
-            self._normalize_row_key(item.get("src"))
+            self._normalize_row_key(item.get(source_key))
             for item in current_rows
-            if self._normalize_row_key(item.get("src"))
+            if self._normalize_row_key(item.get(source_key))
         }
-        for row in public_rows:
-            row_key = self._normalize_row_key(row.get("src"))
+        added_count = 0
+        for row in TableConfigHelper.normalize_rows(kind, public_rows):
+            row_key = self._normalize_row_key(row.get(source_key))
             if not row_key or row_key in existing_keys:
                 continue
             current_rows.append(row)
             existing_keys.add(row_key)
             added_count += 1
-        config["prompt_dictionary_data"] = GlossaryHelper.normalize_rows(current_rows)
+        table["rows"] = current_rows
         return added_count
 
     def _join_public_info_parts(self, *parts: str) -> str:
@@ -1971,17 +2000,9 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if not message_box.exec():
             return
 
-        config = self.load_config()
-        added_count = self._append_public_table_rows(config, view_name, public_rows)
-        if added_count > 0:
-            try:
-                self.save_config(config)
-            except Exception as error:
-                self.error_toast(
-                    self.tra("失败"),
-                    f"{self.tra('保存公共表失败，未移动选中内容。')}\n{error}",
-                )
-                return
+        added_count = self._choose_and_append_public_table_rows(view_name, public_rows)
+        if added_count is None:
+            return
 
         deleted_count = self._delete_rows(view_name, movable_row_keys)
         if deleted_count:

@@ -60,11 +60,41 @@
       "English": "Case Sensitive",
       "日本語": "大文字小文字を区別"
     },
-    "建议仅在翻译英文文本时设置这两个开关，其他语言可能出现术语漏匹配。": {
-      "简中": "建议仅在翻译英文文本时设置这两个开关，其他语言可能出现术语漏匹配。",
-      "繁中": "建議僅在翻譯英文文本時設定這兩個開關，其他語言可能出現術語漏匹配。",
-      "English": "These two options are recommended only when translating English text; other languages may miss glossary matches.",
-      "日本語": "この2つのスイッチは英語テキストの翻訳時のみ設定することを推奨します。他の言語では用語の一致漏れが発生する可能性があります。"
+    "以下选项仅对未启用正则的术语生效。": {
+      "简中": "以下选项仅对未启用正则的术语生效。",
+      "繁中": "以下選項僅對未啟用正則的術語生效。",
+      "English": "These options apply only to terms with Regex turned off.",
+      "日本語": "以下の設定は、正規表現がオフの用語にのみ適用されます。"
+    },
+    "开启后区分大小写，如 John 不匹配 john；关闭后忽略大小写。": {
+      "简中": "开启后区分大小写，如 John 不匹配 john；关闭后忽略大小写。",
+      "繁中": "開啟後區分大小寫，如 John 不匹配 john；關閉後忽略大小寫。",
+      "English": "When on, John does not match john. When off, letter case is ignored.",
+      "日本語": "オンの場合、John は john と一致しません。オフの場合、大文字小文字を区別しません。"
+    },
+    "仅匹配完整单词，如 Ann 不匹配 Anna。建议用于英文。": {
+      "简中": "仅匹配完整单词，如 Ann 不匹配 Anna。建议用于英文。",
+      "繁中": "僅匹配完整單字，如 Ann 不匹配 Anna。建議用於英文。",
+      "English": "Match whole words only: Ann does not match Anna. Recommended for English.",
+      "日本語": "単語全体のみを照合するため、Ann は Anna と一致しません。英語での使用を推奨します。"
+    },
+    "拆分匹配": {
+      "简中": "拆分匹配",
+      "繁中": "拆分匹配",
+      "English": "Split Matching",
+      "日本語": "分割して照合"
+    },
+    "按空格、间隔点拆分原文，任一部分命中即引用完整条目，如 John 或 Smith 均可匹配 John Smith。普通多词术语也会拆分，可配合全词匹配使用。": {
+      "简中": "按空格、间隔点拆分原文，任一部分命中即引用完整条目，如 John 或 Smith 均可匹配 John Smith。普通多词术语也会拆分，可配合全词匹配使用。",
+      "繁中": "按空格、間隔點拆分原文，任一部分命中即引用完整條目，如 John 或 Smith 均可匹配 John Smith。普通多詞術語也會拆分，可搭配全詞匹配使用。",
+      "English": "Split the source at spaces and middle dots. Any part, such as John or Smith in John Smith, includes the full entry. Other multiword terms are also split; combine with Whole Word matching as needed.",
+      "日本語": "原文を空白や中点で分割し、一部が一致すると項目全体を参照します。例：John や Smith で John Smith に一致します。人名以外の複数語の用語も分割されるため、必要に応じて単語全体の一致を併用してください。"
+    },
+    "术语检查仅在原文与译文拆分数量一致时检查对应部分。": {
+      "简中": "术语检查仅在原文与译文拆分数量一致时检查对应部分。",
+      "繁中": "術語檢查僅在原文與譯文拆分數量一致時檢查對應部分。",
+      "English": "Terminology checks validate matching parts only when the source and translation split into the same number of parts.",
+      "日本語": "用語チェックでは、原文と訳文の分割数が同じ場合にのみ、対応する部分を検査します。"
     },
     "术语表内容为空": {
       "简中": "术语表内容为空",
