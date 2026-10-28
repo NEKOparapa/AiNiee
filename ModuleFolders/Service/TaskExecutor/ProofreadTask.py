@@ -8,6 +8,9 @@ from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Infrastructure.TaskConfig.TaskConfig import TaskConfig
 from ModuleFolders.Service.Cache.CacheItem import TranslationStatus
+from ModuleFolders.Domain.FileAccessor.EpubMarkup import (
+    TOKEN_RE, EPUB_TOKEN_INSTRUCTION, validate_tokens,
+)
 
 
 class ProofreadTask(ConfigMixin, LogMixin, Base):
@@ -217,6 +220,10 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
                     last_error = "模型返回内容为空"
                     continue
 
+                if not validate_tokens(item["source_text"], response_content):
+                    last_error = "EPUB 注释链接标记缺失、重复或顺序错误"
+                    continue
+
                 return {
                     "file_path": file_path,
                     "text_index": text_index,
@@ -266,6 +273,9 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
                 "3. 严格保留原文中的占位符、变量、标签、转义字符、换行符和特殊格式。\n"
                 "4. 如果当前译文为空、缺失或质量极其糟糕，请直接根据原文进行重新翻译。"
             )
+
+            if TOKEN_RE.search(source_text):
+                system_prompt += "\n\n" + EPUB_TOKEN_INSTRUCTION
 
             # 引入 Few-Shot (少样本示例)，通过对话历史规训AI的输出格式
             fake_user_1 = (

@@ -15,6 +15,7 @@ from mediapipe.tasks.python.text import LanguageDetector
 from ModuleFolders.Config.FilePathConfig import resource_path
 from ModuleFolders.Service.Cache.CacheFile import CacheFile
 from ModuleFolders.Service.Cache.CacheItem import CacheItem
+from ModuleFolders.Domain.FileAccessor.EpubMarkup import TOKEN_RE
 
 _LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
 """语言检测器单例实现"""
@@ -573,6 +574,8 @@ def tag_handler(match):
 # 20250504改动：取消清理文本中的空白字符
 # 20250518改动：获取特殊标签中的内容
 def clean_text(source_text):
+    # EPUB 结构标记不属于正文，避免干扰语言识别和纯符号过滤。
+    source_text = TOKEN_RE.sub('', source_text)
     # 先将所有换行符替换为一个特殊标记
     text_with_marker = re.sub(r'\r\n|\r|\n', '__NEWLINE__', source_text)
     # 将标记替换回空字符串

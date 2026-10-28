@@ -18,6 +18,9 @@ from ModuleFolders.Domain.ResponseChecker.ResponseChecker import ResponseChecker
 from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.Infrastructure.Tokener.Tokener import Tokener
 from ModuleFolders.Domain.TextProcessor.PolishTextProcessor import PolishTextProcessor
+from ModuleFolders.Domain.FileAccessor.EpubMarkup import (
+    TOKEN_RE, EPUB_TOKEN_INSTRUCTION, validate_tokens,
+)
 
 
 class PolisherTask(LogMixin, Base):
@@ -54,6 +57,9 @@ class PolisherTask(LogMixin, Base):
             self.translation_text_dict,
             self.previous_text_list,
         )
+
+        if any(TOKEN_RE.search(item.source_text) for item in self.items):
+            self.system_prompt += "\n\n" + EPUB_TOKEN_INSTRUCTION
 
         self.request_tokens_consume = Tokener.calculate_tokens(self, self.messages, self.system_prompt)
 
@@ -125,6 +131,13 @@ class PolisherTask(LogMixin, Base):
         )
         response_dict = ResponseExtractor.remove_numbered_prefix(self, response_dict)
 
+        if check_result:
+            restore_response_dict = self.text_processor.restore_all(self.config, copy.copy(response_dict))
+            if any(not validate_tokens(item.source_text, restore_response_dict[str(i)])
+                   for i, item in enumerate(self.items)):
+                check_result = False
+                error_content = "【EPUB 注释】 - 后处理后的链接标记不完整，将重新润色"
+
         if response_think:
             self.extra_log.append("模型思考内容：\n" + response_think)
         self.extra_log.append("模型回复内容：\n" + response_content)
@@ -145,13 +158,10 @@ class PolisherTask(LogMixin, Base):
                 )
             )
         else:
-            restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = self.text_processor.restore_all(self.config, restore_response_dict)
-
-            for item, response in zip(self.items, restore_response_dict.values()):
+            for i, item in enumerate(self.items):
                 with item.atomic_scope():
                     item.model = self.config.model
-                    item.translated_text = response
+                    item.translated_text = restore_response_dict[str(i)]
                     item.translation_status = TranslationStatus.POLISHED
 
             self.print(

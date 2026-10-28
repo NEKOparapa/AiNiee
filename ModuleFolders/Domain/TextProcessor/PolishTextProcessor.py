@@ -3,6 +3,7 @@ from typing import List, Dict, Optional, Any
 
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
 from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
+from ModuleFolders.Domain.FileAccessor.EpubMarkup import transform_plain_text
 
 # 与TextProcessor基本一样
 class PolishTextProcessor():
@@ -62,9 +63,9 @@ class PolishTextProcessor():
                 dst_text = rule.get("dst", "")
 
                 if compiled_regex:
-                    current_text = compiled_regex.sub(dst_text, current_text)
+                    current_text = transform_plain_text(current_text, lambda text: compiled_regex.sub(dst_text, text))
                 elif src_text and src_text in current_text:
-                    current_text = current_text.replace(src_text, dst_text)
+                    current_text = transform_plain_text(current_text, lambda text: text.replace(src_text, dst_text))
             
             processed_text_dict[k] = current_text
         return processed_text_dict
@@ -85,9 +86,9 @@ class PolishTextProcessor():
                 dst_text = rule.get("dst", "")
 
                 if compiled_regex:
-                    current_text = compiled_regex.sub(dst_text, current_text)
+                    current_text = transform_plain_text(current_text, lambda text: compiled_regex.sub(dst_text, text))
                 elif src_text and src_text in current_text:
-                    current_text = current_text.replace(src_text, dst_text)
+                    current_text = transform_plain_text(current_text, lambda text: text.replace(src_text, dst_text))
 
             processed_text_dict[k] = current_text
         return processed_text_dict

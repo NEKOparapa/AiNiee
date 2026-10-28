@@ -8,6 +8,9 @@ from ModuleFolders.Service.Cache.CacheFile import CacheFile
 from ModuleFolders.Service.Cache.CacheItem import CacheItem
 from ModuleFolders.Service.Cache.CacheProject import ProjectType
 from ModuleFolders.Domain.FileAccessor.EpubAccessor import EpubAccessor
+from ModuleFolders.Domain.FileAccessor.EpubMarkup import (
+    TOKEN_RE, has_link_or_anchor, is_note_reference, protect_fragment,
+)
 from ModuleFolders.Domain.FileReader.BaseReader import (
     BaseSourceReader,
     InputConfig,
@@ -60,6 +63,7 @@ class EpubReader(BaseSourceReader):
     def _read_xhtml_content(self, item_id, html_content):
         """从 XHTML 文件中提取文本内容"""
         items = []
+        extracted_ranges = []
         for tag_type, pattern, forbidden_tags in self.TAG_PATTERNS_LIST:
             # 使用 finditer 查找所有匹配项，可以迭代处理
             for match in re.finditer(pattern, html_content, re.DOTALL):
@@ -73,11 +77,20 @@ class EpubReader(BaseSourceReader):
                 if not html_text_C: 
                     continue
 
-                # 提取纯文本，并处理嵌套标签
-                soup = BeautifulSoup(html_text_C, 'html.parser')
-                text_content = soup.get_text(strip=True)
+                # 子段落优先；避免 section/blockquote 等父元素再次覆盖已提取段落。
+                relative_start = html_text_A.find(html_text_C)
+                if relative_start < 0:
+                    continue
+                fragment_start = match.start() + relative_start
+                fragment_end = fragment_start + len(html_text_C)
+                if any(fragment_start < end and start < fragment_end for start, end in extracted_ranges):
+                    continue
 
-                if not text_content:  # 检查一下是否提取到空文本内容
+                # 保留注号及锚点结构，普通正文仍按完整段落翻译。
+                soup = BeautifulSoup(html_text_C, 'html.parser')
+                text_content, placeholders = protect_fragment(html_text_C)
+
+                if not TOKEN_RE.sub('', text_content).strip() or is_note_reference(soup.find()):
                     continue
 
                 if forbidden_tags:
@@ -90,8 +103,10 @@ class EpubReader(BaseSourceReader):
                     "original_html": html_text_C,
                     "tag_type": tag_type_refined,
                     "item_id": item_id,
+                    "epub_placeholders": placeholders,
                 }
                 items.append(CacheItem(source_text=text_content, extra=extra))
+                extracted_ranges.append((fragment_start, fragment_end))
         return items
 
     def _read_ncx_content(self, item_id, ncx_content):
@@ -194,6 +209,11 @@ class EpubReader(BaseSourceReader):
 
         if not top_tag:
             return None, None
+
+        # 保留整个含链接/锚点的片段。向下钻取会遗漏空锚点，或把注号变成
+        # 独立的纯数字翻译项，导致写出时无法恢复完整的往返跳转结构。
+        if any(has_link_or_anchor(tag) for tag in top_tag.find_all(True)):
+            return top_tag.name, html_string.strip()
 
         # 迭代查找最具体的标签
         current_tag = top_tag

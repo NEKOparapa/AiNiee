@@ -23,6 +23,9 @@ from ModuleFolders.Infrastructure.RequestLimiter.RequestLimiter import RequestLi
 from ModuleFolders.Infrastructure.Tokener.Tokener import Tokener
 
 from ModuleFolders.Domain.TextProcessor.TextProcessor import TextProcessor
+from ModuleFolders.Domain.FileAccessor.EpubMarkup import (
+    TOKEN_RE, EPUB_TOKEN_INSTRUCTION, validate_tokens,
+)
 
 
 class TranslatorTask(LogMixin, Base):
@@ -107,6 +110,9 @@ class TranslatorTask(LogMixin, Base):
                 self.previous_text_list,
                 self.source_lang,
             )
+
+        if any(TOKEN_RE.search(item.source_text) for item in self.items):
+            self.system_prompt += "\n\n" + EPUB_TOKEN_INSTRUCTION
 
         # 预估 Token 消费
         self.request_tokens_consume = Tokener.calculate_tokens(self,self.messages,self.system_prompt,)
@@ -198,6 +204,21 @@ class TranslatorTask(LogMixin, Base):
         # 去除回复内容的数字序号
         response_dict = ResponseExtractor.remove_numbered_prefix(self, response_dict)
 
+        if check_result:
+            restore_response_dict = self.text_processor.restore_all(
+                self.config, copy.copy(response_dict), self.prefix_codes, self.suffix_codes,
+                self.placeholder_order, self.affix_whitespace_storage,
+            )
+            restore_response_dict = self.text_symbol_repair.repair_response_dict(self.config, restore_response_dict)
+            final_responses = [
+                self.text_symbol_repair.repair_text(self.config, item.source_text, restore_response_dict[str(i)])
+                for i, item in enumerate(self.items)
+            ]
+            # 后处理也可能改写标记；整批验证成功之后才能写入缓存。
+            if any(not validate_tokens(item.source_text, response)
+                   for item, response in zip(self.items, final_responses)):
+                check_result = False
+                error_content = "【EPUB 注释】 - 后处理后的链接标记不完整，将重新翻译"
 
         # 模型回复日志
         if response_think:
@@ -223,16 +244,11 @@ class TranslatorTask(LogMixin, Base):
                 )
             )
         else:
-            # 各种翻译后处理
-            restore_response_dict = copy.copy(response_dict)
-            restore_response_dict = self.text_processor.restore_all(self.config, restore_response_dict, self.prefix_codes, self.suffix_codes, self.placeholder_order, self.affix_whitespace_storage)
-            restore_response_dict = self.text_symbol_repair.repair_response_dict(self.config, restore_response_dict)
-
             # 更新译文结果到缓存数据中
-            for item, response in zip(self.items, restore_response_dict.values()):
+            for item, response in zip(self.items, final_responses):
                 with item.atomic_scope():
                     item.model = self.config.model
-                    item.translated_text = self.text_symbol_repair.repair_text(self.config, item.source_text, response)
+                    item.translated_text = response
                     item.translation_status = TranslationStatus.TRANSLATED
 
 

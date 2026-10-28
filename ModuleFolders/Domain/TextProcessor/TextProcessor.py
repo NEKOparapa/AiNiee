@@ -5,6 +5,7 @@ from typing import List, Dict, Tuple, Any, Optional
 from ModuleFolders.Config.FilePathConfig import regex_path
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
 from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
+from ModuleFolders.Domain.FileAccessor.EpubMarkup import TOKEN_RE, transform_plain_text
 
 class TextProcessor():
     # 定义日语字符集的正则表达式
@@ -525,7 +526,9 @@ class TextProcessor():
                     return placeholder_val
 
                 try:
-                    current_text = pattern_obj.sub(replacer_for_this_pattern, current_text)
+                    current_text = transform_plain_text(
+                        current_text, lambda text: pattern_obj.sub(replacer_for_this_pattern, text)
+                    )
                     entry_placeholders.extend(single_pattern_replacements)
                 except Exception as e:
                     print(f"[Warning]: 占位正则替换出现问题！！ pattern '{pattern_obj.pattern}' on key '{key}': {e}")
@@ -573,6 +576,13 @@ class TextProcessor():
             current_text = text_val
             current_prefixes: List[Dict] = []
             current_suffixes: List[Dict] = []
+
+            # EPUB 标记需要留在模型可见的正文中，不能被首尾代码规则截断。
+            if TOKEN_RE.search(current_text):
+                processed_text_dict[key] = current_text
+                prefix_codes[key] = []
+                suffix_codes[key] = []
+                continue
 
             for pattern_obj in compiled_prefix_patterns:
                 try:
@@ -660,12 +670,12 @@ class TextProcessor():
 
                 # 如果有已经编译好的正则
                 if compiled_regex_obj:
-                    current_text = compiled_regex_obj.sub(dst_text, current_text)
+                    current_text = transform_plain_text(current_text, lambda text: compiled_regex_obj.sub(dst_text, text))
                     continue
 
                 # 没有正则，则按照原文替换
                 elif src_text and src_text in current_text:
-                    current_text = current_text.replace(src_text, dst_text)
+                    current_text = transform_plain_text(current_text, lambda text: text.replace(src_text, dst_text))
 
             if current_text != original_text_val:
                 processed_text_dict[k] = current_text
@@ -686,11 +696,11 @@ class TextProcessor():
                 dst_text = rule.get("dst", "")
 
                 if compiled_regex_obj:
-                    current_text = compiled_regex_obj.sub(dst_text, current_text)
+                    current_text = transform_plain_text(current_text, lambda text: compiled_regex_obj.sub(dst_text, text))
                     continue
 
                 elif src_text and src_text in current_text:
-                    current_text = current_text.replace(src_text, dst_text)
+                    current_text = transform_plain_text(current_text, lambda text: text.replace(src_text, dst_text))
 
             if current_text != original_text_val:
                 processed_text_dict[k] = current_text
@@ -750,7 +760,8 @@ class TextProcessor():
                 continue
 
             # 根据配置决定是否使用日语模式
-            use_ja_pattern = enable_non_ja_affix and (source_lang == 'ja' or source_lang == 'japanese')
+            use_ja_pattern = (enable_non_ja_affix and not TOKEN_RE.search(original_text)
+                              and (source_lang == 'ja' or source_lang == 'japanese'))
             processed_text, info = self._process_multiline_text(original_text, use_ja_pattern)
 
             processed_text_dict[key] = processed_text

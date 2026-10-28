@@ -1,4 +1,5 @@
 from ModuleFolders.Service.TaskExecutor import TranslatorUtil
+from ModuleFolders.Domain.FileAccessor.EpubMarkup import TOKEN_RE, validate_tokens
 
 from ModuleFolders.Domain.ResponseChecker.BaseChecks import (
     check_text_line_count,
@@ -42,6 +43,13 @@ class ResponseChecker():
         if not check_dict_order(source_text_dict, response_dict):
             return False, "【行数错误】 - 出现错行串行"
 
+        if any(not validate_tokens(text, response_dict[key]) for key, text in source_text_dict.items()):
+            return False, "【EPUB 注释】 - 链接标记缺失、重复或顺序错误"
+
+        # 结构标记不参与语义相似度和残留原文判断。
+        semantic_source = {key: TOKEN_RE.sub('', text) for key, text in source_text_dict.items()}
+        semantic_response = {key: TOKEN_RE.sub('', text) for key, text in response_dict.items()}
+
         # 进阶检查
         # 多行文本块检查
         if response_check_switch.get('newline_character_count_check', False):
@@ -50,14 +58,14 @@ class ResponseChecker():
         
         # 返回原文检查
         if response_check_switch.get('return_to_original_text_check', False):
-            if not check_dicts_equal(source_text_dict, response_dict):
+            if not check_dicts_equal(semantic_source, semantic_response):
                 return False, "【返回原文】 - 译文与原文完全相同"
         
         # 残留原文检查
         if response_check_switch.get('residual_original_text_check', False):
             if not detecting_remaining_original_text(
-                source_text_dict, 
-                response_dict, 
+                semantic_source,
+                semantic_response,
                 source_language,
             ):
                 return False, "【翻译残留】 - 译文中残留部分原文"
@@ -95,6 +103,9 @@ class ResponseChecker():
         # 检查数字序号是否正确
         if not check_dict_order(source_text_dict, response_dict):
             return False, "【行数错误】 - 出现错行串行"
+
+        if any(not validate_tokens(text, response_dict[key]) for key, text in source_text_dict.items()):
+            return False, "【EPUB 注释】 - 链接标记缺失、重复或顺序错误"
 
         # 多行文本块检查
         if response_check_switch.get('newline_character_count_check', False):
