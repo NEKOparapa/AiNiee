@@ -26,10 +26,6 @@ class PromptBuilderLocal(Base):
             "zh": ("Translate", "cot_system_zh.txt"),
             "en": ("Translate", "cot_system_en.txt"),
         },
-        PromptBuilderEnum.THINK: {
-            "zh": ("Translate", "think_system_zh.txt"),
-            "en": ("Translate", "think_system_en.txt"),
-        },
         PromptBuilderEnum.LOCAL: {
             "zh": ("Translate", "local_system_zh.txt"),
             "en": ("Translate", "local_system_en.txt"),
@@ -87,6 +83,7 @@ class PromptBuilderLocal(Base):
     ) -> str:
         PromptBuilderLocal._ensure_system_prompt_cache()
         config = PromptBuilderLocal._normalize_config(config)
+        prompt_preset = PromptBuilderEnum.normalize_translation_preset(prompt_preset)
 
         preset_contents = PromptBuilderLocal._system_prompt_cache.get(
             prompt_preset,
@@ -123,7 +120,9 @@ class PromptBuilderLocal(Base):
     def build_system(config: TaskConfig | dict | None, source_lang: str) -> str:
         config = PromptBuilderLocal._normalize_config(config)
         selection = PromptBuilderLocal._get_prompt_selection(config)
-        prompt_preset = selection.get("last_selected_id", PromptBuilderEnum.COMMON)
+        prompt_preset = PromptBuilderEnum.normalize_translation_preset(
+            selection.get("last_selected_id", PromptBuilderEnum.COMMON)
+        )
 
         if prompt_preset in PromptBuilderLocal.SYSTEM_PROMPT_FILES:
             prompt_text = PromptBuilderLocal.get_system_default(config, prompt_preset)

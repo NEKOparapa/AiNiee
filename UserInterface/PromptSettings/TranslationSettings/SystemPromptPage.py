@@ -26,7 +26,6 @@ class SystemPromptPage(PromptLibraryPage):
             for preset, name, summary in (
                 (PromptBuilderEnum.COMMON, "通用", "适用于日常文本翻译"),
                 (PromptBuilderEnum.COT, "思维链", "先分析，再组织译文"),
-                (PromptBuilderEnum.THINK, "推理模型", "适配具备推理能力的模型"),
                 (PromptBuilderEnum.LOCAL, "本地模型", "适配本地部署的模型"),
             )
         ]

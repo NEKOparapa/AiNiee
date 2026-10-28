@@ -253,7 +253,7 @@ class OpenaiRequester(LogMixin, Base):
 
             # 针对ds模型的特殊处理，因为该模型不支持模型预输入回复
             if 'deepseek' in model_name.lower():
-                # 检查一下最后的消息是否用户消息，以免误删。(用户使用了推理模型卻不切换为推理模型提示词的情况)
+                # 检查最后一条是否为用户消息，避免误删实际翻译请求。
                 if messages and isinstance(messages[-1], dict) and messages[-1].get('role') != 'user':
                     messages = messages[:-1]  # 移除最后一个元素
 

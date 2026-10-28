@@ -17,6 +17,7 @@ class PromptBuilder(Base):
 
     # 获取默认系统提示词(未处理的)，优先从内存中读取，如果没有，则从文件中读取
     def get_system_default(config: TaskConfig, prompt_preset) -> str:
+        prompt_preset = PromptBuilderEnum.normalize_translation_preset(prompt_preset)
         if getattr(PromptBuilder, "common_system_zh", None) == None:
             with open(prompt_path("Translate", "common_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.common_system_zh = reader.read().strip()
@@ -29,12 +30,6 @@ class PromptBuilder(Base):
         if getattr(PromptBuilder, "cot_system_en", None) == None:
             with open(prompt_path("Translate", "cot_system_en.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.cot_system_en = reader.read().strip()
-        if getattr(PromptBuilder, "think_system_zh", None) == None:
-            with open(prompt_path("Translate", "think_system_zh.txt"), "r", encoding = "utf-8") as reader:
-                PromptBuilder.think_system_zh = reader.read().strip()
-        if getattr(PromptBuilder, "think_system_en", None) == None:
-            with open(prompt_path("Translate", "think_system_en.txt"), "r", encoding = "utf-8") as reader:
-                PromptBuilder.think_system_en = reader.read().strip()
         if getattr(PromptBuilder, "local_system_zh", None) == None:
             with open(prompt_path("Translate", "local_system_zh.txt"), "r", encoding = "utf-8") as reader:
                 PromptBuilder.local_system_zh = reader.read().strip()
@@ -59,10 +54,6 @@ class PromptBuilder(Base):
             result = PromptBuilder.cot_system_zh
         elif prompt_preset == PromptBuilderEnum.COT and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.cot_system_en
-        elif prompt_preset == PromptBuilderEnum.THINK and config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.think_system_zh
-        elif prompt_preset == PromptBuilderEnum.THINK and config.target_language not in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.think_system_en
         elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.local_system_zh
         elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language not in ("chinese_simplified", "chinese_traditional"):
@@ -76,6 +67,9 @@ class PromptBuilder(Base):
     def build_system(config: TaskConfig, source_lang: str) -> str:
         # 获取默认系统提示词
         PromptBuilder.get_system_default(config, "")
+        prompt_preset = PromptBuilderEnum.normalize_translation_preset(
+            config.translation_prompt_selection["last_selected_id"]
+        )
 
         # 语言信息转换
         en_sl, source_language, en_tl, target_language = TranslatorUtil.get_language_display_names(source_lang, config.target_language)
@@ -83,27 +77,21 @@ class PromptBuilder(Base):
         # 构造结果
         if config == None:
             result = PromptBuilder.common_system_zh
-        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.COMMON and config.target_language in ("chinese_simplified", "chinese_traditional"):
+        elif prompt_preset == PromptBuilderEnum.COMMON and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.common_system_zh
-        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.COMMON and config.target_language not in ("chinese_simplified", "chinese_traditional"):
+        elif prompt_preset == PromptBuilderEnum.COMMON and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.common_system_en
             source_language = en_sl
             target_language = en_tl
-        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.COT and config.target_language in ("chinese_simplified", "chinese_traditional"):
+        elif prompt_preset == PromptBuilderEnum.COT and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.cot_system_zh
-        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.COT and config.target_language not in ("chinese_simplified", "chinese_traditional"):
+        elif prompt_preset == PromptBuilderEnum.COT and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.cot_system_en
             source_language = en_sl
             target_language = en_tl
-        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.THINK and config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.think_system_zh
-        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.THINK and config.target_language not in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.think_system_en
-            source_language = en_sl
-            target_language = en_tl
-        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.LOCAL and config.target_language in ("chinese_simplified", "chinese_traditional"):
+        elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.local_system_zh
-        elif config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.LOCAL and config.target_language not in ("chinese_simplified", "chinese_traditional"):
+        elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language not in ("chinese_simplified", "chinese_traditional"):
             result = PromptBuilder.local_system_en
             source_language = en_sl
             target_language = en_tl
@@ -860,7 +848,7 @@ class PromptBuilder(Base):
             profile_cot = "I have fully understood the steps and principles of translation. I will follow your instructions to perform the translation and provide in-depth thinking and explanations:"
 
         # 根据cot开关进行选择
-        if config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.COT:
+        if PromptBuilderEnum.normalize_translation_preset(config.translation_prompt_selection["last_selected_id"]) == PromptBuilderEnum.COT:
             the_profile = profile_cot
         else:
             the_profile = profile
@@ -874,9 +862,12 @@ class PromptBuilder(Base):
         messages = []
         # 储存额外日志
         extra_log = []
+        prompt_preset = PromptBuilderEnum.normalize_translation_preset(
+            config.translation_prompt_selection["last_selected_id"]
+        )
 
         # 基础系统提示词
-        if config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK, PromptBuilderEnum.LOCAL):
+        if prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.LOCAL):
             system = PromptBuilder.build_system(config, source_lang)
         else:
             custom_prompt = config.translation_prompt_selection["prompt_content"]
@@ -943,7 +934,7 @@ class PromptBuilder(Base):
 
         # 构建动态few-shot
         switch_A = config.few_shot_and_example_switch # 打开动态示例开关时
-        switch_B = config.translation_prompt_selection["last_selected_id"] == PromptBuilderEnum.COMMON #仅在通用提示词
+        switch_B = prompt_preset == PromptBuilderEnum.COMMON #仅在通用提示词
         if switch_A and switch_B:
 
             # 获取默认示例前置文本
@@ -986,7 +977,7 @@ class PromptBuilder(Base):
         )
 
         # 构建预输入回复信息
-        switch_C = config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COT, PromptBuilderEnum.COMMON)
+        switch_C = prompt_preset in (PromptBuilderEnum.COT, PromptBuilderEnum.COMMON)
         if switch_A and switch_C:
             fol_prompt = PromptBuilder.build_modelResponsePrefix(config)
             messages.append({"role": "assistant", "content": fol_prompt})

@@ -12,6 +12,7 @@ from ModuleFolders.Config.FilePathConfig import (
 from ModuleFolders.Infrastructure.Platform.RuntimeSetup import migrate_config_if_needed
 from ModuleFolders.Domain.RegexSwitchHelper import RegexSwitchHelper
 from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
+from ModuleFolders.Config.TranslationPromptConfigHelper import TranslationPromptConfigHelper
 
 
 class ConfigMixin:
@@ -78,6 +79,7 @@ class ConfigMixin:
 
                 needs_write = RegexSwitchHelper.normalize_config(config)
                 needs_write = TableConfigHelper.normalize_config(config) or needs_write
+                needs_write = TranslationPromptConfigHelper.normalize_config(config) or needs_write
 
                 # 旧版 DeepSeek 配置临时兼容块。
                 # 当旧版内置配置不再需要自动修复时，可直接删除此块。
@@ -139,8 +141,7 @@ class ConfigMixin:
                 except (json.JSONDecodeError, OSError):
                     old = {}
 
-            if old == new:
-                return old
+            unchanged = old == new
 
             table_keys = {
                 f"{kind}_{suffix}"
@@ -153,6 +154,10 @@ class ConfigMixin:
                 if not _table_update and key in table_keys and key in old:
                     continue
                 old[key] = value
+
+            prompt_changed = TranslationPromptConfigHelper.normalize_config(old)
+            if unchanged and not prompt_changed:
+                return old
 
             os.makedirs(os.path.dirname(ConfigMixin.CONFIG_PATH), exist_ok=True)
             tmp_path = f"{ConfigMixin.CONFIG_PATH}.tmp"
