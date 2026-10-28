@@ -374,7 +374,9 @@ class PromptDictionaryPage(MultiTablePageMixin, QFrame, ConfigMixin, LogMixin, T
                 unique_rows[row["src"]] = row
         normalized_rows = list(unique_rows.values())
         previous = self.table.blockSignals(True)
-        updates_enabled = self.table.updatesEnabled()
+        # The stack temporarily disables ancestor updates during showEvent.
+        # Restore this widget's explicit state, not that inherited suspension.
+        updates_enabled = not self.table.testAttribute(Qt.WA_ForceUpdatesDisabled)
         self.table.setUpdatesEnabled(False)
         try:
             self.table.clearContents()

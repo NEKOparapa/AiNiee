@@ -1618,8 +1618,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 table = TableConfigHelper.new_table(kind, name=name)
                 table_id = table["id"]
                 tables.append(table)
-                latest_config[f"{kind}_active_table_id"] = table_id
             added_count = self._append_public_table_rows(latest_config, view_name, public_rows, table_id)
+            latest_config[f"{kind}_active_table_id"] = table_id
 
         try:
             self.update_config(append_to_target)

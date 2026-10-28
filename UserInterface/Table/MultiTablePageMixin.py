@@ -272,8 +272,19 @@ class MultiTablePageMixin:
     def update_table(self):
         config = self.load_config()
         self._tables = TableConfigHelper.get_tables(config, self.TABLE_KIND)
-        if self._current_table() is None:
-            self._active_table_id = self._tables[0]["id"] if self._tables else None
+        ids = {table["id"] for table in self._tables}
+        selected = config.get(self._active_key)
+        if selected not in ids:
+            selected = self._active_table_id if self._active_table_id in ids else (
+                self._tables[0]["id"] if self._tables else None
+            )
+        has_draft = self._loaded_rows is not None and (
+            self._canonical_rows(self._load_table_rows()) != self._loaded_rows
+        )
+        # Project exports select their destination. Follow it on return, unless
+        # the current editor still contains a draft that belongs to another table.
+        if self._current_table() is None or (selected != self._active_table_id and not has_draft):
+            self._active_table_id = selected
             self._loaded_rows = None
         self._refresh_tabs()
         self._display_current_table()
@@ -329,6 +340,9 @@ class MultiTablePageMixin:
     def _display_current_table(self, force=False):
         current = self._current_table()
         rows = self._canonical_rows(current["rows"]) if current else []
+        # Compare only editable fields; imported metadata is kept in storage and
+        # must not make an unchanged editor look like an unsaved draft.
+        rows = [{key: row[key] for key in self.KEYS} for row in rows]
         # Re-showing a page must not replace an unsaved draft with an old snapshot.
         if not force and self._loaded_rows is not None:
             if self._canonical_rows(self._load_table_rows()) != self._loaded_rows:

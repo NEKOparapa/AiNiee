@@ -376,7 +376,9 @@ class ExclusionListPage(MultiTablePageMixin, QFrame, ConfigMixin, LogMixin, Toas
     def _update_table_rows(self, rows: list[dict] | None) -> None:
         normalized_rows = self._canonical_rows(rows)
         previous = self.table.blockSignals(True)
-        updates_enabled = self.table.updatesEnabled()
+        # The stack temporarily disables ancestor updates during showEvent.
+        # Restore this widget's explicit state, not that inherited suspension.
+        updates_enabled = not self.table.testAttribute(Qt.WA_ForceUpdatesDisabled)
         self.table.setUpdatesEnabled(False)
         try:
             self.table.clearContents()
