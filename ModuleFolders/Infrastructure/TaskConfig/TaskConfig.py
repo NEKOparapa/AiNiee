@@ -6,6 +6,7 @@ import rapidjson as json
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.RequestHeaders import normalize_extra_headers
 from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from ModuleFolders.Config.FilePathConfig import auto_output_dir, auto_polish_output_dir, default_polish_output_dir
 from ModuleFolders.Log.Log import LogMixin
@@ -396,6 +397,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             "request_timeout": self.request_timeout,
             "temperature": platform_data.get("temperature"),
             "extra_body": platform_data.get("extra_body", {}),
+            "extra_headers": normalize_extra_headers(platform_data.get("extra_headers")),
             "tls_switch": platform_data.get("tls_switch", False),
             "think_switch": platform_data.get("think_switch"),
             "think_depth": platform_data.get("think_depth"),

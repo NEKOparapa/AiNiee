@@ -340,6 +340,7 @@
                 "Google"
             ],
             "extra_body": {},
+            "extra_headers": {},
             "key_in_settings": [
                 "api_url",
                 "api_key",
@@ -349,6 +350,7 @@
                 "auto_complete",
                 "temperature",
                 "extra_body",
+                "extra_headers",
                 "think_switch",
                 "think_depth",
                 "thinking_budget",

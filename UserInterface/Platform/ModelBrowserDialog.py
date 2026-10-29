@@ -14,6 +14,7 @@ from qfluentwidgets import (
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.RequestHeaders import normalize_extra_headers
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.Toast import ToastMixin
 from UserInterface.Widget.ThemePalette import current_palette
@@ -266,6 +267,11 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
 
     # 拉取模型（异步）
     def _fetch_models(self) -> None:
+        try:
+            extra_headers = normalize_extra_headers(self.platform_config.get("extra_headers"))
+        except ValueError as exc:
+            self._on_fetch_failed(str(exc))
+            return
         # 判断平台类型：google 官方接口或自定义接口使用 Google 格式时，使用原生 Google API
         api_format = self.platform_config.get("api_format", "")
         if self.platform_key == "google" or api_format == "Google":
@@ -301,6 +307,7 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
             api_keys = self.platform_config.get("api_key", "").replace(" ", "")
             if api_keys:
                 headers["x-api-key"] = api_keys.split(',')[0]
+            headers.update(extra_headers)
 
             # 使用现有的 _ModelFetchWorker
             self._thread = QThread(self)
@@ -330,7 +337,8 @@ class ModelBrowserDialog(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base
             headers = {}
             api_keys = self.platform_config.get("api_key", "").replace(" ", "")
             if api_keys:
-                headers["Authorization"] = f"Bearer {api_keys.split(',')[0]}"
+                headers["authorization"] = f"Bearer {api_keys.split(',')[0]}"
+            headers.update(extra_headers)
 
             # 启动后台线程
             self._thread = QThread(self)

@@ -127,6 +127,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
                 "access_key":  access_key,
                 "secret_key": secret_key,
                 "extra_body": extra_body,
+                "extra_headers": data.get("extra_headers", {}),
                 "tls_switch": data.get("tls_switch", False),
                 "think_switch": data.get("think_switch"),
                 "think_depth": data.get("think_depth"),

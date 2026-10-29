@@ -7,12 +7,14 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import PlainTextEdit
+from qfluentwidgets import CaptionLabel
 from qfluentwidgets import MessageBoxBase
 from qfluentwidgets import SingleDirectionScrollArea
 from qfluentwidgets import SmoothMode
 
 from ModuleFolders.Base.Base import Base
 from ModuleFolders.Config.Config import ConfigMixin
+from ModuleFolders.Config.RequestHeaders import parse_extra_headers
 from ModuleFolders.Config.FilePathConfig import platform_preset_path
 from ModuleFolders.Log.Log import LogMixin
 from UserInterface.Widget.SliderCard import SliderCard
@@ -75,6 +77,10 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         self.scroller.setWidget(self.vbox_parent)
 
 
+        # 仅自定义接口开放请求头设置，也兼容未包含 extra_headers 的旧配置。
+        if self.key == "custom" or self.key.startswith("custom_"):
+            self.add_widget_extra_headers(self.vbox, config)
+
         # extra_body
         if "extra_body" in settings:
             self.add_widget_extra_body(self.vbox, config)
@@ -121,6 +127,47 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
         # 填充
         self.vbox.addStretch(1)
+
+    def add_widget_extra_headers(self, parent, config):
+        def init(widget):
+            self.headers_edit = PlainTextEdit(self)
+            self.headers_edit.setFixedHeight(140)
+            headers = config["platforms"][self.key].get("extra_headers", {})
+            self.headers_edit.setPlainText(json.dumps(headers, ensure_ascii=False, indent=2) if headers else "")
+            self.headers_edit.setPlaceholderText('{"x-opencode-session": "ses_example"}')
+            self.headers_error = CaptionLabel(self)
+            self.headers_error.setWordWrap(True)
+            self.headers_error.hide()
+            widget.addWidget(self.headers_edit)
+            widget.addWidget(self.headers_error)
+            self.headers_edit.textChanged.connect(self._save_extra_headers)
+
+        parent.addWidget(GroupCard(
+            self.tra("自定义请求头"),
+            self.tra("填写 JSON 对象，键和值均为字符串；留空清除，合法内容自动保存"),
+            init=init,
+        ))
+
+    def _save_extra_headers(self):
+        text = self.headers_edit.toPlainText().strip()
+        try:
+            headers = parse_extra_headers(text)
+        except ValueError:
+            self.headers_error.setText(self.tra("请求头未保存：请填写字符串键值的 JSON 对象，名称不可重复，名称和值仅支持可打印 ASCII 字符"))
+            self.headers_error.show()
+            return False
+
+        config = self.load_config()
+        config["platforms"][self.key]["extra_headers"] = headers
+        self.save_config(config)
+        self.headers_error.hide()
+        return True
+
+    def accept(self):
+        if hasattr(self, "headers_edit") and not self._save_extra_headers():
+            self.headers_edit.setFocus()
+            return
+        super().accept()
 
     # 从文件加载
     def load_file(self, path: str) -> dict:

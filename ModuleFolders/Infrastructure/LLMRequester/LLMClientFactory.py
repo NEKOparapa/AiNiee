@@ -10,16 +10,18 @@ from botocore.config import Config as BotocoreConfig
 from google import genai
 import json
 from curl_cffi import requests as curl_requests
+from ModuleFolders.Config.RequestHeaders import normalize_extra_headers
 
 
 class CurlHTTPXTransport(httpx.BaseTransport):
     """
     使用curl_cffi的HTTPX Transport，用于绕过JA3/TLS指纹检测，并支持流式响应
     """
-    def __init__(self, impersonate="chrome136", timeout=300, **kwargs):
+    def __init__(self, impersonate="chrome136", timeout=300, preserved_headers=(), **kwargs):
         self.impersonate = impersonate
         self.default_timeout = timeout
         self.kwargs = kwargs
+        self.preserved_headers = {name.lower() for name in preserved_headers}
 
         # 延迟初始化 session 以支持代理动态获取
         self._session = None
@@ -47,6 +49,8 @@ class CurlHTTPXTransport(httpx.BaseTransport):
             headers = dict(request.headers)
             headers_to_remove = ["user-agent", "accept-encoding", "connection", "keep-alive", "accept", "cookie", "content-length"]
             for key in headers_to_remove:
+                if key in self.preserved_headers:
+                    continue
                 headers.pop(key, None)
                 headers.pop(key.title(), None)
 
@@ -94,9 +98,9 @@ class CurlStream(httpx.SyncByteStream):
         self._response.close()
 
 
-def create_curl_client(impersonate="chrome136", timeout=300):
+def create_curl_client(impersonate="chrome136", timeout=300, preserved_headers=()):
     return httpx.Client(
-        transport=CurlHTTPXTransport(impersonate=impersonate, timeout=timeout),
+        transport=CurlHTTPXTransport(impersonate=impersonate, timeout=timeout, preserved_headers=preserved_headers),
         timeout=timeout
     )
 
@@ -151,7 +155,7 @@ class LLMClientFactory:
         api_key = config.get("api_key")
         api_url = config.get("api_url")
         tls_switch = config.get("tls_switch", False)
-        key = ("openai", api_url, api_key, tls_switch)
+        key = ("openai", api_url, api_key, tls_switch, self._headers_cache_key(config))
         return self._get_cached_client(key, lambda: self._create_openai_client(config, api_key, use_curl_cffi=tls_switch))
 
     def get_openai_client_local(self, config: Dict[str, Any]) -> OpenAI:
@@ -160,7 +164,7 @@ class LLMClientFactory:
         if not api_key:
             api_key = "none_api_key"
         api_url = config.get("api_url")
-        key = ("openai_local", api_url, api_key)
+        key = ("openai_local", api_url, api_key, self._headers_cache_key(config))
         return self._get_cached_client(key, lambda: self._create_openai_client(config, api_key, use_curl_cffi=False))
 
     def get_openai_client_sakura(self, config: Dict[str, Any]) -> OpenAI:
@@ -169,14 +173,14 @@ class LLMClientFactory:
         if not api_key:
             api_key = "none_api_key"
         api_url = config.get("api_url")
-        key = ("openai_sakura", api_url, api_key)
+        key = ("openai_sakura", api_url, api_key, self._headers_cache_key(config))
         return self._get_cached_client(key, lambda: self._create_openai_client(config, api_key, use_curl_cffi=False))
 
     def get_anthropic_client(self, config: Dict[str, Any]) -> anthropic.Anthropic:
         """获取Anthropic客户端"""
         api_key = config.get("api_key")
         api_url = config.get("api_url")
-        key = ("anthropic", api_url, api_key)
+        key = ("anthropic", api_url, api_key, self._headers_cache_key(config))
         return self._get_cached_client(key, lambda: self._create_anthropic_client(config))
 
     def get_anthropic_bedrock(self, config: Dict[str, Any]) -> anthropic.AnthropicBedrock:
@@ -202,7 +206,7 @@ class LLMClientFactory:
         api_url = config.get("api_url")
         extra_body = config.get("extra_body", {})
         extra_body_serialized = json.dumps(extra_body, sort_keys=True) if extra_body else None
-        key = ("google", api_key, api_url, extra_body_serialized)
+        key = ("google", api_key, api_url, extra_body_serialized, self._headers_cache_key(config))
         return self._get_cached_client(key, lambda: self._create_google_client(config))
 
     def _get_cached_client(self, key, factory_func):
@@ -222,7 +226,23 @@ class LLMClientFactory:
             self._safe_close_client(client)
 
     # 各种客户端创建函数
+    def _headers_cache_key(self, config):
+        return tuple(sorted(normalize_extra_headers(config.get("extra_headers")).items()))
+
+    def _build_sdk_headers(self, config):
+        headers = normalize_extra_headers(config.get("extra_headers"))
+        # SDK 使用普通字典合并默认头，匹配其拼写以避免同名头因大小写不同而重复。
+        sdk_names = (
+            "Accept", "Content-Type", "User-Agent", "Authorization",
+            "OpenAI-Organization", "OpenAI-Project", "X-Stainless-Async",
+            "X-Stainless-Lang", "X-Stainless-Package-Version", "X-Stainless-OS",
+            "X-Stainless-Arch", "X-Stainless-Runtime", "X-Stainless-Runtime-Version",
+        )
+        names = {name.lower(): name for name in sdk_names}
+        return {names.get(name, name): value for name, value in headers.items()}
+
     def _create_openai_client(self, config, api_key, use_curl_cffi=False):
+        headers = self._build_sdk_headers(config)
         if use_curl_cffi:
             # 使用curl_cffi模拟指纹
             # 获取请求超时时间，默认300秒
@@ -230,12 +250,14 @@ class LLMClientFactory:
             return OpenAI(
                 base_url=config.get("api_url"),
                 api_key=api_key,
-                http_client=create_curl_client(timeout=timeout)
+                default_headers=headers or None,
+                http_client=create_curl_client(timeout=timeout, preserved_headers=headers)
             )
         else:
             return OpenAI(
                 base_url=config.get("api_url"),
                 api_key=api_key,
+                default_headers=headers or None,
                 http_client=create_httpx_client()
             )
 
@@ -243,6 +265,7 @@ class LLMClientFactory:
         return anthropic.Anthropic(
             base_url=config.get("api_url"),
             api_key=config.get("api_key"),
+            default_headers=self._build_sdk_headers(config) or None,
             http_client=create_httpx_client()
         )
 
@@ -277,6 +300,9 @@ class LLMClientFactory:
             http_options["base_url"] = api_url
         if extra_body:
             http_options["extra_body"] = extra_body
+        headers = normalize_extra_headers(config.get("extra_headers"))
+        if headers:
+            http_options["headers"] = headers
 
         if http_options:
             return genai.Client(api_key=api_key, http_options=http_options)

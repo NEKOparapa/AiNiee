@@ -303,6 +303,24 @@
   },
 
   "PART_4": {
+    "自定义请求头": {
+      "简中": "自定义请求头",
+      "繁中": "自訂請求標頭",
+      "English": "Custom Request Headers",
+      "日本語": "カスタムリクエストヘッダー"
+    },
+    "填写 JSON 对象，键和值均为字符串；留空清除，合法内容自动保存": {
+      "简中": "填写 JSON 对象，键和值均为字符串；留空清除，合法内容自动保存",
+      "繁中": "填寫 JSON 物件，鍵和值皆為字串；留空清除，有效內容自動儲存",
+      "English": "Enter a JSON object with string keys and values. Valid input is saved automatically; leave blank to clear.",
+      "日本語": "キーと値が文字列の JSON オブジェクトを入力してください。有効な入力は自動保存され、空欄でクリアされます。"
+    },
+    "请求头未保存：请填写字符串键值的 JSON 对象，名称不可重复，名称和值仅支持可打印 ASCII 字符": {
+      "简中": "请求头未保存：请填写字符串键值的 JSON 对象，名称不可重复，名称和值仅支持可打印 ASCII 字符",
+      "繁中": "標頭未儲存：請填寫字串鍵值的 JSON 物件，名稱不可重複，名稱和值僅支援可列印 ASCII 字元",
+      "English": "Headers not saved: use a JSON object with string keys and values, unique valid header names, and printable ASCII characters only.",
+      "日本語": "ヘッダーは未保存です。キーと値が文字列の JSON オブジェクトを使用し、名前は有効かつ重複なし、文字は印字可能な ASCII にしてください。"
+    },
     "自定义请求体": {
       "简中": "自定义请求体",
       "繁中": "自訂請求體",
