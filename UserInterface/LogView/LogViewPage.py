@@ -2,8 +2,9 @@ import re
 import threading
 from collections import deque
 
+from PyQt5 import sip
 from PyQt5.QtCore import QUrl, QTimer, Qt
-from PyQt5.QtGui import QColor, QDesktopServices, QPalette, QTextCursor, QTextDocument, QTextOption
+from PyQt5.QtGui import QColor, QDesktopServices, QPalette, QTextCursor, QTextDocument, QTextOption, QTextTable
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTextEdit
 
 from qfluentwidgets import isDarkTheme, PushButton, FluentIcon, ComboBox, LineEdit, qconfig
@@ -109,6 +110,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self._rerender_pending = False
         self._last_progress_key = ""
         self._progress_detail_lines: dict[str, set[str]] = {}
+        self._progress_tables: dict[int, QTextTable] = {}
 
         self.container = QVBoxLayout(self)
         self.container.setContentsMargins(8, 8, 8, 8)
@@ -244,42 +246,75 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             return
 
     def _append_batch(self, history) -> None:
-        new_items = []
+        # 同一批次可能多次更新同一进度。保留最初记录的身份，只渲染最终值，
+        # 并按缓冲中的顺序插入新记录，避免把进度移到后续日志之后。
+        changes = {}
         should_rerender = False
         for item in history:
-            result, stored_item = self._store_log_item(item)
+            result, stored_item, replaced_item = self._store_log_item(item)
             if result == "replaced":
-                should_rerender = True
+                previous_change = changes.pop(id(replaced_item), None)
+                original_item = previous_change[1] if previous_change else replaced_item
+                changes[id(stored_item)] = (stored_item, original_item)
+                if original_item is not None:
+                    # 日志等级变化导致可见性变化时，按新的筛选结果重新排布。
+                    should_rerender |= self._matches_filter(original_item[1]) != self._matches_filter(stored_item[1])
             elif result == "appended" and stored_item is not None:
-                new_items.append(stored_item)
+                changes[id(stored_item)] = (stored_item, None)
+        auto_scroll = self._auto_scroll
+        scroll = self.text_edit.verticalScrollBar()
+        scroll_value = scroll.value()
+        scroll_signals_blocked = scroll.blockSignals(True)
         self.text_edit.setUpdatesEnabled(False)
         try:
             if should_rerender:
                 self._rerender_view()
             else:
-                for item in new_items:
+                for item in self._buffer:
+                    change = changes.get(id(item))
+                    if change is None:
+                        continue
+                    original_item = change[1]
                     line, level, style, rows = self._unpack_log_item(item)
-                    if self._matches_filter(level):
-                        self._render_line(line, level, style, rows)
-            if not should_rerender:
+                    if not self._matches_filter(level):
+                        continue
+                    if original_item is None:
+                        table = self._render_line(line, level, style, rows)
+                    else:
+                        table = self._progress_tables.pop(id(original_item), None)
+                        # 被显示行数上限裁掉的进度不应重新出现在日志末尾。
+                        if table is None or sip.isdeleted(table):
+                            continue
+                        table = self._render_progress(line, table)
+                    if table is not None:
+                        self._progress_tables[id(item)] = table
                 self._trim_view()
+                retained_ids = {id(item) for item in self._buffer}
+                self._progress_tables = {
+                    key: table for key, table in self._progress_tables.items()
+                    if key in retained_ids and not sip.isdeleted(table)
+                }
         finally:
             self.text_edit.setUpdatesEnabled(True)
+            scroll.blockSignals(scroll_signals_blocked)
         if self._search_text:
             self._highlight_timer.start()
-        if self._auto_scroll:
+        if auto_scroll:
             self._scroll_to_bottom()
+        else:
+            scroll.setValue(scroll_value)
+            self._auto_scroll = False
 
-    def _store_log_item(self, item) -> tuple[str, tuple[str, str, str, object] | None]:
+    def _store_log_item(self, item) -> tuple[str, tuple | None, tuple | None]:
         line, level, style, rows = self._unpack_log_item(item)
         if rows:
             stored_item = (line, level, style, rows)
             self._buffer.append(stored_item)
             self._last_progress_key = ""
-            return "appended", stored_item
+            return "appended", stored_item, None
         line = line.replace("\r", "").rstrip()
         if not line.strip():
-            return "skipped", None
+            return "skipped", None, None
         stored_item = (line, level, style, rows)
         progress = self._match_progress(line) if "\n" not in line else None
         if progress is not None:
@@ -287,22 +322,23 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             replace_index = self._find_progress_index(label, percent)
             self._last_progress_key = label
             if replace_index is not None:
+                replaced_item = self._buffer[replace_index]
                 self._buffer[replace_index] = stored_item
-                return "replaced", stored_item
+                return "replaced", stored_item, replaced_item
             self._progress_detail_lines[label] = set()
             self._buffer.append(stored_item)
-            return "appended", stored_item
+            return "appended", stored_item, None
         if self._last_progress_key and self._is_progress_detail_line(line):
             detail_key = self._normalize_progress_detail(line)
             seen = self._progress_detail_lines.setdefault(self._last_progress_key, set())
             if detail_key in seen:
-                return "skipped", None
+                return "skipped", None, None
             seen.add(detail_key)
             self._buffer.append(stored_item)
-            return "appended", stored_item
+            return "appended", stored_item, None
         self._last_progress_key = ""
         self._buffer.append(stored_item)
-        return "appended", stored_item
+        return "appended", stored_item, None
 
     def _find_progress_index(self, label: str, percent: int) -> int | None:
         for index in range(len(self._buffer) - 1, -1, -1):
@@ -456,10 +492,10 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         detail = match.group("detail").strip()
         return label, percent, detail
 
-    def _render_progress(self, line: str) -> bool:
+    def _render_progress(self, line: str, table: QTextTable | None = None) -> QTextTable | None:
         progress = self._match_progress(line)
         if progress is None:
-            return False
+            return None
         label, percent, detail = progress
         palette = _DARK_COLORS if isDarkTheme() else _LIGHT_COLORS
         filled = percent
@@ -507,15 +543,29 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             muted=palette["MUTED"],
             detail=self._escape_html(detail_text),
         )
-        self.text_edit.append(html)
-        return True
+        cursor = QTextCursor(self.text_edit.document())
+        if table is None:
+            self.text_edit.append(html)
+            cursor.movePosition(QTextCursor.End)
+            cursor.movePosition(QTextCursor.PreviousCharacter)
+        else:
+            # 进度条包含嵌套表格，必须替换整个外层 QTextTable；只选一个
+            # QTextBlock 会留下旧的进度条。历史翻译表格无需再次解析和插入。
+            start = table.firstPosition() - 1
+            cursor.setPosition(start)
+            cursor.setPosition(table.lastPosition() + 1, QTextCursor.KeepAnchor)
+            cursor.insertHtml(html)
+            cursor.setPosition(start + 1)
+        return cursor.currentTable()
 
-    def _render_line(self, line: str, level: str, style: str = "", rows=None) -> None:
+    def _render_line(self, line: str, level: str, style: str = "", rows=None) -> QTextTable | None:
         if rows:
             self._render_table(rows, style)
             return
-        if "\n" not in line and self._render_progress(line):
-            return
+        if "\n" not in line:
+            table = self._render_progress(line)
+            if table is not None:
+                return table
         html = "<br>".join(self._style_line(raw_line, level, style) for raw_line in line.split("\n"))
         self.text_edit.append(html)
 
@@ -595,11 +645,14 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self._rerender_pending = False
         try:
             self._apply_text_edit_theme()
+            self._progress_tables.clear()
             self.text_edit.clear()
             for item in self._buffer:
                 line, level, style, rows = self._unpack_log_item(item)
                 if self._matches_filter(level):
-                    self._render_line(line, level, style, rows)
+                    table = self._render_line(line, level, style, rows)
+                    if table is not None:
+                        self._progress_tables[id(item)] = table
             self._trim_view()
             self._reapply_highlight()
             if self._auto_scroll:
@@ -658,6 +711,7 @@ class LogViewPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self._buffer.clear()
         self._last_progress_key = ""
         self._progress_detail_lines.clear()
+        self._progress_tables.clear()
         self.text_edit.clear()
         self.scroll_btn.hide()
         self._auto_scroll = True
