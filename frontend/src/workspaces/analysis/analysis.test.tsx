@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { I18nextProvider } from 'react-i18next'
 import { BrowserRouter } from 'react-router-dom'
@@ -20,13 +20,13 @@ const current: components['schemas']['ProjectCurrentResponse'] = { project: { pr
 const clients: QueryClient[] = []
 beforeEach(async () => { await i18n.changeLanguage('zh-CN'); useConnectionStore.getState().connect('http://127.0.0.1:8000', 'analysis-fixed-token'); useBackendStore.setState({ currentTask: null }); window.history.replaceState({}, '', '/analysis') })
 afterEach(() => { clients.forEach(client => client.clear()); clients.length = 0; vi.unstubAllGlobals(); vi.restoreAllMocks(); useConnectionStore.getState().disconnect() })
-function mount(fetcher: (request: Request) => Promise<Response>) {
+function mount(fetcher: (request: Request) => Promise<Response>, mockTables = true) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   clients.push(client)
   vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
     const path = new URL(request.url).pathname
     if (path.endsWith('/projects/current')) return Response.json(current)
-    if (path.includes('/tables/')) return Response.json({ tables: [], active_table_id: null })
+    if (mockTables && path.includes('/tables/')) return Response.json({ tables: [], active_table_id: null })
     return fetcher(request)
   }))
   render(<QueryClientProvider client={client}><I18nextProvider i18n={i18n}><BrowserRouter><AnalysisPage/></BrowserRouter></I18nextProvider></QueryClientProvider>)
@@ -78,7 +78,7 @@ it('moves selected characters only after confirmation and publishes the selected
 })
 
 it('keeps edits after a failed save and requires confirmation before deleting', async () => {
-  vi.spyOn(window, 'confirm').mockReturnValue(false)
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
   mount(async request => request.method === 'PUT' ? Response.json({ detail: 'project_changed' }, { status: 409 }) : Response.json(initial))
   const user = userEvent.setup()
   const field = await screen.findByRole('textbox', { name: '备注 1' })
@@ -89,4 +89,57 @@ it('keeps edits after a failed save and requires confirmation before deleting', 
   await user.click(screen.getByRole('checkbox', { name: /^1$/ }))
   await user.click(screen.getByRole('button', { name: '删除所选' }))
   expect(screen.getByRole('textbox', { name: '原文 1' })).toHaveValue('Alice')
+  await user.click(screen.getByRole('button', { name: '重新加载' }))
+  expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('放弃未保存'))
+  expect(field).toHaveValue('unsaved')
+  confirm.mockReturnValue(true)
+  await user.click(screen.getByRole('button', { name: '重新加载' }))
+  await waitFor(() => expect(field).toHaveValue('hero'))
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+})
+
+it('offers a retry after an analysis read fails without presenting an editable empty result', async () => {
+  let reads = 0
+  mount(async () => ++reads === 1 ? Response.json({ detail: 'failure' }, { status: 500 }) : Response.json(initial))
+  expect(await screen.findByRole('alert')).toHaveTextContent('加载失败')
+  expect(screen.queryByRole('button', { name: '添加条目' })).not.toBeInTheDocument()
+  expect(screen.queryByText('请先打开项目')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '重试' }))
+  expect(await screen.findByRole('textbox', { name: '原文 1' })).toHaveValue('Alice')
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+})
+
+it('requires the public table list to load before publishing and lets users retry it', async () => {
+  let reads = 0
+  mount(async request => new URL(request.url).pathname.includes('/tables/')
+    ? ++reads === 1 ? Response.json({ detail: 'failure' }, { status: 500 }) : Response.json({ tables: [], active_table_id: null })
+    : Response.json(initial), false)
+  await screen.findByRole('textbox', { name: '原文 1' })
+  expect(await screen.findByRole('alert')).toHaveTextContent('加载失败')
+  expect(screen.getByRole('button', { name: '写入公共表格' })).toBeDisabled()
+  fireEvent.click(screen.getByRole('button', { name: '重试' }))
+  await waitFor(() => expect(screen.getByRole('button', { name: '写入公共表格' })).toBeEnabled())
+})
+
+it('keeps the active draft and view fixed until a pending save returns', async () => {
+  let complete: ((response: Response) => void) | undefined
+  const writes: AnalysisDocument[] = []
+  mount(async request => {
+    if (request.method !== 'PUT') return Response.json(initial)
+    writes.push(await request.json())
+    return new Promise<Response>(resolve => { complete = resolve })
+  })
+  const field = await screen.findByRole('textbox', { name: '备注 1' })
+  fireEvent.change(field, { target: { value: 'pending draft' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存修改' }))
+  await waitFor(() => expect(complete).toBeDefined())
+  expect(field).toBeDisabled()
+  expect(screen.getByRole('button', { name: '放弃修改' })).toBeDisabled()
+  expect(screen.getByRole('tab', { name: /^术语/ })).toBeDisabled()
+  fireEvent.click(screen.getByRole('tab', { name: /^术语/ }))
+  expect(screen.getByRole('textbox', { name: '备注 1' })).toHaveValue('pending draft')
+  await act(async () => complete!(Response.json(writes[0])))
+  expect(await screen.findByText('修改已保存')).toBeVisible()
+  expect(field).toBeEnabled()
+  expect(field).toHaveValue('pending draft')
 })

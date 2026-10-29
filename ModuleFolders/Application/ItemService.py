@@ -41,8 +41,21 @@ class ItemService:
             rows = []
             total = 0
             start = (page - 1) * size
+            unfiltered = status is None and flagged is None and not q
             for path, cache_file in project.files.items():
                 if file is not None and path != file:
+                    continue
+                if unfiltered:
+                    # Item lists are already ordered within each file. Locate
+                    # an unfiltered page by lengths without touching every
+                    # source string in a large project.
+                    count = len(cache_file.items)
+                    first = max(0, start - total)
+                    last = min(count, start + size - total)
+                    if first < last:
+                        rows.extend(self.serialize(path, item, position)
+                                    for position, item in enumerate(cache_file.items[first:last], first))
+                    total += count
                     continue
                 for position, item in enumerate(cache_file.items):
                     is_flagged = bool((item.extra or {}).get("language_mismatch_translation", False))

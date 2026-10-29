@@ -45,6 +45,8 @@ it('uses saved options and selects the clicked issue in UI context', async () =>
   const user = userEvent.setup()
   await user.click(await screen.findByRole('button', { name: '开始检查' }))
   const link = await screen.findByRole('link', { name: '校对此条' })
+  expect(screen.getByText(`${issue.file} · #202`)).toBeVisible()
+  expect(screen.queryByText(`${issue.file} · #402`)).not.toBeInTheDocument()
   expect(requests).toEqual([{ rules: { exclusion: true, auto_process: true, placeholder: true, number: true, example: true, newline: true, untranslated: true } }])
   expect(link).toHaveAttribute('href', issueLocation(issue))
   await user.click(link)

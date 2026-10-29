@@ -1,6 +1,7 @@
 import i18n from '@/i18n'
 
 const zh = {
+  exporting: '正在导出…', cacheSaving: '正在保存缓存…',
   translate: '开始翻译', polish: '开始润色', polishing: '润色中', resume: '继续任务', stop: '停止任务', analysis: '开始分析', completed: '已完成', failed: '任务失败',
   costDetail: '平台未提供费用数据', stopped: '已停止，可以继续', noProject: '请先打开项目',
   errors: {
@@ -21,6 +22,7 @@ const zh = {
   exportTitle: '导出项目', exportDetail: '使用原有格式与输出设置生成译文和双语文件。', output: '输出文件夹', outputHint: '留空时使用输出设置中的路径。', browse: '浏览目录', export: '导出译文', saveCache: '保存项目缓存', cacheSaved: '项目缓存已保存', exported: '导出完成', files: '本次写入的文件', noFiles: '没有生成文件，请检查项目内容与输出设置。',
 }
 const en = {
+  exporting: 'Exporting…', cacheSaving: 'Saving cache…',
   translate: 'Start translation', polish: 'Start polishing', polishing: 'Polishing', resume: 'Continue task', stop: 'Stop task', analysis: 'Start analysis', completed: 'Completed', failed: 'Task failed',
   costDetail: 'No cost data supplied by this platform', stopped: 'Stopped; ready to continue', noProject: 'Open a project first',
   errors: {

@@ -32,7 +32,8 @@ import sys
 
 class NoGuiImports(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'PyQt5', 'qfluentwidgets', 'UserInterface', 'fastapi'}:
+        root = fullname.split('.')[0].lower()
+        if root.startswith(('pyqt', 'pyside', 'qfluent', 'userinterface')) or root == 'fastapi':
             raise AssertionError('Unexpected UI/transport dependency: ' + fullname)
 
 def no_network(*args, **kwargs):

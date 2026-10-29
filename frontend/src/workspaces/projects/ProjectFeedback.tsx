@@ -9,5 +9,5 @@ export function ProjectFeedback({ error, loading, retry }: { error?: unknown; lo
   if (loading) return <div className="project-feedback" role="status"><LoaderCircle size={16} className="animate-spin"/>{t('loading')}</div>
   if (!error) return null
   const code = error instanceof ApiError ? error.code : 'fallback'
-  return <div className="project-feedback error" role="alert"><AlertCircle size={16}/><span>{t(`errors.${code}`, { defaultValue: t('errors.fallback') })}</span>{retry && <Button variant="outline" size="sm" onClick={retry}>{t('retry')}</Button>}</div>
+  return <div className="project-feedback error" role="alert"><AlertCircle size={16}/><span>{t(`errors.${code}`, { defaultValue: t('errors.fallback') })}</span>{retry && <Button type="button" variant="outline" size="sm" onClick={retry}>{t('retry')}</Button>}</div>
 }

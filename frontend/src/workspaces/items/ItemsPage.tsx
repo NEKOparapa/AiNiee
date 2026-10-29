@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, FileText, Flag, Search } from 'lucide-react'
@@ -27,7 +27,9 @@ export function VirtualItemTable({ items, selected, highlighted, onSelect, onSel
   const [scrollTop, setScrollTop] = useState(0)
   const [height, setHeight] = useState(640)
   const [editing, setEditing] = useState<{ id: string; field: TextField; text: string } | null>(null)
-  const highlightedPosition = items.findIndex(item => item.index === highlighted)
+  const selectedSet = useMemo(() => new Set(selected), [selected])
+  const allSelected = useMemo(() => items.length > 0 && items.every(item => selectedSet.has(item.id)), [items, selectedSet])
+  const highlightedPosition = useMemo(() => highlighted === null ? -1 : items.findIndex(item => item.index === highlighted), [items, highlighted])
   useEffect(() => {
     const element = scrollRef.current
     if (!element) return
@@ -50,12 +52,12 @@ export function VirtualItemTable({ items, selected, highlighted, onSelect, onSel
     try { await onSave(item, editing.field, editing.text); setEditing(null) } catch { /* The page exposes the mutation error. */ }
   }
   return <div className="item-table" role="table" aria-label={t('title')} aria-rowcount={items.length + 1}>
-    <div className="item-table-heading" role="row"><div role="columnheader"><input type="checkbox" aria-label={t('selectPage')} checked={items.length > 0 && items.every(item => selected.includes(item.id))} onChange={onSelectAll}/></div><div role="columnheader">{t('file')} / {t('line')}</div><div role="columnheader">{t('source')}</div><div role="columnheader">{t('translation')}</div></div>
+    <div className="item-table-heading" role="row"><div role="columnheader"><input type="checkbox" aria-label={t('selectPage')} checked={allSelected} onChange={onSelectAll}/></div><div role="columnheader">{t('file')} / {t('line')}</div><div role="columnheader">{t('source')}</div><div role="columnheader">{t('translation')}</div></div>
     <div className="item-table-scroll" ref={scrollRef} onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
       <div className="item-table-spacer" style={{ height: items.length * ROW_HEIGHT }}>
-        {items.slice(start, end).map((item, offset) => <div key={item.id} className={`item-table-row ${selected.includes(item.id) ? 'selected' : ''} ${item.index === highlighted ? 'highlighted' : ''}`} role="row" aria-rowindex={start + offset + 2} style={{ top: (start + offset) * ROW_HEIGHT, height: ROW_HEIGHT }}>
-          <div role="cell"><input type="checkbox" checked={selected.includes(item.id)} aria-label={t('select', { index: item.index + 1 })} onChange={() => onSelect(item.id)}/></div>
-          <div role="cell" className="item-location"><span title={item.file}><FileText size={13}/>{item.file}</span><b>#{item.index + 1}</b><small>{t(`states.${item.translation_status}`, { defaultValue: String(item.translation_status) })}</small>{item.flagged && <Flag size={13} aria-label={t('flagged')}/>}</div>
+        {items.slice(start, end).map((item, offset) => <div key={item.id} className={`item-table-row ${selectedSet.has(item.id) ? 'selected' : ''} ${item.index === highlighted ? 'highlighted' : ''}`} role="row" aria-rowindex={start + offset + 2} style={{ top: (start + offset) * ROW_HEIGHT, height: ROW_HEIGHT }}>
+          <div role="cell"><input type="checkbox" checked={selectedSet.has(item.id)} aria-label={t('select', { index: item.position + 1 })} onChange={() => onSelect(item.id)}/></div>
+          <div role="cell" className="item-location"><span title={item.file}><FileText size={13}/>{item.file}</span><b>#{item.position + 1}</b><small>{t(`states.${item.translation_status}`, { defaultValue: String(item.translation_status) })}</small>{item.flagged && <Flag size={13} aria-label={t('flagged')}/>}</div>
           {(['source_text', 'translated_text'] as const).map(field => <div role="cell" className="item-text-cell" key={field}>
             {editing?.id === item.id && editing.field === field ? <div className="item-editor"><textarea autoFocus aria-label={t('edit', { field: t(field === 'source_text' ? 'source' : 'translation') })} value={editing.text} disabled={pending} onChange={event => setEditing({ ...editing, text: event.target.value })} onKeyDown={event => { if (event.key === 'Escape' && !pending) setEditing(null); if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); void save(item) } }}/><div><Button size="sm" onClick={() => void save(item)} disabled={pending}>{t(pending ? 'saving' : 'save')}</Button><Button variant="ghost" size="sm" disabled={pending} onClick={() => setEditing(null)}>{t('cancel')}</Button></div></div> : <button className="item-text-button" disabled={pending} onClick={() => setEditing({ id: item.id, field, text: item[field] })} aria-label={t('edit', { field: t(field === 'source_text' ? 'source' : 'translation') })} title={item[field]}>{item[field] || '—'}</button>}
           </div>)}
@@ -104,7 +106,9 @@ export function ItemsPage() {
   const rows = items.data && items.data.project_id === projectId ? items.data.items : []
   const selectAll = () => {
     const ids = rows.map(item => item.id)
-    useUiContextStore.getState().setSelectedItemIds(ids.every(id => selected.includes(id)) ? selected.filter(id => !ids.includes(id)) : [...selected, ...ids])
+    const pageIds = new Set(ids)
+    const selectedIds = new Set(selected)
+    useUiContextStore.getState().setSelectedItemIds(ids.every(id => selectedIds.has(id)) ? selected.filter(id => !pageIds.has(id)) : [...new Set([...selected, ...ids])])
   }
   const page = query.page ?? 1
   const pages = Math.max(1, Math.ceil((items.data?.total ?? 0) / PAGE_SIZE))
@@ -123,7 +127,7 @@ export function ItemsPage() {
       <ItemFeedback error={files.error} retry={() => void files.refetch()}/><ItemFeedback error={items.error} retry={() => void items.refetch()}/><ItemFeedback error={mutation.error}/>
       <div className="items-toolbar"><span>{selected.length ? t('selected', { count: selected.length }) : t('editHint')}</span>{selected.length > 0 && <Button variant="ghost" size="sm" onClick={() => useUiContextStore.getState().setSelectedItemIds([])}>{t('clear')}</Button>}{mutation.isSuccess && <span role="status">{t('saved')}</span>}</div>
       {items.isPending ? <PageState/> : rows.length ? <VirtualItemTable key={`${revision}-${projectId}-${params.toString()}`} items={rows} selected={selected} highlighted={highlight} onSelect={select} onSelectAll={selectAll} pending={mutation.isPending} onSave={(item, field, value) => mutation.mutateAsync({ file: item.file, index: item.index, body: { project_id: projectId, [field]: value } })}/> : !items.isError && <div className="items-empty"><Search size={28}/><p>{t('empty')}</p></div>}
-      {items.data && <footer className="items-pagination"><span>{t('pagination', { page, pages, total: items.data.total })}</span><Button size="sm" variant="outline" disabled={page <= 1 || items.isFetching} onClick={() => update('page', String(page - 1))}><ChevronLeft size={16}/>{t('previous')}</Button><Button size="sm" variant="outline" disabled={page >= pages || items.isFetching} onClick={() => update('page', String(page + 1))}>{t('next')}<ChevronRight size={16}/></Button></footer>}
+      {items.data && <footer className="items-pagination"><span>{t('pagination', { page, pages, total: items.data.total })}</span><Button size="sm" variant="ghost" disabled={page <= 1 || items.isFetching} onClick={() => update('page', '1')}>{t('first')}</Button><Button size="sm" variant="outline" disabled={page <= 1 || items.isFetching} onClick={() => update('page', String(page - 1))}><ChevronLeft size={16}/>{t('previous')}</Button><Button size="sm" variant="outline" disabled={page >= pages || items.isFetching} onClick={() => update('page', String(page + 1))}>{t('next')}<ChevronRight size={16}/></Button><Button size="sm" variant="ghost" disabled={page >= pages || items.isFetching} onClick={() => update('page', String(pages))}>{t('last')}</Button></footer>}
     </>}
   </div>
 }

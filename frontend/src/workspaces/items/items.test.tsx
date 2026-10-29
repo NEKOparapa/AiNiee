@@ -48,7 +48,7 @@ describe('item proofreading', () => {
     const edits: unknown[] = []
     vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
       const url = new URL(request.url)
-      if (request.method === 'PATCH') { const body = await request.json(); edits.push(body); translated = body.translated_text; return Response.json({ ...item, translated_text: translated }) }
+      if (request.method === 'PATCH') { expect(decodeURIComponent(url.pathname)).toBe('/api/v1/projects/current/items/nested/chapter.txt/10'); const body = await request.json(); edits.push(body); translated = body.translated_text; return Response.json({ ...item, translated_text: translated }) }
       if (url.pathname.endsWith('/current')) return Response.json(current)
       if (url.pathname.endsWith('/files')) return Response.json([])
       if (url.pathname.endsWith('/items')) { queries.push(url); return Response.json({ project_id: 'items-project', items: [{ ...item, translated_text: translated }, { ...item, id: 'second', index: 20, position: 1 }], total: 2, page: 1, size: 100 }) }
@@ -57,8 +57,17 @@ describe('item proofreading', () => {
     }))
     mount(<ItemsPage/>)
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('checkbox', { name: '选择条目 11' }))
-    await user.click(screen.getByRole('checkbox', { name: '选择条目 21' }))
+    await user.click(await screen.findByRole('checkbox', { name: '选择条目 1' }))
+    expect(screen.getByText('#1')).toBeVisible()
+    expect(screen.getByText('#2')).toBeVisible()
+    expect(screen.queryByText('#11')).not.toBeInTheDocument()
+    expect(screen.queryByText('#21')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('checkbox', { name: '选择当前页' }))
+    expect(useUiContextStore.getState().selectedItemIds).toEqual([item.id, 'second'])
+    await user.click(screen.getByRole('checkbox', { name: '选择当前页' }))
+    expect(useUiContextStore.getState().selectedItemIds).toEqual([])
+    await user.click(screen.getByRole('checkbox', { name: '选择条目 1' }))
+    await user.click(screen.getByRole('checkbox', { name: '选择条目 2' }))
     expect(useUiContextStore.getState().selectedItemIds).toEqual([item.id, 'second'])
     await user.type(screen.getByRole('textbox', { name: '搜索原文与译文' }), 'Fixed')
     await user.click(screen.getByRole('button', { name: '筛选' }))
@@ -74,11 +83,42 @@ describe('item proofreading', () => {
 
   it('keeps the editor open and displays a safe error when saving fails', async () => {
     const onSave = vi.fn().mockRejectedValue(new Error('fixed failure'))
-    mount(<VirtualItemTable items={[item]} selected={[]} highlighted={null} onSelect={vi.fn()} onSelectAll={vi.fn()} onSave={onSave} pending={false}/>)
+    mount(<VirtualItemTable items={[item]} selected={[]} highlighted={10} onSelect={vi.fn()} onSelectAll={vi.fn()} onSave={onSave} pending={false}/>)
+    expect(screen.getByText('#1').closest('[role="row"]')).toHaveClass('highlighted')
     fireEvent.click(screen.getByRole('button', { name: '编辑译文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '编辑译文' }), { target: { value: 'draft' } })
     fireEvent.click(screen.getByRole('button', { name: '保存' }))
     await waitFor(() => expect(onSave).toHaveBeenCalledWith(item, 'translated_text', 'draft'))
     expect(screen.getByRole('textbox', { name: '编辑译文' })).toHaveValue('draft')
+  })
+
+  it('jumps directly to the last page and back without loading the full project into the DOM', async () => {
+    const pages: number[] = []
+    vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
+      const url = new URL(request.url)
+      if (url.pathname.endsWith('/current')) return Response.json(current)
+      if (url.pathname.endsWith('/files')) return Response.json([])
+      if (url.pathname.endsWith('/items')) {
+        const page = Number(url.searchParams.get('page') ?? 1)
+        pages.push(page)
+        const start = (page - 1) * 100
+        const response: components['schemas']['ItemListResponse'] = {
+          project_id: 'items-project', total: 50000, page, size: 100,
+          items: Array.from({ length: 100 }, (_, offset) => ({ ...item, id: String(start + offset), index: start + offset, position: start + offset, source_text: `Large source ${start + offset}` })),
+        }
+        return Response.json(response)
+      }
+      throw new Error(`Unexpected request ${url}`)
+    }))
+    mount(<ItemsPage/>)
+    const user = userEvent.setup()
+    expect(await screen.findByText('Large source 0')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: '最后一页' }))
+    expect(await screen.findByText('Large source 49900')).toBeVisible()
+    expect(screen.getAllByRole('row').length).toBeLessThan(20)
+    expect(pages).toEqual([1, 500])
+    await user.click(screen.getByRole('button', { name: '第一页' }))
+    expect(await screen.findByText('Large source 0')).toBeVisible()
+    expect(new URLSearchParams(window.location.search).get('page')).toBe('1')
   })
 })

@@ -1,5 +1,6 @@
 import i18n from '@/i18n'
 const zh = {
+  reloadConfirm: '重新加载会放弃未保存的修改，是否继续？',
   moveConfirm: '移动所选条目？目标中相同原文会被覆盖，原分类将保留在备注中。',
   title: '项目分析', description: '整理角色、术语与禁翻内容，为翻译提供项目上下文。', characters: '角色', terms: '术语', non_translate: '禁翻内容',
   start: '开始分析', startHint: '重新分析会更新分析结果，请先保存或导出需要保留的内容。', confirmStart: '开始新的项目分析？现有分析结果可能被替换。',
@@ -10,6 +11,7 @@ const zh = {
   saveFirst: '请先保存当前修改，再执行此操作。', noProject: '请先打开项目。', error: '操作失败，请检查连接、文件格式与任务状态后重试。', project_changed: '当前项目已切换，请重新加载分析结果。', operation_busy: '请等待当前任务结束。', file_too_large: '文件不能超过 20 MB。', reload: '重新加载',
 }
 const en = {
+  reloadConfirm: 'Reloading will discard unsaved changes. Continue?',
   moveConfirm: 'Move the selected items? Matching sources in the target will be replaced. The original category will be kept in notes.',
   title: 'Project analysis', description: 'Organize characters, terms and exclusions to provide project context for translation.', characters: 'Characters', terms: 'Terms', non_translate: 'Exclusions',
   start: 'Start analysis', startHint: 'A new analysis updates these results. Save or export anything you need to keep.', confirmStart: 'Start a new analysis? Existing analysis results may be replaced.',

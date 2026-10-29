@@ -1,3 +1,5 @@
+"""Legacy packaging reference; the web application's desktop bundle is pending."""
+
 import argparse
 import os
 import platform
@@ -148,12 +150,8 @@ def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
         "--collect-all=rich",
         "--collect-all=bitstring",
         "--collect-all=mediapipe.tasks.c",
-        "--collect-all=darkdetect",
         "--collect-all=opencc",
         "--collect-all=magika",
-        "--collect-all=objc",
-        "--collect-all=Foundation",
-        "--collect-all=AppKit",
         # FileReader/FileOutputer use importlib-based lazy loading; collect
         # their submodules so packaged builds can load formats at runtime.
         "--collect-submodules=ModuleFolders.Domain.FileReader",

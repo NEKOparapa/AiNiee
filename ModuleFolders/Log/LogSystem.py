@@ -7,15 +7,14 @@ import re
 import sys
 import threading
 import time
-from collections import Counter, deque
+from collections import Counter
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
-from typing import Optional
 
 from ModuleFolders.Config.FilePathConfig import user_log_dir
 
-__all__ = ("install", "redact", "get_gui_handler", "sensitive_values")
+__all__ = ("install", "redact", "sensitive_values")
 
 
 HANDLER_NAME = "ainiee_file"
@@ -148,11 +147,6 @@ class SensitiveFilter(logging.Filter):
         if redacted != msg:
             record.msg = redacted
             record.args = ()
-        gui_text = getattr(record, "ainiee_gui_text", None)
-        if isinstance(gui_text, str):
-            record.ainiee_gui_text = redact(gui_text)
-        # gui_rows 可能包含完整模型思考、回复和原译文对照，体积很大。不要在每个
-        # handler filter 中复制整份数据；GUI handler 会在显示前统一脱敏并限制大小。
         if record.exc_info:
             exc_text = _EXC_FORMATTER.formatException(record.exc_info)
             record.exc_text = redact(exc_text)
@@ -176,248 +170,6 @@ class _PlainFormatter(logging.Formatter):
             record.args = original_args
 
 
-class _ConsoleFormatter(logging.Formatter):
-    def __init__(self) -> None:
-        super().__init__("%(message)s")
-
-    def format(self, record: logging.LogRecord) -> str:
-        original_msg = record.msg
-        original_args = record.args
-        try:
-            gui_text = getattr(record, "ainiee_gui_text", None)
-            if isinstance(gui_text, str):
-                plain = _strip_markup(gui_text)
-            else:
-                plain = _strip_markup(record.getMessage())
-            record.msg = plain
-            record.args = ()
-            return super().format(record)
-        finally:
-            record.msg = original_msg
-            record.args = original_args
-
-
-_REPLAY_BUFFER_SIZE = 100
-_MAX_LINE_WIDTH = 16384
-_GUI_TOTAL_CHAR_LIMIT = 16384
-_GUI_TRUNCATION_MARKER = "…（前台日志已截断，完整内容请查看日志文件）"
-_GUI_OMISSION_LABELS = {
-    "thinking": "模型思考内容",
-    "comparison": "原文与译文的对照",
-    "source": "原文内容",
-    "response": "模型回复内容",
-}
-
-
-def _truncate_gui_text(text: str, max_chars: int, marker: str) -> str:
-    """仅按整条 GUI 日志的字符预算截断，不限制单元格行数。"""
-    if len(text) <= max_chars:
-        return text
-    if max_chars <= len(marker):
-        return marker[:max_chars]
-    content_limit = max_chars - len(marker) - 1
-    prefix = text[:content_limit].rstrip()
-    return f"{prefix}\n{marker}" if prefix else marker
-
-
-def _bound_gui_text(text: str) -> str:
-    """限制普通 GUI 日志文本；文件 handler 使用的 record.msg 不受影响。"""
-    if not isinstance(text, str):
-        return ""
-    return _truncate_gui_text(
-        redact(text),
-        _MAX_LINE_WIDTH,
-        _GUI_TRUNCATION_MARKER,
-    )
-
-
-def _gui_rows_char_count(rows) -> int:
-    return sum(len(cell) for row in rows for cell in row)
-
-
-def _gui_row_kind(row) -> str:
-    """识别翻译/润色任务表格中的可省略大段内容。"""
-    combined = "\n".join(row).lstrip()
-    if combined.startswith("模型思考内容："):
-        return "thinking"
-    if combined.startswith("模型回复内容："):
-        return "response"
-    # TranslatorTask/PolisherTask 的最后一行是完整原文、译文对照。
-    if " --> " in combined:
-        return "comparison"
-    if combined.startswith((
-        "原文内容：",
-        "原文内容:",
-        "原文文本：",
-        "原文文本:",
-        "###原文内容",
-        "###原文文本",
-    )):
-        return "source"
-    return "other"
-
-
-def _gui_omission_marker(labels: list[str], include_other: bool = False) -> str:
-    names = [_GUI_OMISSION_LABELS[label] for label in labels]
-    if include_other:
-        names.append("其他超长内容")
-    if not names:
-        return _GUI_TRUNCATION_MARKER
-    return f"…（前台日志已省略：{'、'.join(names)}；完整内容请查看日志文件）"
-
-
-def _fit_gui_rows_to_budget(rows, marker: str):
-    """极端情况下按整条日志预算兜底，始终只添加一个截断提示。"""
-    remaining_chars = _GUI_TOTAL_CHAR_LIMIT - len(marker)
-    fitted_rows = []
-    if remaining_chars <= 0:
-        return [[marker[:_GUI_TOTAL_CHAR_LIMIT]]]
-
-    for row in rows:
-        fitted_row = []
-        for cell in row:
-            if remaining_chars <= 0:
-                break
-            if len(cell) <= remaining_chars:
-                fitted_row.append(cell)
-                remaining_chars -= len(cell)
-            else:
-                prefix = cell[:remaining_chars].rstrip()
-                if prefix:
-                    fitted_row.append(prefix)
-                remaining_chars = 0
-                break
-        if fitted_row:
-            fitted_rows.append(fitted_row)
-        if remaining_chars <= 0 or len(fitted_row) < len(row):
-            break
-
-    fitted_rows.append([marker])
-    return fitted_rows
-
-
-def _bound_gui_rows(rows):
-    """按内容优先级把整条 GUI 表格控制在 16 KB 内。"""
-    if not isinstance(rows, list) or not rows:
-        return None
-
-    bounded_rows = []
-    for raw_row in rows:
-        raw_cells = raw_row if isinstance(raw_row, (list, tuple)) else [raw_row]
-        bounded_row = []
-        for raw_cell in raw_cells:
-            try:
-                cell_text = raw_cell if isinstance(raw_cell, str) else str(raw_cell)
-            except Exception:
-                cell_text = f"<unprintable {type(raw_cell).__name__}>"
-            # 先对完整值脱敏，避免密钥跨越最终预算边界时泄漏部分内容。
-            bounded_row.append(redact(cell_text))
-        bounded_rows.append(bounded_row)
-
-    if _gui_rows_char_count(bounded_rows) <= _GUI_TOTAL_CHAR_LIMIT:
-        return bounded_rows
-
-    omitted = []
-    for kind in ("thinking", "comparison", "source", "response"):
-        remaining_rows = [row for row in bounded_rows if _gui_row_kind(row) != kind]
-        if len(remaining_rows) != len(bounded_rows):
-            bounded_rows = remaining_rows
-            omitted.append(kind)
-        marker = _gui_omission_marker(omitted)
-        if _gui_rows_char_count(bounded_rows) + len(marker) <= _GUI_TOTAL_CHAR_LIMIT:
-            return bounded_rows + [[marker]]
-
-    # 非任务表格或其他提示内容本身也异常巨大时，保留上述省略顺序后再做总量兜底。
-    marker = _gui_omission_marker(omitted, include_other=True)
-    return _fit_gui_rows_to_budget(bounded_rows, marker)
-
-
-class _GUIHandler(logging.Handler):
-    """通知订阅者每条记录的格式化字符串与等级名；同时缓冲近期记录供后来订阅者回放。
-    所有共享态用继承的 self.lock 保护，应对 worker 线程并发 emit + 主线程 subscribe。"""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._subscribers: list = []
-        self._replay: deque = deque(maxlen=_REPLAY_BUFFER_SIZE)
-        # 防递归 dispatch：cb 内若再调 logging.* 会触发同一 handler 的 emit，
-        # 不加守卫会无限递归直到 RecursionError
-        self._dispatching = threading.local()
-
-    @staticmethod
-    def _notify(cb, line: str, level: str, style: str, rows=None) -> None:
-        try:
-            cb(line, level, style, rows)
-        except TypeError:
-            try:
-                cb(line, level, style)
-            except TypeError:
-                cb(line, level)
-
-    def subscribe(self, cb, batch_cb=None) -> None:
-        # 锁内：原子地决定回放与挂订阅，避免 emit 在两者之间塞入 record 而新 cb 漏收
-        with self.lock:
-            if cb in self._subscribers:
-                return
-            history = list(self._replay)
-            self._subscribers.append(cb)
-        # 锁外回放，cb 可能耗时或重入 logging
-        if batch_cb is not None:
-            try:
-                batch_cb(history)
-            except Exception:
-                pass
-            return
-        for item in history:
-            if len(item) >= 4:
-                line, level, style, rows = item[:4]
-            elif len(item) == 3:
-                line, level, style = item
-                rows = None
-            else:
-                line, level = item
-                style = ""
-                rows = None
-            try:
-                self._notify(cb, line, level, style, rows)
-            except Exception:
-                pass
-
-    def unsubscribe(self, cb) -> None:
-        with self.lock:
-            try:
-                self._subscribers.remove(cb)
-            except ValueError:
-                pass
-
-    def emit(self, record: logging.LogRecord) -> None:
-        try:
-            line = _bound_gui_text(self.format(record))
-            level = record.levelname
-            style = getattr(record, "ainiee_gui_style", "")
-            if not isinstance(style, str):
-                style = ""
-            rows = _bound_gui_rows(getattr(record, "ainiee_gui_rows", None))
-            with self.lock:
-                self._replay.append((line, level, style, rows))
-                # 同一线程已在 dispatch 里：只进 replay 不再分发，避免 cb 内
-                # 调 logging.* 触发的无限递归
-                if getattr(self._dispatching, "depth", 0) > 0:
-                    return
-                subscribers = list(self._subscribers)
-            self._dispatching.depth = getattr(self._dispatching, "depth", 0) + 1
-            try:
-                for cb in subscribers:
-                    try:
-                        self._notify(cb, line, level, style, rows)
-                    except Exception:
-                        pass
-            finally:
-                self._dispatching.depth -= 1
-        except Exception:
-            self.handleError(record)
-
-
 def _emergency_stderr(text: str) -> None:
     try:
         if sys.__stderr__ is not None:
@@ -427,7 +179,7 @@ def _emergency_stderr(text: str) -> None:
 
 
 class _BroadcastStream:
-    """包裹 sys.stdout/stderr：原写入照常 + 按行 flush 到 logger（再到 root → file + gui）。
+    """包裹 sys.stdout/stderr：原写入照常 + 按行 flush 到 logger（再到 root → file + WebSocket）。
 
     _buffer 跨线程共享，用 self._lock 保护读写避免撕裂。
     若调用方是 LogMixin（_in_log_mixin.active），跳过 logger.log 以避免双写。
@@ -493,26 +245,6 @@ class _BroadcastStream:
 
     def __getattr__(self, name):
         return getattr(self._original, name)
-
-
-_gui_handler: Optional["_GUIHandler"] = None
-_gui_handler_lock = threading.Lock()
-
-
-def get_gui_handler() -> "_GUIHandler":
-    """懒单例 GUI handler；首次调用时挂到 root logger，使用面向用户的简洁 formatter。"""
-    global _gui_handler
-    if _gui_handler is not None:
-        return _gui_handler
-    with _gui_handler_lock:
-        if _gui_handler is not None:
-            return _gui_handler
-        handler = _GUIHandler()
-        handler.setFormatter(_ConsoleFormatter())
-        handler.addFilter(SensitiveFilter())
-        logging.getLogger().addHandler(handler)
-        _gui_handler = handler
-        return _gui_handler
 
 
 _DEVNULL = None
@@ -632,7 +364,7 @@ def _enable_faulthandler(log_dir: Path) -> None:
         _fault_log_handle = None
 
 
-def _apply_env_level(root: logging.Logger, handler: Optional[logging.Handler]) -> None:
+def _apply_env_level(root: logging.Logger, handler: logging.Handler | None) -> None:
     level_str = os.environ.get("AINIEE_LOG_LEVEL")
     if not level_str:
         return
@@ -651,7 +383,7 @@ def _apply_env_level(root: logging.Logger, handler: Optional[logging.Handler]) -
 _INSTALLED = False
 
 
-def install() -> Optional[Path]:
+def install() -> Path | None:
     """挂载/确认日志系统。可重入。
 
     返回日志文件路径；若用户日志目录不可写、或文件 handler 创建失败则返回 None。
@@ -710,11 +442,7 @@ def install() -> Optional[Path]:
     _enable_faulthandler(log_dir)
     _apply_env_level(root, handler)
 
-    # GUI handler eager 创建并挂 root，确保启动期 record（含 banner、tiktoken
-    # 等通过 _BroadcastStream 转发来的 stdout）都进 replay buffer
-    get_gui_handler()
-
-    # 把 stdout/stderr 桥到 logger，让裸 print 也出现在 GUI 与 file
+    # Forward console output to file logging and the server event bridge.
     if not isinstance(sys.stdout, _BroadcastStream):
         sys.stdout = _BroadcastStream(sys.stdout, "AiNiee.stdout", logging.INFO)
     if not isinstance(sys.stderr, _BroadcastStream):

@@ -21,12 +21,12 @@
 
 
 * **格式全能，覆盖广泛**
-    * 🎮 **游戏翻译**：深度支持 Mtool, Renpy, Translator++, ParaTranzr, VNText, SExtractor 等游戏文本导出工具。
+    * 🎮 **游戏翻译**：深度支持 Mtool, Renpy, Translator++, ParaTranz, VNText, SExtractor 等游戏文本导出工具。
     * 📚 **多样支持**：轻松处理 I18Next/.trans/Po/CSV 数据、Epub/TXT 电子书、Srt/Ass/Vtt/Lrc 字幕、Word/PDF/MD/PPT 文档等。
 
 * **智能高效，省时省心**
-    * 🚀 **一键操作**：一拖一点，自动识别文件与语言，无需设置。
-    * ⏱️ **极速翻译**：喝杯可乐的工夫，就能拿到译文。
+    * 🚀 **完整工作流**：打开本机项目，配置接口与提示词，翻译后检查、校对并导出。
+    * ⏱️ **可恢复任务**：查看实时进度和日志，停止后继续处理剩余条目。
 
 * **长文优化，质量出众**
     * 🎯 **突破局限**：采用轻盈翻译格式、思维链翻译、AI术语表、上下文关联等技术，确保长文本翻译的连贯性与准确性。
@@ -44,27 +44,147 @@
 
 ---
 
-## AiNiee三步走 📢
+## 本分支：本地 Web 工作台
 
-* **第一步：配置接口**
-  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第一步.png">
+后端是独立的 Python 3.12 / FastAPI 进程，前端是 `frontend/` 中的 React 应用，通过 REST 和 WebSocket 通信。浏览器提供接口管理、项目概览、条目校对、提示词、公共表格、质量检查、分析、导出和任务日志。界面默认中文，也可切换英文、浅色或深色主题。
 
-  - 在线接口：需付费但性价比很高，无显卡要求，全语言支持，[接口设置说明 - DeepSeek](https://github.com/NEKOparapa/AiNiee/wiki/%E5%9C%A8%E7%BA%BF%E6%8E%A5%E5%8F%A3%E2%80%90Deepseek)
+当前一次运行一个翻译、润色或分析任务。右侧智能体面板为占位，可用 `Ctrl+L` 展开或收起。音频、视频、图片翻译，以及新版桌面打包不在本分支的交付范围内。[历史发行版](https://github.com/NEKOparapa/AiNiee/releases)的界面和启动方式可能与本分支不同。
 
+### 安装依赖
 
-* **第二步：拖入文件夹**
-  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第二步.png">
-  
-  - 输入文件夹：将原文文件单独放置新的文件夹，并将该文件夹拖入框内。小说、字幕、文档可直接进行翻译，游戏需要文本提取工具进行配合。<br>
+准备 Python **3.12（64 位）**、Node.js **24** 和 npm。下列命令从包含 `AiNiee.py`、`Server/`、`frontend/` 的仓库根目录执行；Windows 示例使用 PowerShell，无需激活虚拟环境。
 
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\python.exe -m pip install --upgrade pip
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install --no-deps -r requirements_no_deps.txt
+npm --prefix frontend ci
+```
 
-* **第三步：开始翻译**
+`requirements_no_deps.txt` 中的包按仓库的依赖拆分方式安装；先安装 `requirements.txt`，再执行 `--no-deps` 步骤。不要将第二步替换为普通的依赖解析安装。前端使用已提交的 `package-lock.json`，因此用 `npm ci` 安装。
 
-  > <img src="https://raw.githubusercontent.com/NEKOparapa/AiNiee/main/Example%20image/三步走/第三步.png">
+macOS / Linux 可用 `python3.12 -m venv .venv` 创建环境，并将上述 Python 命令中的 `.venv\Scripts\python.exe` 替换为 `.venv/bin/python`。系统和架构仍需满足各 Python 依赖的安装要求。
 
-  - 点击开始按钮，剩下等待任务的完成。
+### 启动开发环境
 
-  - [AiNiee下载地址](https://github.com/NEKOparapa/AiNiee/releases)
+终端一运行前端：
+
+```powershell
+npm --prefix frontend run dev
+```
+
+终端二运行后端：
+
+```powershell
+.venv\Scripts\python.exe AiNiee.py --dev
+```
+
+前端地址为 `http://127.0.0.1:5173`。后端默认地址为 `http://127.0.0.1:8000`。`--dev` 在后端就绪后打开浏览器，将后端地址和访问令牌通过 URL fragment 交给前端；**它不会启动前端进程**。两端均需保持运行。
+
+后端就绪后，启动终端会打印：
+
+```text
+TOKEN <随机访问令牌>
+READY <实际监听端口>
+```
+
+也可手动打开前端，点击右上角连接设置，填写后端地址和 `TOKEN`。访问令牌用于连接本机服务，与翻译平台的 API Key 不同。连接信息保存在当前浏览器会话中。
+
+| 参数 | 行为 |
+| --- | --- |
+| `--host 127.0.0.1` | 唯一允许的监听地址，也是默认值。 |
+| `--port 8000` | 指定后端端口；`--port 0` 自动选择空闲端口，以 `READY` 为准。 |
+| `--token <令牌>` | 使用指定令牌；省略时生成随机令牌。指定令牌时不再打印 `TOKEN` 行。 |
+| `--dev` | 就绪后打开固定的前端地址 `http://127.0.0.1:5173`。 |
+
+端口已被占用时，可以为后端选择其他端口；前端保持 `5173`。停止后端时使用终端的 `Ctrl+C`，进程会等待正在进行的任务收尾和缓存保存。
+
+### 构建与本地预览
+
+```powershell
+npm --prefix frontend run build
+npm --prefix frontend run preview
+```
+
+构建结果写入 `frontend/dist/`；预览服务同样使用 `http://127.0.0.1:5173`，需要先停止占用此端口的开发服务。另开终端运行后端，再连接前端即可。`preview` 用于本地验证构建结果；当前后端不托管前端静态文件，也没有新版可双击启动的桌面包。
+
+### 人工操作流程
+
+1. 在「接口管理」添加平台、测试连接，并为翻译、润色和分析绑定所用接口。
+2. 在「首页」输入本机项目路径，或通过目录浏览器选择文件夹；按需选择项目类型并打开。浏览器拖放无法取得完整目录路径时，改用路径输入或目录浏览器，不会上传或复制源文件。
+3. 配置任务、输出、提示词和公共表格，在底部任务栏开始翻译；可查看进度、打开日志、停止和继续任务。
+4. 在「质量检查」运行规则、语言或术语检查，点击问题跳到「条目校对」并编辑。校对表支持搜索、正则筛选、多选和分页，滚动时只渲染可见行。
+5. 在「导出」选择输出目录，导出译文和双语文件，也可手动保存缓存。「项目分析」支持整理角色、术语和禁翻结果，并将选中内容写入公共表格。
+
+公共表格支持多子表、JSON/XLSX 导入导出；分析结果使用 JSON。提示词库可管理翻译、润色和两阶段分析的自定义提示。历史项目会保留缓存，可从首页继续；删除历史会删除该项目缓存，需要确认，当前打开的项目不可删除。
+
+### 配置、缓存与升级
+
+沿用现有 `config.json` 和 `CacheManager` 项目格式。源码目录可写时默认使用便携布局：
+
+| 内容 | 默认位置 |
+| --- | --- |
+| 用户配置及接口设置 | `Resource/config.json` |
+| 项目缓存及翻译进度 | `ProjectCache/<项目 ID>/` |
+| 运行日志 | `Logs/` |
+
+升级源码前保留配置和整个 `ProjectCache/`，使用相同的数据路径启动即可继续读取；不要用示例配置覆盖已有配置。输入、输出目录保留在配置中。启用自动输出目录时，译文写入输入目录旁的 `AiNieeOutput/`，润色写入 `AiNieePolishOutput/`。
+
+可用 `AINIEE_USER_DATA_DIR` 指定配置目录（其中的 `config.json`），用 `AINIEE_PROJECT_CACHE_DIR` 指定项目缓存目录，用 `AINIEE_LOG_DIR` 指定日志目录。Windows 设置 `AINIEE_PORTABLE=0` 后默认使用 `%LOCALAPPDATA%/AiNiee/`；macOS 非便携模式的配置默认在 `~/Library/Application Support/AiNiee/`。改变数据路径时需同步迁移原配置和缓存。
+
+可从仓库根目录查看本次环境解析到的实际路径：
+
+```powershell
+.venv\Scripts\python.exe -c "from ModuleFolders.Config.FilePathConfig import config_path, project_cache_root, user_log_dir; print(config_path()); print(project_cache_root()); print(user_log_dir())"
+```
+
+### 本机访问与接口契约
+
+只有 `GET /health` 无需令牌。其他 HTTP 请求使用 `Authorization: Bearer <token>`，WebSocket 使用 `/api/v1/ws?token=<token>`。白名单来源的 `OPTIONS` 预检免令牌，实际请求仍鉴权。允许的浏览器来源是 `http://127.0.0.1:5173`、`http://localhost:5173` 和当前后端自身地址；不使用通配 CORS，也不支持远程监听。令牌不应随链接共享。
+
+REST 入口为 `/api/v1/`。WebSocket 推送进度、日志和数据变化；断线后前端自动重连并重新查询状态，不重放已丢失事件。前端接口类型和 WebSocket 契约均来自后端 Pydantic / OpenAPI，修改接口后执行：
+
+```powershell
+.venv\Scripts\python.exe -m Server.export_openapi
+npm --prefix frontend run generate:api
+npm --prefix frontend run check:api
+```
+
+提交更新后的 `openapi.json` 和 `frontend/src/api/generated/schema.d.ts`，不要手改生成文件。
+
+### 开发检查与测试
+
+```powershell
+.venv\Scripts\python.exe -m pytest -q
+npm --prefix frontend run typecheck
+npm --prefix frontend test
+npm --prefix frontend run build
+npm --prefix frontend run check:api
+```
+
+首次运行浏览器测试时，在 `frontend/` 安装 Playwright 的 Chromium：
+
+```powershell
+cd frontend
+npx playwright install chromium
+npm run test:e2e
+```
+
+Playwright 会启动或复用 `5173` 上的本项目前端，并为测试启动使用临时数据目录的后端。默认使用仓库 `.venv` 中的 Python；可用 `AINIEE_TEST_PYTHON` 指定其他解释器路径。测试里的模型请求使用固定 mock，禁止访问真实模型接口；缓存、配置和输出均与用户数据隔离。浏览器失败截图和 trace 保存在 `frontend/test-results/`。
+
+后端测试覆盖旧调用路径与 Application 调用路径的导出字节一致性，以及停止、保存、恢复和继续；浏览器测试覆盖翻译、检查、编辑、导出，以及表格、提示词、分析和设置流程。
+
+浏览器测试还会创建真实的 50,000 条项目，检查分页、虚拟滚动、筛选和编辑后持久化。每次运行的读取耗时、交互耗时、滚动帧间隔和渲染行数写入 `frontend/test-results/` 下对应测试目录的 `large-project-performance.json`，供性能回归比较；这些指标取决于运行机器，不代表所有设备的速度保证。
+
+GitHub Actions 使用 Windows、Python 3.12 和 Node.js 24，运行后端测试、前端单元测试与构建、生成类型检查以及 Playwright 流程，并上传测试诊断文件。CI 仅做检查和构建，不再发布旧桌面包。
+
+### 当前限制
+
+- 一次只运行一个任务；智能体面板仅占位。
+- 旧本地模型的自动 `/slots` 探测没有超时，探测期间停止或退出需要等待该调用返回。
+- 当前缓存未保存任务模式，重启后不会自动恢复润色模式；本次运行内可停止后继续润色。
+- 平台未提供计费数据时，任务栏费用显示为 `—`。
 
 ---
 
@@ -109,6 +229,8 @@
   
 ### 翻译教程
 </summary>
+
+以下历史教程可用于了解文本提取与格式处理；本分支的浏览器界面操作以本文上方流程为准。
 
  * **`📺游戏翻译视频教程`**
 
@@ -183,7 +305,7 @@
   >把所有需要翻译的文件放在输入文件夹即可，也支持多文件夹结构
 
 * ` 配置迁移`
-  >配置信息都会存储在resource的config.json中，下载新版本可以把它复制到新版本的resource中。
+  >配置和项目缓存路径见上方「配置、缓存与升级」。升级时保留两者，才能同时恢复设置和翻译进度。
 
 </details>
 
@@ -202,11 +324,13 @@
 
 
 
-* **`改进或增加支持文件`**: 需要有一定的代码编程能力，拉取源码进行改进。文件具体读取代码在ModuleFolders\FileReader与FileOutputer文件夹中。[读写器系统编写指南](https://github.com/NEKOparapa/AiNiee/blob/main/ModuleFolders/Domain/FileAccessor/README.md)。UI支持在UserInterface\Setting的ProjectSettingsPage。
+* **`改进或增加支持文件`**: 读写业务代码位于 `ModuleFolders/Domain/`，参见[读写器系统编写指南](ModuleFolders/Domain/FileAccessor/README.md)。本次分离改造保持这些业务逻辑不变；应用服务放在 `ModuleFolders/Application/`，HTTP 路由只校验参数并转发，前端页面位于 `frontend/src/workspaces/`，导航由 `registry.ts` 统一注册。
 
 * **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利好下一次游戏翻译工作和造福其他翻译用户，正则库在[Resource\Regex](https://github.com/NEKOparapa/AiNiee/blob/main/Resource/Regex/regex.json)文件夹中
 
-* **`改进界面翻译`**: 多语言界面的UI文本可能翻译不够准确合适，可以提交你的修改意见，或者直接进行修改。本地化文本在[Resource\Localization](https://github.com/NEKOparapa/AiNiee/tree/main/Resource/Localization)文件夹中
+* **`改进界面翻译`**: 前端通用文案位于 `frontend/src/i18n/`，各工作区文案位于对应目录的 `translations.ts`。新增文案需同时提供简体中文和英文。
+
+* **`测试与许可证`**: 提交前运行上方检查，模型调用使用固定 mock；请遵守仓库 [LICENSE](LICENSE) 中的 AGPL-3.0 条款。
 
 </details>
 

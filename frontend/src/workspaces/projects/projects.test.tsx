@@ -8,7 +8,7 @@ import i18n from '@/i18n'
 import type { components } from '@/api/generated/schema'
 import { useConnectionStore } from '@/stores/connection'
 import { useUiContextStore } from '@/stores/ui-context'
-import { droppedPath } from '../HomePage'
+import { droppedPath, HomePage } from '../HomePage'
 import { OverviewPage } from './OverviewPage'
 import { ProjectHistory } from './ProjectHistory'
 
@@ -115,5 +115,24 @@ describe('project workspaces', () => {
     failed = false
     fireEvent.click(screen.getByRole('button', { name: '重试' }))
     expect(await screen.findByText('尚未打开项目')).toBeVisible()
+  })
+
+  it('retries a home configuration read without losing the entered project path', async () => {
+    let reads = 0
+    vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
+      const path = new URL(request.url).pathname
+      expect(request.method).toBe('GET')
+      if (path.endsWith('/config')) return ++reads === 1 ? Response.json({ detail: 'failure' }, { status: 500 }) : Response.json({ translation_project: 'Txt' })
+      if (path.endsWith('/history')) return Response.json([])
+      return Response.json(current)
+    }))
+    mount(<HomePage/>)
+    const input = await screen.findByRole('textbox', { name: '项目路径' })
+    fireEvent.change(input, { target: { value: 'D:/keep-this-draft' } })
+    expect(await screen.findByRole('alert')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: '重试' }))
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    expect(reads).toBe(2)
+    expect(input).toHaveValue('D:/keep-this-draft')
   })
 })

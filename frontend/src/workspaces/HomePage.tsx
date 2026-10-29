@@ -44,7 +44,7 @@ export function HomePage() {
   const [browsing, setBrowsing] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [dropNotice, setDropNotice] = useState(false)
-  useEffect(() => { setDirtyPath(false); setPath('') }, [revision])
+  useEffect(() => { setDirtyPath(false); setPath(''); setBrowsing(false); setDragging(false); setDropNotice(false) }, [revision])
   useEffect(() => {
     if (!dirtyPath && current.data) setPath(current.data.configured_path)
   }, [current.data, dirtyPath])
@@ -82,7 +82,7 @@ export function HomePage() {
         <form onSubmit={e => { e.preventDefault(); void openPath(path) }}>
           <label htmlFor="project-path">{t('path')}</label><div className="project-path-row"><Input id="project-path" placeholder={t('pathPlaceholder')} value={path} disabled={pending} onChange={e => { setPath(e.target.value); setDirtyPath(true); setDropNotice(false) }}/><Button type="button" variant="outline" disabled={pending} onClick={() => setBrowsing(true)}><FolderOpen size={16}/>{t('browse')}</Button></div>
           {dropNotice && <p className="project-feedback" role="status">{t('dropUnavailable')}</p>}
-          <ProjectFeedback error={open.error ?? saveConfig.error ?? config.error}/>
+          <ProjectFeedback error={open.error ?? saveConfig.error}/><ProjectFeedback error={config.error} retry={() => void config.refetch()}/>
           <div className="project-open-footer"><p>{t('dropHint')}</p><Button type="submit" disabled={pending || !path.trim()}>{open.isPending ? <LoaderCircle size={16} className="animate-spin"/> : <ArrowRight size={16}/>} {t(open.isPending ? 'opening' : 'open')}</Button></div>
         </form>
       </section>

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import i18n from '@/i18n'
 import type { PromptLibrary } from '@/api/prompts'
@@ -83,4 +83,34 @@ it('confirms deletion and falls back to the default preset', async () => {
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   expect(data.custom).toHaveLength(0)
   expect(screen.getByText('General preset')).toBeInTheDocument()
+})
+
+it('keeps an edited prompt visible while saving and preserves its fields after failure', async () => {
+  let complete: ((response: Response) => void) | undefined
+  vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
+    if (request.method !== 'POST') return Response.json(data)
+    writes.push(await request.json())
+    return new Promise<Response>(resolve => { complete = resolve })
+  }))
+  render(<QueryClientProvider client={client}><PromptLibraryPage kind="system"/></QueryClientProvider>)
+  await screen.findByText('General preset')
+  fireEvent.click(screen.getByRole('button', { name: '新建提示词' }))
+  const dialog = screen.getByRole('dialog')
+  const name = within(dialog).getByLabelText('名称')
+  const content = within(dialog).getByLabelText('提示内容')
+  fireEvent.change(name, { target: { value: 'Preserved prompt' } })
+  fireEvent.change(content, { target: { value: 'Preserved content' } })
+  fireEvent.click(within(dialog).getByRole('button', { name: '保存' }))
+  await waitFor(() => expect(complete).toBeDefined())
+  expect(dialog).toHaveAttribute('aria-busy', 'true')
+  expect(name).toBeDisabled()
+  within(dialog).getAllByRole('button', { name: '取消' }).forEach(button => expect(button).toBeDisabled())
+  fireEvent(dialog, new Event('cancel', { cancelable: true }))
+  expect(screen.getByRole('dialog')).toBe(dialog)
+  expect(writes).toHaveLength(1)
+  await act(async () => complete!(Response.json({ detail: 'failure' }, { status: 500 })))
+  expect(await within(dialog).findByRole('alert')).toBeVisible()
+  expect(name).toHaveValue('Preserved prompt')
+  expect(content).toHaveValue('Preserved content')
+  expect(within(dialog).getByRole('button', { name: '保存' })).toBeEnabled()
 })

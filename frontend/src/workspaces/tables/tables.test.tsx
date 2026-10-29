@@ -80,6 +80,28 @@ it('previews an uploaded file before confirming import and supports downloading 
   expect(URL.createObjectURL).toHaveBeenCalled()
 })
 
+it('keeps an import dialog busy while reading a local file before requesting its preview', async () => {
+  let release: (() => void) | undefined
+  const readFile = FileReader.prototype.readAsDataURL
+  vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader, file: Blob) { release = () => readFile.call(this, file) })
+  const user = userEvent.setup()
+  show()
+  await screen.findByText('尚无子表，请新建或导入。')
+  fireEvent.click(screen.getByRole('button', { name: '导入' }))
+  const input = screen.getByLabelText('选择文件')
+  await user.upload(input, new File(['[]'], 'terms.json', { type: 'application/json' }))
+  const dialog = screen.getByRole('dialog')
+  expect(input).toBeDisabled()
+  expect(dialog).toHaveAttribute('aria-busy', 'true')
+  within(dialog).getAllByRole('button', { name: '取消' }).forEach(button => expect(button).toBeDisabled())
+  expect(uploads).toHaveLength(0)
+  await act(async () => release!())
+  expect(await screen.findByText('Imported')).toBeVisible()
+  expect(input).toBeEnabled()
+  expect(uploads).toHaveLength(1)
+  expect(screen.getByRole('button', { name: '导入选中子表' })).toBeEnabled()
+})
+
 it.each(['before', 'during'])('a GET begun %s a save cannot overwrite the newer PUT response', async race => {
   const stale: TableCollection = { tables: [{ id: 'one', name: 'Existing', enabled: true, rows: [{ src: 'Alpha', dst: 'Old' }] }], active_table_id: 'one' }
   let reads = 0
@@ -101,6 +123,7 @@ it.each(['before', 'during'])('a GET begun %s a save cannot overwrite the newer 
   fireEvent.change(screen.getByRole('textbox', { name: '译文 1' }), { target: { value: 'New' } })
   fireEvent.click(screen.getByRole('button', { name: '保存更改' }))
   await waitFor(() => expect(finishPut).toBeDefined())
+  expect(screen.getByRole('tab', { name: 'Existing' })).toBeDisabled()
   if (race === 'during') await refetch()
   await act(async () => { finishPut!() })
   await screen.findByText('已保存')

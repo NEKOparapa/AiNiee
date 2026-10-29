@@ -1,3 +1,5 @@
+"""Legacy packaging reference; the web application's desktop bundle is pending."""
+
 import os
 import re
 import sys
@@ -21,7 +23,6 @@ cmd = [
     "--collect-all=sklearn",
     "--collect-all=rich",
     "--collect-all=bitstring",
-    "--collect-all=darkdetect",
     "--collect-all=opencc",
     "--collect-all=magika",
     # FileReader/FileOutputer use importlib-based lazy loading; collect their
