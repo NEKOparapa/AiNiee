@@ -1,65 +1,36 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import QObject
-from PyQt5.QtCore import pyqtSignal
+"""The shared event manager used by existing backend services."""
 
-class EventManager(QObject):
+from threading import Lock
 
-    # 单一实例
+from ModuleFolders.Base.EventBus import EventBus, EventHandler
+
+
+class EventManager:
     _singleton = None
+    _singleton_lock = Lock()
 
-    # 自定义信号
-    # 字典类型或者其他复杂对象应该使用 object 作为信号参数类型，这样可以传递任意 Python 对象，包括 dict
-    signal = pyqtSignal(int, object)
-
-    # 事件列表
-    event_callbacks = {}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.signal.connect(self.process_event, Qt.QueuedConnection)
-
-    # 获取单例
-    def get_singleton():
-        if EventManager._singleton == None:
-            EventManager._singleton = EventManager()
-
-        return EventManager._singleton
-
-    # 处理事件
-    def process_event(self, event: int, data: dict):
-        if event in self.event_callbacks:
-            for hanlder in list(self.event_callbacks[event]):
-                try:
-                    hanlder(event, data)
-                except RuntimeError as error:
-                    if self._is_deleted_qobject_error(error):
-                        self.unsubscribe(event, hanlder)
-                        continue
-                    raise
-
-    # 触发事件
-    def emit(self, event: int, data: dict):
-        self.signal.emit(event, data)
-
-    # 订阅事件
-    def subscribe(self, event: int, hanlder: callable):
-        if event not in self.event_callbacks:
-            self.event_callbacks[event] = []
-        self.event_callbacks[event].append(hanlder)
-
-    # 取消订阅事件
-    def unsubscribe(self, event: int, hanlder: callable):
-        if event not in self.event_callbacks:
-            return
-
-        callbacks = self.event_callbacks[event]
-        if hanlder in callbacks:
-            callbacks.remove(hanlder)
-
-        if not callbacks:
-            self.event_callbacks.pop(event, None)
+    def __init__(self) -> None:
+        self._bus = EventBus()
 
     @staticmethod
-    def _is_deleted_qobject_error(error: RuntimeError) -> bool:
-        message = str(error)
-        return "wrapped C/C++ object" in message and "has been deleted" in message
+    def get_singleton() -> "EventManager":
+        with EventManager._singleton_lock:
+            if EventManager._singleton is None:
+                EventManager._singleton = EventManager()
+            return EventManager._singleton
+
+    def process_event(self, event: int, data: dict) -> None:
+        self._bus.emit(event, data)
+
+    def emit(self, event: int, data: dict) -> None:
+        self._bus.emit(event, data)
+
+    def subscribe(self, event: int, hanlder: EventHandler) -> None:
+        self._bus.subscribe(event, hanlder)
+
+    def unsubscribe(self, event: int, hanlder: EventHandler) -> None:
+        self._bus.unsubscribe(event, hanlder)
+
+    @property
+    def event_callbacks(self) -> dict[int, list[EventHandler]]:
+        return self._bus.event_callbacks

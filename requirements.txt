@@ -75,3 +75,6 @@ pyzstd
 rtree
 uharfbuzz>=0.50.2
 scikit-learn>=1.7.1
+
+# Tests
+pytest>=8.4,<9
