@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt, QSize, QTimer
 from PyQt5.QtGui import QColor, QIcon, QPainter, QPixmap
 from PyQt5.QtWidgets import QApplication, QAbstractItemDelegate, QAbstractItemView, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
-    Action, BodyLabel, CaptionLabel, DropDownPushButton, DropDownToolButton, FluentIcon, LineEdit,
+    Action, BodyLabel, CaptionLabel, ComboBox, DropDownPushButton, DropDownToolButton, FluentIcon, LineEdit,
     MessageBox, MessageBoxBase, PushButton, RoundMenu, StrongBodyLabel, SwitchButton, TabBar,
     SubtitleLabel, TabCloseButtonDisplayMode, TransparentToolButton,
 )
@@ -16,6 +16,8 @@ from qfluentwidgets import (
 from ModuleFolders.Config.TableConfigHelper import TableConfigHelper
 from UserInterface.Native.FileDialogProvider import get_open_file_name, get_save_file_name
 from UserInterface.Table.TableHelper.TableHelper import TableHelper
+from UserInterface.Table.TableHelper.PublicTableFileHelper import PublicTableFileHelper
+from UserInterface.Widget.PublicTableCheckDialog import PublicTableCheckDialog
 
 
 class TableNameDialog(MessageBoxBase):
@@ -31,6 +33,34 @@ class TableNameDialog(MessageBoxBase):
         self.cancelButton.setText(translate("取消"))
         self.name_edit.textChanged.connect(lambda text: self.yesButton.setEnabled(bool(text.strip())))
         self.yesButton.setEnabled(bool(value.strip()))
+
+
+class TableTransferDialog(MessageBoxBase):
+    def __init__(self, tables, row_count, translate, parent):
+        super().__init__(parent)
+        self._table_ids = [table["id"] for table in tables]
+        self.viewLayout.addWidget(StrongBodyLabel(translate("转移表格"), self))
+        self.viewLayout.addWidget(BodyLabel(translate("将选中的 {0} 条数据转移到：").format(row_count), self))
+        self.table_combo = ComboBox(self)
+        self.table_combo.setMinimumWidth(360)
+        for table in tables:
+            suffix = "" if table["enabled"] else f" ({translate('已停用')})"
+            self.table_combo.addItem(table["name"] + suffix)
+        self.viewLayout.addWidget(self.table_combo)
+        note = CaptionLabel(translate("目标表中已存在相同原文的条目将保留在当前表。"), self)
+        note.setWordWrap(True)
+        self.viewLayout.addWidget(note)
+        self.yesButton.setText(translate("确认"))
+        self.cancelButton.setText(translate("取消"))
+        self.yesButton.setEnabled(bool(tables))
+
+    @property
+    def table_id(self):
+        index = self.table_combo.currentIndex()
+        return self._table_ids[index] if 0 <= index < len(self._table_ids) else None
+
+    def validate(self):
+        return self.table_id is not None
 
 
 class MultiTablePageMixin:
@@ -169,7 +199,8 @@ class MultiTablePageMixin:
         if self.TABLE_KIND == "prompt_dictionary":
             self.match_settings_action = add_action(FluentIcon.SETTING, "匹配设置", self._open_match_settings_dialog)
         self.table_tools_menu.addSeparator()
-        self.export_action = add_action(FluentIcon.SHARE, "导出", self.export_data)
+        self.export_action = add_action(FluentIcon.SHARE, "导出当前子表", self.export_data)
+        self.export_selected_action = add_action(FluentIcon.SHARE, "选择子表导出…", self.export_selected_tables)
         if self.TABLE_KIND == "prompt_dictionary":
             self.name_extractor_action = add_action(FluentIcon.PEOPLE, "角色提取", self.name_extractor)
             self.glossary_translation_action = add_action(FluentIcon.SEND_FILL, "简单翻译", self.glossary_translation)
@@ -258,6 +289,93 @@ class MultiTablePageMixin:
 
     def prepare_to_leave(self):
         return self._save_current_table()
+
+    def _handle_transfer_selected_rows(self):
+        selected_indices = {index.row() for index in self.table.selectionModel().selectedRows()}
+        source_id = self._active_table_id
+        if not selected_indices or source_id is None:
+            return
+        self._commit_cell_editor()
+        try:
+            tables = TableConfigHelper.get_tables(self.load_config(), self.TABLE_KIND)
+        except Exception as error:
+            self.error_toast(self.tra("转移失败"), str(error))
+            return
+        destinations = [table for table in tables if table["id"] != source_id]
+        if not destinations:
+            self.warning_toast(self.tra("无法转移"), self.tra("当前分类下没有其他表格，无法转移。"))
+            return
+
+        # The loader omits blank source cells. Keep their actual UI indices so
+        # a selection spanning empty rows still moves exactly the selected rows.
+        row_indices = [
+            index for index in range(self.table.rowCount())
+            if self.table.item(index, 0) is not None and self.table.item(index, 0).text().strip()
+        ]
+        editor_rows = list(zip(row_indices, TableHelper.load_from_table(
+            self.table, self.KEYS, self.SWITCH_KEYS, row_indices=row_indices,
+        )))
+        incoming = self._canonical_rows([row for index, row in editor_rows if index in selected_indices])
+        if not incoming:
+            self.warning_toast(self.tra("无法转移"), self.tra("所选行没有可转移的数据。"))
+            return
+        dialog = TableTransferDialog(destinations, len(incoming), self.tra, self.window())
+        if not dialog.exec():
+            return
+        target_id = dialog.table_id
+        if target_id is None or target_id == source_id:
+            return
+        # A glossary translation can complete while the modal dialog is open.
+        # Do not replace its fresh results with the selection's older snapshot.
+        if self._active_table_id != source_id or self._load_table_rows() != [row for _, row in editor_rows]:
+            self.warning_toast(self.tra("无法转移"), self.tra("当前表格内容已更新，请重新选择要转移的行。"))
+            return
+
+        key = self.KEYS[0]
+        moved = []
+        try:
+            def update(config):
+                tables = config[self._table_key]
+                source = next((table for table in tables if table["id"] == source_id), None)
+                target = next((table for table in tables if table["id"] == target_id), None)
+                if source is None or target is None:
+                    raise ValueError(self.tra("源表或目标表已被删除，无法转移。"))
+                existing = {row[key] for row in target["rows"] if row.get(key)}
+                moved.extend(row for row in incoming if row[key] not in existing)
+                if not moved:
+                    return
+                moved_keys = {row[key] for row in moved}
+                stored_rows = {row[key]: row for row in source["rows"] if row.get(key)}
+
+                def with_metadata(row):
+                    return {**copy.deepcopy(stored_rows.get(row[key], {})), **row}
+
+                target["rows"].extend(with_metadata(row) for row in moved)
+                source["rows"] = self._canonical_rows([
+                    with_metadata(row) for index, row in editor_rows
+                    if index not in selected_indices or row[key] not in moved_keys
+                ])
+
+            # Both tables are persisted together. Leave the editor untouched if
+            # the destination disappears or the atomic config write fails.
+            config = self.update_config(update)
+        except Exception as error:
+            self.error_toast(self.tra("转移失败"), str(error))
+            return
+        if not moved:
+            self.info_toast(self.tra("无法转移"), self.tra("目标表已存在所选条目的原文，未转移任何数据。"))
+            return
+        self._tables = TableConfigHelper.get_tables(config, self.TABLE_KIND)
+        self._refresh_tabs()
+        self._display_current_table(force=True)
+        target = next(table for table in self._tables if table["id"] == target_id)
+        skipped = len(incoming) - len(moved)
+        if skipped:
+            self.info_toast("", self.tra("已转移 {0} 条数据到“{1}”，{2} 条同原文数据保留在当前表。").format(
+                len(moved), target["name"], skipped,
+            ))
+        else:
+            self.success_toast("", self.tra("已转移 {0} 条数据到“{1}”。").format(len(moved), target["name"]))
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -536,6 +654,32 @@ class MultiTablePageMixin:
         if not path:
             return
         try:
+            tables = PublicTableFileHelper.load_bundle(path, self.TABLE_KIND, self.KEYS)
+            if tables is not None:
+                candidates = [dict(table, id=f"import-{index}") for index, table in enumerate(tables)]
+                note = (
+                    "每张选中的子表将分别导入为新表，保留表名和设置；同名表会自动重命名。" if as_new else
+                    "所选子表的数据将合并到当前表，已存在的原文不会覆盖。"
+                )
+                dialog = PublicTableCheckDialog(
+                    candidates, self.tra("选择要导入的子表"), self.tra(note), self.tra, self.window(),
+                )
+                if not dialog.exec():
+                    return
+                selected = set(dialog.selected_ids)
+                tables = [table for table in candidates if table["id"] in selected]
+                if not tables:
+                    return
+                if as_new:
+                    if self._create_imported_tables(tables):
+                        self.success_toast("", self.tra("已导入 {0} 张子表。").format(len(tables)))
+                else:
+                    rows = [row for table in tables for row in table["rows"]]
+                    if not self._canonical_rows(rows):
+                        self.warning_toast(self.tra("提示"), self.tra("未从文件中加载到有效数据"))
+                    elif self._merge_current_rows(rows):
+                        self.success_toast("", self.tra("数据已导入并更新"))
+                return
             rows = self._canonical_rows(TableHelper.load_from_file(path, self.KEYS, self.SWITCH_KEYS))
             if not rows:
                 self.warning_toast(self.tra("提示"), self.tra("未从文件中加载到有效数据"))
@@ -547,7 +691,46 @@ class MultiTablePageMixin:
             if saved:
                 self.success_toast("", self.tra("数据已导入并更新"))
         except Exception as error:
-            self.error_toast(self.tra("导入失败"), str(error))
+            self.error_toast(self.tra("导入失败"), self.tra(str(error)))
+
+    def _rows_with_metadata(self, rows, stored_rows):
+        key = self.KEYS[0]
+        by_source = {row[key]: row for row in stored_rows if row.get(key)}
+        return [{**copy.deepcopy(by_source.get(row[key], {})), **row} for row in rows]
+
+    def _create_imported_tables(self, tables):
+        """Save all imported subtables and the current draft in one transaction."""
+        self._commit_cell_editor()
+        source_id = self._active_table_id
+        draft = self._canonical_rows(self._load_table_rows())
+        has_draft = source_id is not None and draft != self._loaded_rows
+        created = [TableConfigHelper.new_table(
+            self.TABLE_KIND, table["name"], self._canonical_rows(table["rows"]),
+            enabled=table["enabled"], match_options=table.get("match_options"),
+        ) for table in tables]
+        if not created:
+            return False
+        try:
+            def update(config):
+                existing = config[self._table_key]
+                if has_draft:
+                    source = next((table for table in existing if table["id"] == source_id), None)
+                    if source is None:
+                        raise ValueError(self.tra("目标表已被删除，无法保存。"))
+                    source["rows"] = self._rows_with_metadata(draft, source["rows"])
+                for table in created:
+                    table["name"] = self._unique_table_name(table["name"], existing)
+                    existing.append(copy.deepcopy(table))
+                config[self._active_key] = created[0]["id"]
+            config = self.update_config(update)
+        except Exception as error:
+            self.error_toast(self.tra("导入失败"), self.tra(str(error)))
+            return False
+        self._active_table_id = created[0]["id"]
+        self._tables = TableConfigHelper.get_tables(config, self.TABLE_KIND)
+        self._refresh_tabs()
+        self._display_current_table(force=True)
+        return True
 
     def _merge_current_rows(self, rows):
         if not self._save_current_table():
@@ -581,30 +764,76 @@ class MultiTablePageMixin:
         current = self._current_table()
         if current is None:
             return
-        self._commit_cell_editor()
-        rows = self._canonical_rows(self._load_table_rows())
-        if not rows:
-            self.warning_toast("", self.tra("表格中没有数据可导出"))
-            return
-        safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", current["name"]).strip(" .") or self.tra("当前表")
-        filename = f"{self.tra('导出')}_{safe_name}"
-        path, selected_filter = get_save_file_name(self, self.tra("导出文件"), filename, "JSON 文件 (*.json);;XLSX 文件 (*.xlsx)")
-        if not path:
-            return
-        if "(*.xlsx)" in selected_filter and not path.lower().endswith(".xlsx"):
-            path += ".xlsx"
-        elif "(*.json)" in selected_filter and not path.lower().endswith(".json"):
-            path += ".json"
+        self._export_table_file([current["id"]], bundle=False)
+
+    def export_selected_tables(self):
         try:
-            if path.lower().endswith(".json"):
+            tables = self._export_tables_snapshot()
+            if not tables:
+                self.warning_toast(self.tra("提示"), self.tra("请先新建或选择一张表。"))
+                return
+            dialog = PublicTableCheckDialog(
+                tables, self.tra("选择要导出的子表"),
+                self.tra("各子表将分别保存，保留表名、启用状态和匹配设置。"),
+                self.tra, self.window(), selected_ids=[self._active_table_id],
+            )
+            if dialog.exec() and dialog.selected_ids:
+                self._export_table_file(dialog.selected_ids, bundle=True)
+        except Exception as error:
+            self.error_toast(self.tra("导出失败"), self.tra(str(error)))
+
+    def _export_tables_snapshot(self):
+        self._commit_cell_editor()
+        tables = TableConfigHelper.get_tables(self.load_config(), self.TABLE_KIND)
+        rows = self._canonical_rows(self._load_table_rows())
+        if rows != self._loaded_rows:
+            current = next((table for table in tables if table["id"] == self._active_table_id), None)
+            if current is not None:
+                current["rows"] = self._rows_with_metadata(rows, current["rows"])
+        return tables
+
+    def _export_table_file(self, table_ids, bundle):
+        try:
+            selected = set(table_ids)
+
+            def snapshot():
+                tables = [table for table in self._export_tables_snapshot() if table["id"] in selected]
+                if len(tables) != len(selected):
+                    raise ValueError(self.tra("部分子表已被删除，请重新选择后导出。"))
+                return tables
+
+            tables = snapshot()
+            if not tables:
+                return
+            if not bundle and not self._canonical_rows(tables[0]["rows"]):
+                self.warning_toast("", self.tra("表格中没有数据可导出"))
+                return
+            name = self.tra(self.TABLE_TITLE) if bundle else tables[0]["name"]
+            safe_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name).strip(" .") or self.tra("当前表")
+            path, selected_filter = get_save_file_name(
+                self, self.tra("导出文件"), f"{self.tra('导出')}_{safe_name}",
+                "JSON 文件 (*.json);;XLSX 文件 (*.xlsx)",
+            )
+            if not path:
+                return
+            if Path(path).suffix.lower() not in (".json", ".xlsx"):
+                path += ".xlsx" if "(*.xlsx)" in selected_filter else ".json"
+            # Read again after both dialogs, so completed background translations
+            # and unsaved edits are included without saving or switching tabs.
+            tables = snapshot()
+            headers = [self._get_translated_column_name(index) for index in range(len(self.KEYS))]
+            rows = self._canonical_rows(tables[0]["rows"])
+            if bundle:
+                PublicTableFileHelper.save_bundle(path, self.TABLE_KIND, tables, self.KEYS, headers)
+            elif path.lower().endswith(".json"):
                 with open(path, "w", encoding="utf-8") as writer:
                     writer.write(json.dumps(rows, indent=4, ensure_ascii=False))
             elif path.lower().endswith(".xlsx"):
                 frame = pandas.DataFrame(rows).reindex(columns=list(self.KEYS), fill_value="")
-                frame.columns = [self._get_translated_column_name(index) for index in range(len(self.KEYS))]
+                frame.columns = headers
                 frame.to_excel(path, index=False)
             else:
                 raise ValueError(self.tra("不支持的文件类型。请选择 .json 或 .xlsx"))
             self.success_toast("", self.tra("数据已导出到") + f": {path}")
         except Exception as error:
-            self.error_toast(self.tra("导出失败"), str(error))
+            self.error_toast(self.tra("导出失败"), self.tra(str(error)))

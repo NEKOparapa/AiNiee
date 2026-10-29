@@ -78,6 +78,7 @@ class PromptDictionaryPage(MultiTablePageMixin, QFrame, ConfigMixin, LogMixin, T
         if has_selection:
             menu.addAction(Action(FluentIcon.ADD_TO, self.tra("插入行"), triggered=self._handle_insert_row))
             menu.addAction(Action(FluentIcon.REMOVE_FROM, self.tra("删除行"), triggered=self._handle_remove_selected_rows))
+            menu.addAction(Action(FluentIcon.MOVE, self.tra("转移表格"), triggered=self._handle_transfer_selected_rows))
             menu.addSeparator()
 
         row_count = self.table.rowCount()

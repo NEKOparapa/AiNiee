@@ -43,12 +43,12 @@ class TableHelper():
         update_search_visibility(page.search_input.text())
 
     # 从表格加载数据
-    def load_from_table(table: TableWidget, keys: list[str], switch_keys=None) -> list[dict]:
+    def load_from_table(table: TableWidget, keys: list[str], switch_keys=None, *, row_indices=None) -> list[dict]:
         switch_keys = set(switch_keys or ())
         result = []
 
         # 遍历每一行
-        for row in range(table.rowCount()):
+        for row in range(table.rowCount()) if row_indices is None else row_indices:
             # 获取当前行所有条目
             data: list[QTableWidgetItem] = [table.item(row, col) for col in range(table.columnCount())]
 
@@ -188,11 +188,11 @@ class TableHelper():
         result = []
 
         # 从 json 文件加载数据
-        if path.endswith(".json"):
+        if str(path).lower().endswith(".json"):
             result = TableHelper.load_from_json_file(path, keys, switch_keys)
 
         # 从 xlsx 文件加载数据
-        if path.endswith(".xlsx"):
+        if str(path).lower().endswith(".xlsx"):
             result = TableHelper.load_from_xlsx_file(path, keys, switch_keys)
 
         return result
@@ -204,7 +204,7 @@ class TableHelper():
 
             # 读取文件
             inputs = []
-            with open(path, "r", encoding = "utf-8") as reader:
+            with open(path, "r", encoding = "utf-8-sig") as reader:
                 inputs = json.load(reader)
 
             # 标准字典列表
@@ -272,26 +272,20 @@ class TableHelper():
         switch_keys = set(switch_keys or ())
         result = []
 
-        sheet = openpyxl.load_workbook(path).active
-        for row in range(2, sheet.max_row + 1): # 跳过标题行，从第二行开始
-            # 读取每一行的数据
-            data: list[str] = [
-                sheet.cell(row = row, column = col).value
-                for col in range(1, len(keys) + 1)
-            ]
-
-            # 检查数据合法性
-            if data[0] == None or str(data[0]).strip() == "":
-                continue
-
-            # 添加数据
-            row_data = {}
-            for i, key in enumerate(keys):
-                value = data[i]
-                if key in switch_keys and isinstance(value, bool):
-                    row_data[key] = value
-                else:
-                    row_data[key] = str(value).strip() if value is not None else ""
-            result.append(row_data)
+        workbook = openpyxl.load_workbook(path)
+        try:
+            sheet = workbook.active
+            for data in sheet.iter_rows(min_row=2, max_col=len(keys), values_only=True):
+                if data[0] is None or str(data[0]).strip() == "":
+                    continue
+                row_data = {}
+                for key, value in zip(keys, data):
+                    if key in switch_keys and isinstance(value, bool):
+                        row_data[key] = value
+                    else:
+                        row_data[key] = str(value).strip() if value is not None else ""
+                result.append(row_data)
+        finally:
+            workbook.close()
 
         return result

@@ -52,6 +52,90 @@
     },
     "导入为新表": {"简中": "导入为新表", "繁中": "匯入為新表", "English": "Import as new table", "日本語": "新しい表としてインポート"},
     "导入到当前表": {"简中": "导入到当前表", "繁中": "匯入至目前表格", "English": "Import into current table", "日本語": "現在の表にインポート"},
+    "导出当前子表": {"简中": "导出当前子表", "繁中": "匯出目前子表", "English": "Export current table", "日本語": "現在の表をエクスポート"},
+    "选择子表导出…": {"简中": "选择子表导出…", "繁中": "選擇子表匯出…", "English": "Choose tables to export…", "日本語": "表を選択してエクスポート…"},
+    "选择要导出的子表": {"简中": "选择要导出的子表", "繁中": "選擇要匯出的子表", "English": "Choose tables to export", "日本語": "エクスポートする表を選択"},
+    "各子表将分别保存，保留表名、启用状态和匹配设置。": {
+      "简中": "各子表将分别保存，保留表名、启用状态和匹配设置。", "繁中": "各子表將分別儲存，保留表名、啟用狀態和比對設定。",
+      "English": "Tables are saved separately, preserving their names, enabled status, and match settings.", "日本語": "各表は個別に保存され、表名、有効・無効、照合設定が保持されます。"
+    },
+    "全选": {"简中": "全选", "繁中": "全選", "English": "Select all", "日本語": "すべて選択"},
+    "取消全选": {"简中": "取消全选", "繁中": "取消全選", "English": "Deselect all", "日本語": "すべての選択を解除"},
+    "已选择 {0} / {1} 张表": {"简中": "已选择 {0} / {1} 张表", "繁中": "已選擇 {0} / {1} 張表", "English": "{0} / {1} tables selected", "日本語": "{1} 個の表のうち {0} 個を選択中"},
+    "{0} 条": {"简中": "{0} 条", "繁中": "{0} 筆", "English": "{0} entries", "日本語": "{0} 件"},
+    "选择要导入的子表": {"简中": "选择要导入的子表", "繁中": "選擇要匯入的子表", "English": "Choose tables to import", "日本語": "インポートする表を選択"},
+    "每张选中的子表将分别导入为新表，保留表名和设置；同名表会自动重命名。": {
+      "简中": "每张选中的子表将分别导入为新表，保留表名和设置；同名表会自动重命名。", "繁中": "每張選取的子表將分別匯入為新表，保留表名和設定；同名表會自動重新命名。",
+      "English": "Each selected table is imported as a new table with its name and settings. Duplicate names are renamed automatically.", "日本語": "選択した各表を、表名と設定を保持して新しい表としてインポートします。同名の表は自動的に名前を変更します。"
+    },
+    "所选子表的数据将合并到当前表，已存在的原文不会覆盖。": {
+      "简中": "所选子表的数据将合并到当前表，已存在的原文不会覆盖。", "繁中": "所選子表的資料將合併至目前表格，已存在的原文不會覆寫。",
+      "English": "Entries from the selected tables are merged into the current table. Existing source entries are not overwritten.", "日本語": "選択した表のデータを現在の表に統合します。同じ原文がすでにある項目は上書きしません。"
+    },
+    "已导入 {0} 张子表。": {"简中": "已导入 {0} 张子表。", "繁中": "已匯入 {0} 張子表。", "English": "Imported {0} tables.", "日本語": "{0} 個の表をインポートしました。"},
+    "部分子表已被删除，请重新选择后导出。": {
+      "简中": "部分子表已被删除，请重新选择后导出。", "繁中": "部分子表已被刪除，請重新選擇後匯出。",
+      "English": "Some tables have been deleted. Select the tables to export again.", "日本語": "一部の表が削除されました。エクスポートする表をもう一度選択してください。"
+    },
+    "表格文件格式无效或已损坏。": {
+      "简中": "表格文件格式无效或已损坏。", "繁中": "表格檔案格式無效或已損毀。",
+      "English": "The table file has an invalid format or is corrupted.", "日本語": "表ファイルの形式が無効か、ファイルが破損しています。"
+    },
+    "不支持的表格文件版本。": {
+      "简中": "不支持的表格文件版本。", "繁中": "不支援的表格檔案版本。",
+      "English": "This table file version is not supported.", "日本語": "この表ファイルのバージョンには対応していません。"
+    },
+    "文件中的表格分类与当前分类不一致。": {
+      "简中": "文件中的表格分类与当前分类不一致。", "繁中": "檔案中的表格分類與目前分類不一致。",
+      "English": "The tables in this file belong to a different category.", "日本語": "ファイル内の表のカテゴリが、現在のカテゴリと一致しません。"
+    },
+    "表格文件中没有可导入的子表。": {
+      "简中": "表格文件中没有可导入的子表。", "繁中": "表格檔案中沒有可匯入的子表。",
+      "English": "The table file contains no tables to import.", "日本語": "表ファイルにインポートできる表がありません。"
+    },
+    "表格文本过长，无法导出为 XLSX，请使用 JSON。": {
+      "简中": "表格文本过长，无法导出为 XLSX，请使用 JSON。", "繁中": "表格文字過長，無法匯出為 XLSX，請使用 JSON。",
+      "English": "The table text is too long to export as XLSX. Use JSON instead.", "日本語": "表のテキストが長すぎるため、XLSX にエクスポートできません。JSON を使用してください。"
+    },
+    "转移表格": {"简中": "转移表格", "繁中": "移轉表格", "English": "Move to table", "日本語": "別の表に移動"},
+    "将选中的 {0} 条数据转移到：": {
+      "简中": "将选中的 {0} 条数据转移到：", "繁中": "將選取的 {0} 筆資料移轉至：",
+      "English": "Move the {0} selected entries to:", "日本語": "選択した {0} 件の移動先："
+    },
+    "目标表中已存在相同原文的条目将保留在当前表。": {
+      "简中": "目标表中已存在相同原文的条目将保留在当前表。", "繁中": "目標表中已存在相同原文的條目將保留在目前表格。",
+      "English": "Entries whose source text already exists in the target table will stay in the current table.", "日本語": "移動先に同じ原文がある項目は、現在の表に残ります。"
+    },
+    "无法转移": {"简中": "无法转移", "繁中": "無法移轉", "English": "Cannot move entries", "日本語": "移動できません"},
+    "当前表格内容已更新，请重新选择要转移的行。": {
+      "简中": "当前表格内容已更新，请重新选择要转移的行。", "繁中": "目前表格內容已更新，請重新選取要移轉的列。",
+      "English": "The current table has changed. Please select the rows to move again.", "日本語": "現在の表が更新されました。移動する行をもう一度選択してください。"
+    },
+    "当前分类下没有其他表格，无法转移。": {
+      "简中": "当前分类下没有其他表格，无法转移。", "繁中": "目前分類下沒有其他表格，無法移轉。",
+      "English": "There are no other tables in this category to move entries to.", "日本語": "このカテゴリに他の表がないため、移動できません。"
+    },
+    "所选行没有可转移的数据。": {
+      "简中": "所选行没有可转移的数据。", "繁中": "選取的列沒有可移轉的資料。",
+      "English": "The selected rows contain no entries to move.", "日本語": "選択した行に移動できるデータがありません。"
+    },
+    "转移失败": {"简中": "转移失败", "繁中": "移轉失敗", "English": "Move failed", "日本語": "移動に失敗しました"},
+    "源表或目标表已被删除，无法转移。": {
+      "简中": "源表或目标表已被删除，无法转移。", "繁中": "來源表或目標表已被刪除，無法移轉。",
+      "English": "The source or target table was deleted. Entries could not be moved.", "日本語": "移動元または移動先の表が削除されたため、移動できません。"
+    },
+    "已转移 {0} 条数据到“{1}”。": {
+      "简中": "已转移 {0} 条数据到“{1}”。", "繁中": "已將 {0} 筆資料移轉至「{1}」。",
+      "English": "Moved {0} entries to “{1}”.", "日本語": "{0} 件を「{1}」に移動しました。"
+    },
+    "已转移 {0} 条数据到“{1}”，{2} 条同原文数据保留在当前表。": {
+      "简中": "已转移 {0} 条数据到“{1}”，{2} 条同原文数据保留在当前表。", "繁中": "已將 {0} 筆資料移轉至「{1}」，{2} 筆相同原文的資料保留在目前表格。",
+      "English": "Moved {0} entries to “{1}”. Kept {2} entries in the current table because their source text already exists in the target table.", "日本語": "{0} 件を「{1}」に移動しました。移動先に同じ原文がある {2} 件は、現在の表に残しました。"
+    },
+    "目标表已存在所选条目的原文，未转移任何数据。": {
+      "简中": "目标表已存在所选条目的原文，未转移任何数据。", "繁中": "目標表已存在所選條目的原文，未移轉任何資料。",
+      "English": "The target table already contains the source text of all selected entries. No entries were moved.", "日本語": "選択した項目の原文はすべて移動先に存在するため、データは移動されませんでした。"
+    },
     "选择目标表": {"简中": "选择目标表", "繁中": "選擇目標表", "English": "Select target table", "日本語": "保存先の表を選択"},
     "新增条目只写入所选表，不改变该表的启用状态。": {
       "简中": "新增条目只写入所选表，不改变该表的启用状态。", "繁中": "新增條目只寫入所選表，不改變該表的啟用狀態。",
