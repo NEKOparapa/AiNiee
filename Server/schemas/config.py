@@ -31,6 +31,7 @@ class ResponseCheckSettings(JsonObjectModel):
 class ConfigDocument(JsonObjectModel):
     """Effective settings view, with defaults filled by ConfigService."""
 
+    translation_project: str
     lines_limit_switch: bool
     tokens_limit_switch: bool
     lines_limit: SettingInteger

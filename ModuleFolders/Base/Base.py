@@ -18,6 +18,10 @@ class Event:
 
     CACHE_FILE_AUTO_SAVE = 300                      # 缓存文件自动保存
 
+    PROJECT_CHANGED = 400                           # 当前项目已切换
+    PROJECT_HISTORY_CHANGED = 401                   # 项目缓存历史已变更
+    PLATFORMS_CHANGED = 410                         # 平台配置或角色绑定已变更
+
     APP_UPDATE_CHECK: int = 600                     # 检查更新
     APP_UPDATE_CHECK_DONE: int = 610                # 检查更新完成
     APP_UPDATE_DOWNLOAD: int = 620                  # 下载应用

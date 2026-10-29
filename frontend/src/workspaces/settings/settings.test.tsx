@@ -15,6 +15,7 @@ import { enSettings, zhSettings } from './translations'
 
 function configFixture(overrides: Partial<ApiConfig> = {}): ApiConfig {
   return {
+    translation_project: 'AutoType',
     lines_limit_switch: false, tokens_limit_switch: true, lines_limit: 10,
     tokens_limit: 1024, user_thread_counts: 0, request_timeout: 120, round_limit: 10,
     label_output_path: 'D:/custom/output', label_polish_output_path: 'D:/custom/polish',

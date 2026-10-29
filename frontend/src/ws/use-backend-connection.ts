@@ -4,6 +4,8 @@ import { ApiError } from '@/api/client'
 import { configQueryOptions } from '@/api/config'
 import { queryKeys } from '@/api/query-client'
 import { taskQueryOptions } from '@/api/tasks'
+import { projectKeys } from '@/api/projects'
+import { platformQueryKey } from '@/api/platforms'
 import { useBackendStore } from '@/stores/backend'
 import { useConnectionStore, type ConnectionDetails } from '@/stores/connection'
 import { useUiContextStore } from '@/stores/ui-context'
@@ -34,6 +36,8 @@ export function startBackendConnection(
   const refreshSnapshots = () => {
     void client.fetchQuery({ ...configQueryOptions(revision), staleTime: 0 }).catch(handleFailure)
     refreshTask()
+    void client.invalidateQueries({ queryKey: projectKeys.all(revision) })
+    void client.invalidateQueries({ queryKey: platformQueryKey(revision) })
   }
 
   const socket = new BackendSocket(connection, {
@@ -49,6 +53,15 @@ export function startBackendConnection(
       if (!current()) return
       applyMessage(message)
       if (needsTaskRefresh(message)) refreshTask()
+      if (message.type === 'project.changed' || message.type === 'project.history.changed') {
+        void client.invalidateQueries({ queryKey: projectKeys.all(revision) })
+        void client.invalidateQueries({ queryKey: queryKeys.config(revision) })
+        if (message.type === 'project.changed') refreshTask()
+      }
+      if (message.type === 'platforms.changed') {
+        void client.invalidateQueries({ queryKey: platformQueryKey(revision) })
+        void client.invalidateQueries({ queryKey: queryKeys.config(revision) })
+      }
     },
   }, socketFactory)
 

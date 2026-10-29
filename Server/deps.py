@@ -10,6 +10,8 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from ModuleFolders.Application.ConfigService import ConfigService
+from ModuleFolders.Application.PlatformService import PlatformService
+from ModuleFolders.Application.ProjectService import ProjectService
 from ModuleFolders.Application.SystemService import SystemService
 from ModuleFolders.Application.TaskService import TaskService
 from ModuleFolders.Application.UpdateService import UpdateService
@@ -106,3 +108,12 @@ def get_update_service(request: Request) -> UpdateService:
 
 def get_task_service(request: Request) -> TaskService:
     return TaskService(request.app.state.runtime.cache_manager)
+
+
+def get_platform_service(request: Request) -> PlatformService:
+    return PlatformService()
+
+
+def get_project_service(request: Request) -> ProjectService:
+    runtime = request.app.state.runtime
+    return ProjectService(runtime.cache_manager, runtime.file_reader)

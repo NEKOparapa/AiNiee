@@ -6,6 +6,7 @@ from ModuleFolders.Config.FilePathConfig import default_output_dir, default_poli
 
 
 SETTING_DEFAULTS = {
+    "translation_project": "AutoType",
     "lines_limit_switch": False,
     "tokens_limit_switch": True,
     "lines_limit": 10,

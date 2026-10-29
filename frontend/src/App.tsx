@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Bot, ChevronRight, Folder, Menu, PanelLeftClose, PlugZap, Search, X } from 'lucide-react'
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -16,9 +16,13 @@ import { HomePage } from '@/workspaces/HomePage'
 import { PlaceholderPage } from '@/workspaces/PlaceholderPage'
 import { AppearancePage } from '@/workspaces/AppearancePage'
 import { AboutPage } from '@/workspaces/AboutPage'
+import { PageState } from '@/components/common/PageState'
 import { LogContent, LogsPage } from '@/workspaces/LogsPage'
 import { TaskSettingsPage, OutputSettingsPage, AdvancedSettingsPage } from '@/workspaces/settings'
 import { workspaces, workspaceGroups, workspaceForPath, type WorkspaceEntry } from '@/workspaces/registry'
+
+const PlatformsPage = lazy(() => import('@/workspaces/platforms').then(module => ({ default: module.PlatformsPage })))
+const OverviewPage = lazy(() => import('@/workspaces/projects/OverviewPage').then(module => ({ default: module.OverviewPage })))
 
 export function App() {
   const { t } = useTranslation()
@@ -60,6 +64,8 @@ export function App() {
   const renderWorkspace = (item: WorkspaceEntry) => {
     switch (item.kind) {
       case 'home': return <HomePage/>
+      case 'platforms': return <Suspense fallback={<PageState/>}><PlatformsPage/></Suspense>
+      case 'overview': return <Suspense fallback={<PageState/>}><OverviewPage/></Suspense>
       case 'task': return <TaskSettingsPage/>
       case 'output': return <OutputSettingsPage/>
       case 'advanced': return <AdvancedSettingsPage/>

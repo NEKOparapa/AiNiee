@@ -1,0 +1,56 @@
+import i18n from '@/i18n'
+
+const zh = {
+  title: '从这里，开启翻译', intro: '打开本机项目，继续上次进度，让每一句表达都恰到好处。', platformLink: '管理模型接口', defaultDirectory: '默认位置',
+  eyebrow: 'AI · TRANSLATION WORKSPACE', openTitle: '打开项目', openDetail: '选择包含原文的文件夹，或输入文件路径。项目会保存在本机缓存中。',
+  type: '项目类型', autoType: '自动识别', path: '项目路径', pathPlaceholder: '输入文件或文件夹的完整路径', browse: '浏览文件夹', open: '打开项目', opening: '正在读取项目…',
+  dropHint: '可将完整路径拖入此处；浏览器无法读取文件夹路径时，请使用目录浏览。', dropUnavailable: '浏览器没有提供完整路径。请点击“浏览文件夹”选择项目位置。',
+  historyTitle: '最近的项目', historyDetail: '从缓存继续，保留已完成的翻译与修改。', historyNoStats: '暂无任务统计', notStarted: '尚未开始', noHistory: '还没有项目记录', noHistoryDetail: '打开第一个项目后，你可以随时从这里继续。',
+  continue: '继续项目', viewProject: '查看项目', deleteCurrentHint: '请先打开其他项目，再删除当前缓存。', remove: '删除缓存', historyProgress: '{{done}} / {{total}} 条', complete: '已完成', pending: '进行中', current: '当前项目',
+  deleteTitle: '删除项目缓存？', deleteDetail: '将永久删除“{{name}}”的缓存和翻译进度，原始文件不会被删除。此操作无法撤销。', deleting: '正在删除…', cancel: '取消',
+  directoryTitle: '选择项目文件夹', directoryDetail: '浏览本机目录，选择包含待翻译文件的文件夹。', location: '当前位置', go: '前往', parent: '上一级', roots: '磁盘', choose: '选择此文件夹', emptyDirectory: '此目录下没有子文件夹', close: '关闭',
+  overview: '项目概览', overviewDetail: '查看项目结构、文本数量与已保存的进度。', noProject: '尚未打开项目', noProjectDetail: '先打开原文文件夹，或从历史记录继续已有项目。', toHome: '前往首页', changeProject: '打开其他项目',
+  files: '文件', items: '条目', translated: '已翻译', polished: '已润色', untranslated: '待翻译', excluded: '已排除', questionable: '需关注', other: '其他状态',
+  progress: '已完成进度', progressDetail: '翻译和润色条目 / 全部条目', tree: '项目文件', searchFiles: '筛选文件', noFiles: '没有匹配的文件', fileDetails: '文件详情', pickFile: '选择左侧文件查看详情',
+  encoding: '编码', projectType: '格式', sourcePath: '原文位置', created: '创建时间', language: '语言分布', languageEmpty: '暂无语言统计', tokens: '已用 Token', requests: '请求次数', elapsed: '用时（秒）',
+  loading: '正在加载…', retry: '重试', fileCount: '{{count}} 个文件', itemCount: '{{count}} 条',
+  errors: {
+    fallback: '操作未完成，请检查路径或服务连接后重试。', operation_busy: '有任务正在运行，请等待任务结束后再操作。',
+    project_not_found: '尚未打开项目。', no_project: '尚未打开项目。', path_not_found: '路径不存在，请检查后重试。', invalid_path: '路径无效，请输入完整的本机路径。',
+    project_empty: '未读取到文本，请检查文件夹与项目类型。', empty_project: '未读取到文本，请检查文件夹与项目类型。', project_read_failed: '项目读取失败，请检查文件与格式。',
+    project_load_failed: '项目读取失败，请检查文件与格式。', unsupported_project_type: '此项目格式不可用，请选择其他格式。',
+    history_not_found: '此项目缓存已不存在。', cache_not_found: '此项目缓存已不存在。', invalid_project_id: '项目标识无效。',
+    cannot_delete_current_project: '请先打开其他项目，再删除当前项目的缓存。', current_project_cache: '请先打开其他项目，再删除当前项目的缓存。',
+    directory_read_failed: '无法读取此目录，请检查权限。', path_not_directory: '请选择文件夹。', not_a_directory: '请选择文件夹。',
+    project_save_failed: '项目缓存保存失败，请检查磁盘空间与目录权限。', project_history_unreadable: '无法读取项目历史，请检查缓存目录权限。', 'connection.unauthorized': '连接凭据无效，请重新连接。',
+    project_type_unsupported: '此项目格式不可用，请选择其他格式。', project_path_unreadable: '无法读取此路径，请检查访问权限。', project_path_invalid: '路径无效，请输入完整的本机路径。', project_path_not_found: '路径不存在，请检查后重试。', project_not_open: '尚未打开项目。', project_cache_invalid: '项目缓存无效，无法恢复。', project_history_current: '请先打开其他项目，再删除当前缓存。', project_history_not_found: '此项目缓存已不存在。', project_history_delete_failed: '删除缓存失败，请检查目录权限。', project_history_failed: '读取项目历史失败，请重试。',
+  },
+}
+const en = {
+  title: 'Make room for every word', intro: 'Open a local project or pick up your saved progress.', platformLink: 'Manage model connections', defaultDirectory: 'Default location',
+  eyebrow: 'AI · TRANSLATION WORKSPACE', openTitle: 'Open a project', openDetail: 'Choose a folder containing source files, or enter a file path. Progress is cached locally.',
+  type: 'Project format', autoType: 'Detect automatically', path: 'Project path', pathPlaceholder: 'Enter a full file or folder path', browse: 'Browse folders', open: 'Open project', opening: 'Reading project…',
+  dropHint: 'Drop a full path here, or use the folder browser when your browser cannot read it.', dropUnavailable: 'Your browser did not provide the full path. Use “Browse folders” to select the project.',
+  historyTitle: 'Recent projects', historyDetail: 'Resume cached translations and edits.', historyNoStats: 'No task statistics yet', notStarted: 'Not started', noHistory: 'No projects yet', noHistoryDetail: 'Open your first project to continue it here later.',
+  continue: 'Resume project', viewProject: 'View project', deleteCurrentHint: 'Open another project before deleting this cache.', remove: 'Delete cache', historyProgress: '{{done}} / {{total}} items', complete: 'Complete', pending: 'In progress', current: 'Current project',
+  deleteTitle: 'Delete project cache?', deleteDetail: 'This permanently deletes the cache and translation progress for “{{name}}”. Source files are kept. This cannot be undone.', deleting: 'Deleting…', cancel: 'Cancel',
+  directoryTitle: 'Choose a project folder', directoryDetail: 'Browse local folders and select the one containing your source files.', location: 'Current location', go: 'Go', parent: 'Parent folder', roots: 'Drives', choose: 'Choose this folder', emptyDirectory: 'No subfolders in this directory', close: 'Close',
+  overview: 'Project overview', overviewDetail: 'Explore files, item counts, and saved progress.', noProject: 'No project is open', noProjectDetail: 'Open source files or resume a project from history.', toHome: 'Go to home', changeProject: 'Open another project',
+  files: 'Files', items: 'Items', translated: 'Translated', polished: 'Polished', untranslated: 'Untranslated', excluded: 'Excluded', questionable: 'Flagged', other: 'Other status',
+  progress: 'Completed progress', progressDetail: 'Translated and polished items / all items', tree: 'Project files', searchFiles: 'Filter files', noFiles: 'No matching files', fileDetails: 'File details', pickFile: 'Select a file to see its details',
+  encoding: 'Encoding', projectType: 'Format', sourcePath: 'Source location', created: 'Created', language: 'Language distribution', languageEmpty: 'No language statistics', tokens: 'Tokens used', requests: 'Requests', elapsed: 'Elapsed (seconds)',
+  loading: 'Loading…', retry: 'Retry', fileCount: '{{count}} files', itemCount: '{{count}} items',
+  errors: {
+    fallback: 'The operation failed. Check the path or connection and try again.', operation_busy: 'Wait for the current task to finish before continuing.',
+    project_not_found: 'No project is open.', no_project: 'No project is open.', path_not_found: 'This path does not exist.', invalid_path: 'Enter a valid full local path.',
+    project_empty: 'No text was found. Check the folder and project format.', empty_project: 'No text was found. Check the folder and project format.', project_read_failed: 'Unable to read this project. Check the source files and format.',
+    project_load_failed: 'Unable to read this project. Check the source files and format.', unsupported_project_type: 'This project format is unavailable.',
+    history_not_found: 'The cached project no longer exists.', cache_not_found: 'The cached project no longer exists.', invalid_project_id: 'The project identifier is invalid.',
+    cannot_delete_current_project: 'Open another project before deleting the current cache.', current_project_cache: 'Open another project before deleting the current cache.',
+    directory_read_failed: 'Unable to read this directory. Check its permissions.', path_not_directory: 'Choose a folder.', not_a_directory: 'Choose a folder.',
+    project_save_failed: 'Unable to save the project cache. Check disk space and folder permissions.', project_history_unreadable: 'Unable to read project history. Check cache directory permissions.', 'connection.unauthorized': 'The credentials are invalid. Reconnect to the service.',
+    project_type_unsupported: 'This project format is unavailable.', project_path_unreadable: 'Unable to read this path. Check access permissions.', project_path_invalid: 'Enter a valid full local path.', project_path_not_found: 'This path does not exist.', project_not_open: 'No project is open.', project_cache_invalid: 'This project cache is invalid and cannot be restored.', project_history_current: 'Open another project before deleting this cache.', project_history_not_found: 'This project cache no longer exists.', project_history_delete_failed: 'Unable to delete the cache. Check folder permissions.', project_history_failed: 'Unable to read project history. Try again.',
+  },
+}
+i18n.addResourceBundle('zh-CN', 'projects', zh, true, true)
+i18n.addResourceBundle('en', 'projects', en, true, true)

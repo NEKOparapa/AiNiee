@@ -8,12 +8,14 @@ import sys
 import threading
 import time
 from collections import deque
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Optional
 
 from ModuleFolders.Config.FilePathConfig import user_log_dir
 
-__all__ = ("install", "redact", "get_gui_handler")
+__all__ = ("install", "redact", "get_gui_handler", "sensitive_values")
 
 
 HANDLER_NAME = "ainiee_file"
@@ -69,6 +71,22 @@ _EXC_FORMATTER = logging.Formatter()
 # 用 counter 而非 bool 以正确处理 reentrant 调用（嵌套 rich.print 时内层 finally
 # 不会过早清零外层的标记）。
 _in_log_mixin = threading.local()
+_sensitive_values: ContextVar[tuple[str, ...]] = ContextVar("ainiee_sensitive_values", default=())
+
+
+@contextmanager
+def sensitive_values(values):
+    """Redact exact provider credentials only within the current operation.
+
+    A context variable prevents simultaneous threads from changing each other's
+    rules. Existing console, file and WebSocket paths all call ``redact``.
+    """
+    secrets = tuple(value for value in values if isinstance(value, str) and value)
+    token = _sensitive_values.set(tuple(sorted(set((*_sensitive_values.get(), *secrets)), key=len, reverse=True)))
+    try:
+        yield
+    finally:
+        _sensitive_values.reset(token)
 
 
 def _in_log_mixin_active() -> bool:
@@ -97,6 +115,8 @@ def redact(text):
     """脱敏文本中常见的 API key / token / 上下文敏感字段。非 str 入参原样返回。"""
     if not isinstance(text, str):
         return text
+    for secret in _sensitive_values.get():
+        text = text.replace(secret, REDACTED)
     for pat, repl in _API_KEY_PATTERNS:
         text = pat.sub(repl, text)
     text = _AUTH_VALUE_PATTERN.sub(lambda m: f"{m.group(1)}{m.group(2)}{REDACTED}", text)

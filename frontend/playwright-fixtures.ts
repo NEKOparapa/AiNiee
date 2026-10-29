@@ -31,13 +31,13 @@ export class BackendProcess {
   private output = ''
   port = 0
 
-  private constructor(readonly directory: string) {}
+  private constructor(readonly directory: string, private readonly mockProviders: boolean) {}
 
-  static async create() {
+  static async create(mockProviders = false) {
     const directory = await mkdtemp(join(tmpdir(), directoryPrefix))
     await mkdir(join(directory, 'data'))
     await writeFile(join(directory, 'data', 'config.json'), '{}', 'utf8')
-    return new BackendProcess(directory)
+    return new BackendProcess(directory, mockProviders)
   }
 
   get origin() { return `http://127.0.0.1:${this.port}` }
@@ -63,7 +63,8 @@ export class BackendProcess {
       AINIEE_DOWNLOADS_DIR: join(this.directory, 'downloads'),
       AINIEE_DOCUMENTS_DIR: join(this.directory, 'documents'),
     }
-    const child = spawn(python, [join(root, 'AiNiee.py'), '--port', String(port), '--token', testToken], {
+    const entry = this.mockProviders ? join(root, 'tests', 'e2e', 'backend_fixture.py') : join(root, 'AiNiee.py')
+    const child = spawn(python, [entry, '--port', String(port), '--token', testToken], {
       cwd: root, env, windowsHide: true, stdio: 'pipe',
     })
     this.child = child
@@ -144,9 +145,10 @@ export class BackendProcess {
   }
 }
 
-export const test = base.extend<{ backend: BackendProcess }>({
-  backend: async ({}, use) => {
-    const backend = await BackendProcess.create()
+export const test = base.extend<{ backend: BackendProcess; mockProviders: boolean }>({
+  mockProviders: [false, { option: true }],
+  backend: async ({ mockProviders }, use) => {
+    const backend = await BackendProcess.create(mockProviders)
     try {
       await backend.start()
       await use(backend)

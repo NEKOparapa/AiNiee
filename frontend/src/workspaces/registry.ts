@@ -1,15 +1,15 @@
 import { BookOpen, BookText, Braces, CheckCheck, CircleHelp, FileOutput, FileText, FolderTree, Home, Languages, ListFilter, MessagesSquare, Palette, PencilLine, ScanText, Settings2, SlidersHorizontal, Sparkles, Table2, Terminal, TextCursorInput, TextQuote, Users, WandSparkles, Workflow } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-export type WorkspaceKind = 'home' | 'task' | 'output' | 'advanced' | 'appearance' | 'logs' | 'about' | 'placeholder'
+export type WorkspaceKind = 'home' | 'platforms' | 'overview' | 'task' | 'output' | 'advanced' | 'appearance' | 'logs' | 'about' | 'placeholder'
 export type WorkspaceGroup = 'start' | 'project' | 'settings' | 'prompts' | 'tables' | 'bottom'
 export interface WorkspaceEntry { id: string; path: string; label: string; group: WorkspaceGroup; icon: LucideIcon; kind: WorkspaceKind }
 
 export const workspaceGroups: WorkspaceGroup[] = ['start', 'project', 'settings', 'prompts', 'tables']
 export const workspaces: WorkspaceEntry[] = [
   { id: 'home', path: '/', label: 'home', group: 'start', icon: Home, kind: 'home' },
-  { id: 'platforms', path: '/platforms', label: 'platforms', group: 'start', icon: Workflow, kind: 'placeholder' },
-  { id: 'overview', path: '/project', label: 'overview', group: 'project', icon: FolderTree, kind: 'placeholder' },
+  { id: 'platforms', path: '/platforms', label: 'platforms', group: 'start', icon: Workflow, kind: 'platforms' },
+  { id: 'overview', path: '/project', label: 'overview', group: 'project', icon: FolderTree, kind: 'overview' },
   { id: 'items', path: '/items', label: 'items', group: 'project', icon: Table2, kind: 'placeholder' },
   { id: 'checks', path: '/checks', label: 'checks', group: 'project', icon: CheckCheck, kind: 'placeholder' },
   { id: 'export', path: '/export', label: 'export', group: 'project', icon: FileOutput, kind: 'placeholder' },

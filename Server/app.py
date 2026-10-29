@@ -13,13 +13,15 @@ from starlette.responses import JSONResponse
 
 from ModuleFolders.Application.Bootstrap import ApplicationRuntime, bootstrap
 from ModuleFolders.Application.ConfigService import ConfigService
+from ModuleFolders.Application.Errors import ApplicationError
 from ModuleFolders.Application.SystemService import ShutdownUnavailableError, SystemService
 from ModuleFolders.Application.UpdateService import UpdateCheckError, UpdateService
 from ModuleFolders.Base.EventManager import EventManager
 from Server.deps import TokenAuthMiddleware
 from Server.event_bridge import EventBridge
-from Server.routers import config, system, tasks
+from Server.routers import config, platforms, projects, system, tasks
 from Server.schemas.events import WebSocketMessage
+from Server.schemas.system import ErrorResponse
 from Server.ws import router as websocket_router
 
 
@@ -58,6 +60,7 @@ def create_app(
     app = FastAPI(
         title="AiNiee API", version=SystemService().get_version()["version"],
         lifespan=lifespan, docs_url=None, redoc_url=None,
+        responses={status: {"model": ErrorResponse} for status in (400, 404, 409, 502)},
         middleware=[
             Middleware(TokenAuthMiddleware, token=token, allowed_origins=origins),
             Middleware(
@@ -73,7 +76,13 @@ def create_app(
     app.include_router(system.router, prefix="/api/v1")
     app.include_router(config.router, prefix="/api/v1")
     app.include_router(tasks.router, prefix="/api/v1")
+    app.include_router(platforms.router, prefix="/api/v1")
+    app.include_router(projects.router, prefix="/api/v1")
     app.include_router(websocket_router, prefix="/api/v1")
+
+    @app.exception_handler(ApplicationError)
+    async def application_error(request: Request, error: ApplicationError):
+        return JSONResponse({"detail": error.code}, status_code=error.status_code)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, error: RequestValidationError):
