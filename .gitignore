@@ -26,3 +26,9 @@ PluginScripts/IOPlugins/*
 .DS_Store
 bilingual_auto/
 downloads/
+frontend/node_modules/
+frontend/playwright-report/
+frontend/test-results/
+frontend/.vite/
+frontend/.preview/
+/test-results/

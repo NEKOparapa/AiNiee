@@ -22,4 +22,4 @@ def get_config(service: Service):
 
 @router.patch("/config", response_model=ConfigDocument, operation_id="patch_config")
 def patch_config(changes: ConfigPatch, service: Service):
-    return service.patch_config(changes.root)
+    return service.patch_config(changes.model_dump(exclude_unset=True))

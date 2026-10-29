@@ -29,7 +29,7 @@ class TaskProgress(BaseModel):
 
 class TaskUpdateMessage(BaseModel):
     seq: int = Field(ge=1)
-    type: Literal["task.update"] = "task.update"
+    type: Literal["task.update"]
     ts: float
     data: TaskProgress
 
@@ -47,7 +47,7 @@ class LogBatch(BaseModel):
 
 class LogMessage(BaseModel):
     seq: int = Field(ge=1)
-    type: Literal["log"] = "log"
+    type: Literal["log"]
     ts: float
     data: LogBatch
 

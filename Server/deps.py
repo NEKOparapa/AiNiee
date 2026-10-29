@@ -11,6 +11,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from ModuleFolders.Application.ConfigService import ConfigService
 from ModuleFolders.Application.SystemService import SystemService
+from ModuleFolders.Application.TaskService import TaskService
 from ModuleFolders.Application.UpdateService import UpdateService
 
 
@@ -101,3 +102,7 @@ def get_system_service(request: Request) -> SystemService:
 
 def get_update_service(request: Request) -> UpdateService:
     return request.app.state.update_service
+
+
+def get_task_service(request: Request) -> TaskService:
+    return TaskService(request.app.state.runtime.cache_manager)

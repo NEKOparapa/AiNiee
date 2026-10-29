@@ -5,7 +5,224 @@
         "additionalProperties": {
           "$ref": "#/components/schemas/JsonValue"
         },
-        "description": "Existing config.json object, including preserved extension keys.",
+        "description": "Effective settings view, with defaults filled by ConfigService.",
+        "properties": {
+          "accent_color": {
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Accent Color",
+            "type": "string"
+          },
+          "auto_extract_non_translate_switch": {
+            "title": "Auto Extract Non Translate Switch",
+            "type": "boolean"
+          },
+          "auto_process_text_code_segment": {
+            "title": "Auto Process Text Code Segment",
+            "type": "boolean"
+          },
+          "auto_set_output_path": {
+            "title": "Auto Set Output Path",
+            "type": "boolean"
+          },
+          "bilingual_text_order": {
+            "enum": [
+              "source_first",
+              "translation_first",
+              "original_first"
+            ],
+            "title": "Bilingual Text Order",
+            "type": "string"
+          },
+          "code_filter_switch": {
+            "title": "Code Filter Switch",
+            "type": "boolean"
+          },
+          "extract_short_name_merge_switch": {
+            "title": "Extract Short Name Merge Switch",
+            "type": "boolean"
+          },
+          "extract_task_token_limit": {
+            "maximum": 9999999.0,
+            "minimum": 1.0,
+            "title": "Extract Task Token Limit",
+            "type": "integer"
+          },
+          "few_shot_and_example_switch": {
+            "title": "Few Shot And Example Switch",
+            "type": "boolean"
+          },
+          "interface_language_setting": {
+            "title": "Interface Language Setting",
+            "type": "string"
+          },
+          "keep_original_encoding": {
+            "title": "Keep Original Encoding",
+            "type": "boolean"
+          },
+          "label_input_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Input Path"
+          },
+          "label_output_path": {
+            "title": "Label Output Path",
+            "type": "string"
+          },
+          "label_polish_output_path": {
+            "title": "Label Polish Output Path",
+            "type": "string"
+          },
+          "language_filter_switch": {
+            "title": "Language Filter Switch",
+            "type": "boolean"
+          },
+          "lines_limit": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Lines Limit",
+            "type": "integer"
+          },
+          "lines_limit_switch": {
+            "title": "Lines Limit Switch",
+            "type": "boolean"
+          },
+          "opencc_preset": {
+            "enum": [
+              "s2t",
+              "s2tw",
+              "s2hk",
+              "s2twp",
+              "t2s",
+              "t2tw",
+              "t2hk",
+              "t2jp",
+              "tw2s",
+              "tw2t",
+              "tw2sp",
+              "hk2s",
+              "hk2t",
+              "jp2t"
+            ],
+            "title": "Opencc Preset",
+            "type": "string"
+          },
+          "output_filename_suffix": {
+            "title": "Output Filename Suffix",
+            "type": "string"
+          },
+          "polishing_pre_line_counts": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Polishing Pre Line Counts",
+            "type": "integer"
+          },
+          "pre_line_counts": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Pre Line Counts",
+            "type": "integer"
+          },
+          "request_timeout": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Request Timeout",
+            "type": "integer"
+          },
+          "response_check_switch": {
+            "$ref": "#/components/schemas/ResponseCheckSettings"
+          },
+          "response_conversion_toggle": {
+            "title": "Response Conversion Toggle",
+            "type": "boolean"
+          },
+          "round_limit": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Round Limit",
+            "type": "integer"
+          },
+          "source_language": {
+            "title": "Source Language",
+            "type": "string"
+          },
+          "target_language": {
+            "title": "Target Language",
+            "type": "string"
+          },
+          "text_symbol_repair_switch": {
+            "title": "Text Symbol Repair Switch",
+            "type": "boolean"
+          },
+          "theme": {
+            "enum": [
+              "auto",
+              "light",
+              "dark"
+            ],
+            "title": "Theme",
+            "type": "string"
+          },
+          "tokens_limit": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Tokens Limit",
+            "type": "integer"
+          },
+          "tokens_limit_switch": {
+            "title": "Tokens Limit Switch",
+            "type": "boolean"
+          },
+          "translation_result_check_switch": {
+            "title": "Translation Result Check Switch",
+            "type": "boolean"
+          },
+          "user_thread_counts": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "User Thread Counts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lines_limit_switch",
+          "tokens_limit_switch",
+          "lines_limit",
+          "tokens_limit",
+          "user_thread_counts",
+          "request_timeout",
+          "round_limit",
+          "label_output_path",
+          "label_polish_output_path",
+          "auto_set_output_path",
+          "output_filename_suffix",
+          "bilingual_text_order",
+          "translation_result_check_switch",
+          "response_conversion_toggle",
+          "opencc_preset",
+          "keep_original_encoding",
+          "extract_task_token_limit",
+          "auto_extract_non_translate_switch",
+          "extract_short_name_merge_switch",
+          "source_language",
+          "target_language",
+          "language_filter_switch",
+          "code_filter_switch",
+          "pre_line_counts",
+          "few_shot_and_example_switch",
+          "auto_process_text_code_segment",
+          "text_symbol_repair_switch",
+          "response_check_switch",
+          "polishing_pre_line_counts",
+          "theme",
+          "accent_color",
+          "interface_language_setting"
+        ],
         "title": "ConfigDocument",
         "type": "object"
       },
@@ -14,6 +231,189 @@
           "$ref": "#/components/schemas/JsonValue"
         },
         "description": "Provided top-level keys replace their values; omitted keys are preserved.",
+        "properties": {
+          "accent_color": {
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "title": "Accent Color",
+            "type": "string"
+          },
+          "auto_extract_non_translate_switch": {
+            "title": "Auto Extract Non Translate Switch",
+            "type": "boolean"
+          },
+          "auto_process_text_code_segment": {
+            "title": "Auto Process Text Code Segment",
+            "type": "boolean"
+          },
+          "auto_set_output_path": {
+            "title": "Auto Set Output Path",
+            "type": "boolean"
+          },
+          "bilingual_text_order": {
+            "enum": [
+              "source_first",
+              "translation_first",
+              "original_first"
+            ],
+            "title": "Bilingual Text Order",
+            "type": "string"
+          },
+          "code_filter_switch": {
+            "title": "Code Filter Switch",
+            "type": "boolean"
+          },
+          "extract_short_name_merge_switch": {
+            "title": "Extract Short Name Merge Switch",
+            "type": "boolean"
+          },
+          "extract_task_token_limit": {
+            "maximum": 9999999.0,
+            "minimum": 1.0,
+            "title": "Extract Task Token Limit",
+            "type": "integer"
+          },
+          "few_shot_and_example_switch": {
+            "title": "Few Shot And Example Switch",
+            "type": "boolean"
+          },
+          "interface_language_setting": {
+            "title": "Interface Language Setting",
+            "type": "string"
+          },
+          "keep_original_encoding": {
+            "title": "Keep Original Encoding",
+            "type": "boolean"
+          },
+          "label_input_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Input Path"
+          },
+          "label_output_path": {
+            "title": "Label Output Path",
+            "type": "string"
+          },
+          "label_polish_output_path": {
+            "title": "Label Polish Output Path",
+            "type": "string"
+          },
+          "language_filter_switch": {
+            "title": "Language Filter Switch",
+            "type": "boolean"
+          },
+          "lines_limit": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Lines Limit",
+            "type": "integer"
+          },
+          "lines_limit_switch": {
+            "title": "Lines Limit Switch",
+            "type": "boolean"
+          },
+          "opencc_preset": {
+            "enum": [
+              "s2t",
+              "s2tw",
+              "s2hk",
+              "s2twp",
+              "t2s",
+              "t2tw",
+              "t2hk",
+              "t2jp",
+              "tw2s",
+              "tw2t",
+              "tw2sp",
+              "hk2s",
+              "hk2t",
+              "jp2t"
+            ],
+            "title": "Opencc Preset",
+            "type": "string"
+          },
+          "output_filename_suffix": {
+            "title": "Output Filename Suffix",
+            "type": "string"
+          },
+          "polishing_pre_line_counts": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Polishing Pre Line Counts",
+            "type": "integer"
+          },
+          "pre_line_counts": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Pre Line Counts",
+            "type": "integer"
+          },
+          "request_timeout": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Request Timeout",
+            "type": "integer"
+          },
+          "response_check_switch": {
+            "$ref": "#/components/schemas/ResponseCheckSettings"
+          },
+          "response_conversion_toggle": {
+            "title": "Response Conversion Toggle",
+            "type": "boolean"
+          },
+          "round_limit": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Round Limit",
+            "type": "integer"
+          },
+          "source_language": {
+            "title": "Source Language",
+            "type": "string"
+          },
+          "target_language": {
+            "title": "Target Language",
+            "type": "string"
+          },
+          "text_symbol_repair_switch": {
+            "title": "Text Symbol Repair Switch",
+            "type": "boolean"
+          },
+          "theme": {
+            "enum": [
+              "auto",
+              "light",
+              "dark"
+            ],
+            "title": "Theme",
+            "type": "string"
+          },
+          "tokens_limit": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "Tokens Limit",
+            "type": "integer"
+          },
+          "tokens_limit_switch": {
+            "title": "Tokens Limit Switch",
+            "type": "boolean"
+          },
+          "translation_result_check_switch": {
+            "title": "Translation Result Check Switch",
+            "type": "boolean"
+          },
+          "user_thread_counts": {
+            "maximum": 9999999.0,
+            "minimum": 0.0,
+            "title": "User Thread Counts",
+            "type": "integer"
+          }
+        },
         "title": "ConfigPatch",
         "type": "object"
       },
@@ -150,17 +550,48 @@
           },
           "type": {
             "const": "log",
-            "default": "log",
             "title": "Type",
             "type": "string"
           }
         },
         "required": [
           "seq",
+          "type",
           "ts",
           "data"
         ],
         "title": "LogMessage",
+        "type": "object"
+      },
+      "ResponseCheckSettings": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/JsonValue"
+        },
+        "properties": {
+          "newline_character_count_check": {
+            "title": "Newline Character Count Check",
+            "type": "boolean"
+          },
+          "reply_format_check": {
+            "title": "Reply Format Check",
+            "type": "boolean"
+          },
+          "residual_original_text_check": {
+            "title": "Residual Original Text Check",
+            "type": "boolean"
+          },
+          "return_to_original_text_check": {
+            "title": "Return To Original Text Check",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "return_to_original_text_check",
+          "residual_original_text_check",
+          "newline_character_count_check",
+          "reply_format_check"
+        ],
+        "title": "ResponseCheckSettings",
         "type": "object"
       },
       "ShutdownResponse": {
@@ -175,6 +606,58 @@
           "status"
         ],
         "title": "ShutdownResponse",
+        "type": "object"
+      },
+      "TaskCurrentResponse": {
+        "properties": {
+          "progress": {
+            "$ref": "#/components/schemas/TaskProgress"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "project_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Name"
+          },
+          "status": {
+            "enum": [
+              "idle",
+              "running",
+              "stopping",
+              "stopped",
+              "api_test",
+              "glossary",
+              "analysis",
+              "table",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "project_id",
+          "project_name",
+          "progress"
+        ],
+        "title": "TaskCurrentResponse",
         "type": "object"
       },
       "TaskProgress": {
@@ -297,13 +780,13 @@
           },
           "type": {
             "const": "task.update",
-            "default": "task.update",
             "title": "Type",
             "type": "string"
           }
         },
         "required": [
           "seq",
+          "type",
           "ts",
           "data"
         ],
@@ -590,6 +1073,52 @@
         "summary": "Shutdown",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/api/v1/tasks/current": {
+      "get": {
+        "operationId": "get_current_task",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskCurrentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "summary": "Current Task",
+        "tags": [
+          "tasks"
         ]
       }
     },

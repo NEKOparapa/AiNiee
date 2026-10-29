@@ -18,7 +18,7 @@ from ModuleFolders.Application.UpdateService import UpdateCheckError, UpdateServ
 from ModuleFolders.Base.EventManager import EventManager
 from Server.deps import TokenAuthMiddleware
 from Server.event_bridge import EventBridge
-from Server.routers import config, system
+from Server.routers import config, system, tasks
 from Server.schemas.events import WebSocketMessage
 from Server.ws import router as websocket_router
 
@@ -72,6 +72,7 @@ def create_app(
     app.include_router(system.health_router)
     app.include_router(system.router, prefix="/api/v1")
     app.include_router(config.router, prefix="/api/v1")
+    app.include_router(tasks.router, prefix="/api/v1")
     app.include_router(websocket_router, prefix="/api/v1")
 
     @app.exception_handler(RequestValidationError)
