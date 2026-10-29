@@ -1,5 +1,6 @@
 """测试默认隔离用户数据，并禁止真实网络连接。"""
 
+import ipaddress
 import socket
 from pathlib import Path
 
@@ -8,12 +9,39 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def no_network(monkeypatch):
-    def blocked(*args, **kwargs):
-        raise AssertionError("Tests must use fixed mocks instead of network requests")
+    def check_address(address):
+        host = address[0] if isinstance(address, tuple) else ""
+        try:
+            allowed = host == "localhost" or ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            allowed = False
+        if not allowed:
+            raise AssertionError("Tests must use fixed mocks instead of external network requests")
 
-    for name in ("connect", "connect_ex", "sendto"):
-        monkeypatch.setattr(socket.socket, name, blocked)
-    monkeypatch.setattr(socket, "create_connection", blocked)
+    # Windows asyncio creates an internal loopback socketpair. HTTP integration
+    # tests also need loopback; external connections remain forbidden.
+    for name in ("connect", "connect_ex"):
+        original = getattr(socket.socket, name)
+
+        def guarded(self, address, _original=original):
+            check_address(address)
+            return _original(self, address)
+
+        monkeypatch.setattr(socket.socket, name, guarded)
+
+    original_sendto = socket.socket.sendto
+    original_create = socket.create_connection
+
+    def guarded_sendto(self, data, *args):
+        check_address(args[-1])
+        return original_sendto(self, data, *args)
+
+    def guarded_create(address, *args, **kwargs):
+        check_address(address)
+        return original_create(address, *args, **kwargs)
+
+    monkeypatch.setattr(socket.socket, "sendto", guarded_sendto)
+    monkeypatch.setattr(socket, "create_connection", guarded_create)
 
 
 @pytest.fixture(autouse=True)

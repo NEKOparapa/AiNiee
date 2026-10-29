@@ -65,7 +65,7 @@ toml>=0.10.2
 tqdm>=4.67.1
 xsdata[cli,lxml,soap]>=24.12
 msgpack>=1.1.0
-pydantic>=2.10.6
+pydantic>=2.10.6,<3
 tenacity>=9.0.0
 freetype-py>=2.5.1
 tiktoken>=0.9.0
@@ -75,6 +75,11 @@ pyzstd
 rtree
 uharfbuzz>=0.50.2
 scikit-learn>=1.7.1
+
+# Local API server
+fastapi>=0.162,<1
+uvicorn>=0.54,<1
+websockets>=16,<17
 
 # Tests
 pytest>=8.4,<9
