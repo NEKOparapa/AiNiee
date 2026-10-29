@@ -61,6 +61,19 @@ class ConfigDocument(JsonObjectModel):
     text_symbol_repair_switch: bool
     response_check_switch: ResponseCheckSettings
     polishing_pre_line_counts: SettingInteger
+    rule_check_exclusion: bool
+    rule_check_auto_process: bool
+    rule_check_placeholder: bool
+    rule_check_number: bool
+    rule_check_example: bool
+    rule_check_newline: bool
+    rule_check_untranslated: bool
+    check_lang_mode_text: Literal["judge", "report"]
+    check_chunk_size: PositiveSettingInteger
+    check_threshold_ratio: Annotated[float, Field(gt=0, le=1)]
+    check_exclude_non_translate: bool
+    prompt_dictionary_match_case_sensitive: bool
+    prompt_dictionary_match_whole_word: bool
     theme: Theme
     accent_color: Annotated[str, Field(pattern=r"^#[0-9a-fA-F]{6}$")]
     interface_language_setting: str

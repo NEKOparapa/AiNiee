@@ -120,3 +120,26 @@ it('late throttled progress does not change terminal task status and logs stay b
   expect(needsTaskRefresh({ seq: 4, type: 'table.basic.update', ts: 1, data: {} })).toBe(false)
   expect(needsTaskRefresh({ seq: 5, type: 'task.completed', ts: 1, data: {} })).toBe(true)
 })
+
+it('fetches again when final task state arrives during an older snapshot request', async () => {
+  let release: ((response: Response) => void) | undefined
+  let taskReads = 0
+  vi.stubGlobal('fetch', vi.fn(async (request: Request) => {
+    if (request.url.endsWith('/config')) return Response.json({ accent_color: '#808b9d' })
+    taskReads++
+    if (taskReads === 1) return new Promise<Response>(resolve => { release = resolve })
+    return Response.json({ status: 'completed', project_id: 'p', project_name: 'Project', progress: { line: 3 } })
+  }))
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const stop = startBackendConnection(client, connection, useConnectionStore.getState().revision, factory)
+  sockets[0]?.open()
+  await vi.advanceTimersByTimeAsync(0)
+  sockets[0]?.message({ seq: 1, type: 'task.state.changed', ts: 1, data: {} })
+  release?.(Response.json({ status: 'running', project_id: 'p', project_name: 'Project', progress: { line: 2 } }))
+  await vi.advanceTimersByTimeAsync(0)
+  expect(taskReads).toBe(2)
+  expect(useBackendStore.getState().currentTask?.status).toBe('completed')
+  expect(useBackendStore.getState().progress?.line).toBe(3)
+  stop()
+  client.clear()
+})

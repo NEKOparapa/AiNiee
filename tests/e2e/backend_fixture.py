@@ -5,8 +5,10 @@ it or accept a test mode. User configuration remains isolated by the fixture.
 """
 
 import ipaddress
+import re
 import socket
 import sys
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -27,6 +29,18 @@ def fixed_models(self, url, *args, **kwargs):
 
 
 def fixed_llm(self, messages, system_prompt, platform_config):
+    content = next((message.get("content", "") for message in reversed(messages) if message.get("role") == "user"), "")
+    translations = {
+        "Hello, world!": "你好！",
+        "This is a headless translation test.": "这是一次无界面翻译测试。",
+        "The story continues here.": "故事在这里继续。",
+    }
+    rows = re.findall(r"^(\d+)\.(.+)$", content, re.MULTILINE)
+    if rows and all(source in translations for _, source in rows):
+        # Deliberate fixed latency makes stopping a real worker observable.
+        time.sleep(2)
+        response = "<textarea>\n" + "\n".join(f"{index}.{translations[source]}" for index, source in rows) + "\n</textarea>"
+        return False, "", response, 16, 8
     return False, "", "This is a fixed mock response.", 8, 4
 
 
@@ -48,11 +62,13 @@ def main():
 
     initialize_tiktoken()
     from ModuleFolders.Infrastructure.LLMRequester.LLMRequester import LLMRequester
+    from ModuleFolders.Service.Cache.CacheManager import CacheManager
     from AiNiee import main as application_main
 
     with (
         patch.object(httpx.Client, "get", fixed_models),
         patch.object(LLMRequester, "sent_request", fixed_llm),
+        patch.object(CacheManager, "SAVE_INTERVAL", 0.1),
         patch.object(socket.socket, "connect", only_loopback(socket.socket.connect)),
         patch.object(socket.socket, "connect_ex", only_loopback(socket.socket.connect_ex)),
     ):

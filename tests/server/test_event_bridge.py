@@ -164,3 +164,62 @@ def test_event_mapping_and_exported_websocket_schema_are_complete():
     schema = WebSocketMessage.model_json_schema(ref_template="#/components/schemas/{model}")
     assert schema["title"] == "WebSocketMessage"
     assert {"TaskUpdateMessage", "LogMessage", "EventMessage"} <= schema["$defs"].keys()
+
+
+def test_analysis_event_values_are_redacted_before_leaving_worker_scope():
+    from ModuleFolders.Log.LogSystem import redact, sensitive_values
+
+    async def scenario():
+        manager = EventManager()
+        bridge = EventBridge(manager, asyncio.get_running_loop())
+        bridge.start()
+        queue = bridge.subscribe()
+        try:
+            def worker():
+                with sensitive_values(["private-provider-value"]):
+                    manager.emit(Event.ANALYSIS_TASK_DONE, {
+                        "status": "error", "message": "request failed private-provider-value",
+                        "nested": [{"name": "private-provider-value", "number": 3, "empty": None}],
+                    })
+
+            thread = Thread(target=worker)
+            thread.start()
+            thread.join(1)  # The secret scope ends before the asyncio callback.
+            assert not thread.is_alive()
+            message = await asyncio.wait_for(queue.get(), timeout=0.1)
+            assert "private-provider-value" not in message.model_dump_json()
+            assert message.data["nested"][0]["number"] == 3
+            assert message.data["nested"][0]["empty"] is None
+            assert redact("private-provider-value") == "private-provider-value"
+        finally:
+            await bridge.close()
+
+    asyncio.run(scenario())
+
+
+def test_progress_is_flushed_before_lifecycle_and_project_change():
+    async def scenario():
+        manager = EventManager()
+        bridge = EventBridge(manager, asyncio.get_running_loop())
+        bridge.start()
+        queue = bridge.subscribe()
+        try:
+            manager.emit(Event.TASK_UPDATE, {"line": 7})
+            manager.emit(Event.TASK_STATE_CHANGED, {})
+            manager.emit(Event.PROJECT_CHANGED, {"project_id": "new-project"})
+            messages = [await asyncio.wait_for(queue.get(), timeout=0.1) for _ in range(3)]
+            assert [message.type for message in messages] == ["task.update", "task.state.changed", "project.changed"]
+            assert [message.seq for message in messages] == [1, 2, 3]
+            assert messages[0].data.line == 7
+            # Flushing cancels the original timer instead of allowing it to
+            # prematurely flush the new project's next 100 ms batch.
+            await asyncio.sleep(0.05)
+            manager.emit(Event.TASK_UPDATE, {"line": 1})
+            await asyncio.sleep(0.07)
+            assert queue.empty()
+            message = await asyncio.wait_for(queue.get(), timeout=0.1)
+            assert message.data.line == 1
+        finally:
+            await bridge.close()
+
+    asyncio.run(scenario())

@@ -32,6 +32,17 @@ EVENT_TYPES = {
 _logger = logging.getLogger(__name__)
 
 
+def _redact_event_values(value):
+    """Run on the emitting worker while its credential scope is still active."""
+    if isinstance(value, str):
+        return redact(value)
+    if isinstance(value, list):
+        return [_redact_event_values(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _redact_event_values(item) for key, item in value.items()}
+    return value
+
+
 class _BridgeLogHandler(logging.Handler):
     def __init__(self, bridge: "EventBridge") -> None:
         super().__init__(level=logging.INFO)
@@ -129,6 +140,7 @@ class EventBridge:
             snapshot = json.loads(json.dumps(data, ensure_ascii=False, allow_nan=False))
             if not isinstance(snapshot, dict):
                 raise TypeError("Event payload must be an object")
+            snapshot = _redact_event_values(snapshot)
         except (TypeError, ValueError, RecursionError):
             _logger.warning("Ignoring non-JSON event payload (event=%s)", event)
             return
@@ -142,6 +154,10 @@ class EventBridge:
             if self._task_timer is None:
                 self._task_timer = self.loop.call_later(self.BATCH_INTERVAL, self._flush_task)
             return
+        if event in (Event.TASK_STATE_CHANGED, Event.TASK_COMPLETED, Event.TASK_STOP_DONE, Event.PROJECT_CHANGED):
+            # A buffered update belongs to the previous lifecycle/project. Send
+            # it first so it cannot overwrite a newer REST snapshot afterwards.
+            self._flush_task()
         self._broadcast(EventMessage(seq=self._next_seq(), type=EVENT_TYPES[event], ts=timestamp, data=data))
 
     def _accept_log(self, entry: LogEntry) -> None:
@@ -156,6 +172,8 @@ class EventBridge:
         return self._seq
 
     def _flush_task(self) -> None:
+        if self._task_timer is not None:
+            self._task_timer.cancel()
         self._task_timer = None
         pending, self._pending_task = self._pending_task, None
         if self._closed or pending is None:

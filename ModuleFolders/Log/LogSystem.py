@@ -7,7 +7,7 @@ import re
 import sys
 import threading
 import time
-from collections import deque
+from collections import Counter, deque
 from contextlib import contextmanager
 from contextvars import ContextVar
 from pathlib import Path
@@ -72,10 +72,12 @@ _EXC_FORMATTER = logging.Formatter()
 # 不会过早清零外层的标记）。
 _in_log_mixin = threading.local()
 _sensitive_values: ContextVar[tuple[str, ...]] = ContextVar("ainiee_sensitive_values", default=())
+_worker_secrets: Counter = Counter()
+_worker_secrets_lock = threading.RLock()
 
 
 @contextmanager
-def sensitive_values(values):
+def sensitive_values(values, *, across_threads=False):
     """Redact exact provider credentials only within the current operation.
 
     A context variable prevents simultaneous threads from changing each other's
@@ -83,10 +85,19 @@ def sensitive_values(values):
     """
     secrets = tuple(value for value in values if isinstance(value, str) and value)
     token = _sensitive_values.set(tuple(sorted(set((*_sensitive_values.get(), *secrets)), key=len, reverse=True)))
+    if across_threads:
+        with _worker_secrets_lock:
+            _worker_secrets.update(secrets)
     try:
         yield
     finally:
         _sensitive_values.reset(token)
+        if across_threads:
+            with _worker_secrets_lock:
+                _worker_secrets.subtract(secrets)
+                for value in list(_worker_secrets):
+                    if _worker_secrets[value] <= 0:
+                        del _worker_secrets[value]
 
 
 def _in_log_mixin_active() -> bool:
@@ -115,7 +126,9 @@ def redact(text):
     """脱敏文本中常见的 API key / token / 上下文敏感字段。非 str 入参原样返回。"""
     if not isinstance(text, str):
         return text
-    for secret in _sensitive_values.get():
+    with _worker_secrets_lock:
+        secrets = sorted(set((*_sensitive_values.get(), *_worker_secrets)), key=len, reverse=True)
+    for secret in secrets:
         text = text.replace(secret, REDACTED)
     for pat, repl in _API_KEY_PATTERNS:
         text = pat.sub(repl, text)

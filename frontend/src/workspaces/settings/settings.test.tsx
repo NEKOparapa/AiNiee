@@ -31,6 +31,11 @@ function configFixture(overrides: Partial<ApiConfig> = {}): ApiConfig {
       newline_character_count_check: true, reply_format_check: false,
     },
     polishing_pre_line_counts: 10, theme: 'auto', accent_color: '#808b9d', interface_language_setting: '简中',
+    rule_check_exclusion: true, rule_check_auto_process: true, rule_check_placeholder: true,
+    rule_check_number: true, rule_check_example: true, rule_check_newline: true, rule_check_untranslated: true,
+    check_lang_mode_text: 'judge', check_chunk_size: 20, check_threshold_ratio: 0.75,
+    check_exclude_non_translate: true, prompt_dictionary_match_case_sensitive: false,
+    prompt_dictionary_match_whole_word: false,
     extension: { keep: true }, ...overrides,
   }
 }

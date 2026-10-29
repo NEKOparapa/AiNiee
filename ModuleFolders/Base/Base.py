@@ -11,6 +11,7 @@ class Event:
     TASK_STOP = 230                                 # 翻译停止
     TASK_STOP_DONE = 231                            # 翻译停止完成
     TASK_COMPLETED = 232                            # 翻译完成
+    TASK_STATE_CHANGED = 233                        # Application 任务生命周期状态变更
     TASK_CONTINUE_CHECK = 240                       # 继续翻译状态检查
     TASK_CONTINUE_CHECK_DONE = 241                  # 继续翻译状态检查完成
     TASK_MANUAL_EXPORT = 250                        # 翻译结果手动导出
@@ -21,6 +22,9 @@ class Event:
     PROJECT_CHANGED = 400                           # 当前项目已切换
     PROJECT_HISTORY_CHANGED = 401                   # 项目缓存历史已变更
     PLATFORMS_CHANGED = 410                         # 平台配置或角色绑定已变更
+    TABLES_CHANGED = 411                            # 公共表格已变更
+    PROMPTS_CHANGED = 412                           # 提示词已变更
+    ANALYSIS_DATA_CHANGED = 413                     # 项目分析数据已变更
 
     APP_UPDATE_CHECK: int = 600                     # 检查更新
     APP_UPDATE_CHECK_DONE: int = 610                # 检查更新完成

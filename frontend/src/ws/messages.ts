@@ -47,5 +47,5 @@ export function applyMessage(message: WsMessage) {
 
 export function needsTaskRefresh(message: WsMessage): boolean {
   if (typeof message.type !== 'string') return false
-  return /^(task\.(start|stop|stop\.done|completed)|(?:analysis\.task|gloss\.task|api\.test)\.(start|done)|table\..*\.(start|done))$/.test(message.type)
+  return /^(task\.(start|stop|stop\.done|completed|state\.changed)|analysis\.task\.(start|update|done)|(?:gloss\.task|api\.test)\.(start|done)|table\..*\.(start|done))$/.test(message.type)
 }

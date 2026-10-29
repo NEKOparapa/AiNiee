@@ -16,10 +16,11 @@ from ModuleFolders.Application.ConfigService import ConfigService
 from ModuleFolders.Application.Errors import ApplicationError
 from ModuleFolders.Application.SystemService import ShutdownUnavailableError, SystemService
 from ModuleFolders.Application.UpdateService import UpdateCheckError, UpdateService
+from ModuleFolders.Application.TaskService import TaskService
 from ModuleFolders.Base.EventManager import EventManager
 from Server.deps import TokenAuthMiddleware
 from Server.event_bridge import EventBridge
-from Server.routers import config, platforms, projects, system, tasks
+from Server.routers import analysis, checks, config, export, items, platforms, projects, prompts, system, tables, tasks
 from Server.schemas.events import WebSocketMessage
 from Server.schemas.system import ErrorResponse
 from Server.ws import router as websocket_router
@@ -51,9 +52,12 @@ def create_app(
             app.state.config_service = ConfigService()
             app.state.system_service = SystemService(shutdown_callback)
             app.state.update_service = UpdateService()
+            app.state.task_service = TaskService(runtime.cache_manager, getattr(runtime, "task_executor", None))
             bridge.start()
             yield
         finally:
+            if hasattr(app.state, "task_service"):
+                await run_in_threadpool(app.state.task_service.close, timeout=None)
             await bridge.close()
             await run_in_threadpool(runtime.close)
 
@@ -78,6 +82,12 @@ def create_app(
     app.include_router(tasks.router, prefix="/api/v1")
     app.include_router(platforms.router, prefix="/api/v1")
     app.include_router(projects.router, prefix="/api/v1")
+    app.include_router(items.router, prefix="/api/v1")
+    app.include_router(checks.router, prefix="/api/v1")
+    app.include_router(export.router, prefix="/api/v1")
+    app.include_router(tables.router, prefix="/api/v1")
+    app.include_router(prompts.router, prefix="/api/v1")
+    app.include_router(analysis.router, prefix="/api/v1")
     app.include_router(websocket_router, prefix="/api/v1")
 
     @app.exception_handler(ApplicationError)

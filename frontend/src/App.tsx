@@ -18,11 +18,19 @@ import { AppearancePage } from '@/workspaces/AppearancePage'
 import { AboutPage } from '@/workspaces/AboutPage'
 import { PageState } from '@/components/common/PageState'
 import { LogContent, LogsPage } from '@/workspaces/LogsPage'
-import { TaskSettingsPage, OutputSettingsPage, AdvancedSettingsPage } from '@/workspaces/settings'
 import { workspaces, workspaceGroups, workspaceForPath, type WorkspaceEntry } from '@/workspaces/registry'
 
 const PlatformsPage = lazy(() => import('@/workspaces/platforms').then(module => ({ default: module.PlatformsPage })))
 const OverviewPage = lazy(() => import('@/workspaces/projects/OverviewPage').then(module => ({ default: module.OverviewPage })))
+const ItemsPage = lazy(() => import('@/workspaces/items/ItemsPage').then(module => ({ default: module.ItemsPage })))
+const ChecksPage = lazy(() => import('@/workspaces/checks/ChecksPage').then(module => ({ default: module.ChecksPage })))
+const ExportPage = lazy(() => import('@/workspaces/tasks/ExportPage').then(module => ({ default: module.ExportPage })))
+const AnalysisPage = lazy(() => import('@/workspaces/analysis/AnalysisPage').then(module => ({ default: module.AnalysisPage })))
+const PromptPage = lazy(() => import('@/workspaces/prompts/PromptPage').then(module => ({ default: module.PromptPage })))
+const TablesPage = lazy(() => import('@/workspaces/tables/TablesPage').then(module => ({ default: module.TablesPage })))
+const TaskSettingsPage = lazy(() => import('@/workspaces/settings').then(module => ({ default: module.TaskSettingsPage })))
+const OutputSettingsPage = lazy(() => import('@/workspaces/settings').then(module => ({ default: module.OutputSettingsPage })))
+const AdvancedSettingsPage = lazy(() => import('@/workspaces/settings').then(module => ({ default: module.AdvancedSettingsPage })))
 
 export function App() {
   const { t } = useTranslation()
@@ -66,9 +74,15 @@ export function App() {
       case 'home': return <HomePage/>
       case 'platforms': return <Suspense fallback={<PageState/>}><PlatformsPage/></Suspense>
       case 'overview': return <Suspense fallback={<PageState/>}><OverviewPage/></Suspense>
-      case 'task': return <TaskSettingsPage/>
-      case 'output': return <OutputSettingsPage/>
-      case 'advanced': return <AdvancedSettingsPage/>
+      case 'items': return <Suspense fallback={<PageState/>}><ItemsPage/></Suspense>
+      case 'checks': return <Suspense fallback={<PageState/>}><ChecksPage/></Suspense>
+      case 'export': return <Suspense fallback={<PageState/>}><ExportPage/></Suspense>
+      case 'analysis': return <Suspense fallback={<PageState/>}><AnalysisPage/></Suspense>
+      case 'table': return <Suspense fallback={<PageState/>}><TablesPage key={item.id} name={item.id === 'glossary' ? 'glossary' : item.id === 'exclusion' ? 'exclusion' : item.id === 'replaceA' ? 'replace_a' : 'replace_b'}/></Suspense>
+      case 'prompt': return <Suspense fallback={<PageState/>}><PromptPage key={item.id} kind={item.path === '/prompts/library' ? 'library' : item.path === '/prompts/system' ? 'system' : item.path === '/prompts/polish' ? 'polish' : item.path === '/prompts/world' ? 'world' : item.path === '/prompts/style' ? 'style' : item.path === '/prompts/examples' ? 'examples' : 'characters'}/></Suspense>
+      case 'task': return <Suspense fallback={<PageState/>}><TaskSettingsPage/></Suspense>
+      case 'output': return <Suspense fallback={<PageState/>}><OutputSettingsPage/></Suspense>
+      case 'advanced': return <Suspense fallback={<PageState/>}><AdvancedSettingsPage/></Suspense>
       case 'appearance': return <AppearancePage openConnection={() => setConnectionOpen(true)}/>
       case 'logs': return <LogsPage/>
       case 'about': return <AboutPage/>

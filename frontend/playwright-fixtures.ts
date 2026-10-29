@@ -41,6 +41,7 @@ export class BackendProcess {
   }
 
   get origin() { return `http://127.0.0.1:${this.port}` }
+  diagnostics() { return this.output }
 
   handoff(path = '/') {
     return `${path}#${new URLSearchParams({ api: this.origin, token: testToken })}`
@@ -147,12 +148,15 @@ export class BackendProcess {
 
 export const test = base.extend<{ backend: BackendProcess; mockProviders: boolean }>({
   mockProviders: [false, { option: true }],
-  backend: async ({ mockProviders }, use) => {
+  backend: async ({ mockProviders }, use, testInfo) => {
     const backend = await BackendProcess.create(mockProviders)
     try {
       await backend.start()
       await use(backend)
     } finally {
+      if (testInfo.status !== testInfo.expectedStatus) {
+        await testInfo.attach('backend-log', { body: backend.diagnostics(), contentType: 'text/plain' })
+      }
       await backend.dispose()
     }
   },

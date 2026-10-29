@@ -31,7 +31,7 @@ class TableConfigHelper:
     @classmethod
     def normalize_match_options(cls, options=None) -> dict[str, bool]:
         options = options if isinstance(options, dict) else {}
-        return {key: RegexSwitchHelper._normalize_bool(options.get(key, False)) for key in cls.MATCH_OPTIONS}
+        return {**deepcopy(options), **{key: RegexSwitchHelper._normalize_bool(options.get(key, False)) for key in cls.MATCH_OPTIONS}}
 
     @classmethod
     def new_table(cls, kind: str, name: str = "新建表", rows=None,
@@ -61,6 +61,7 @@ class TableConfigHelper:
             if enabled_only and not enabled:
                 continue
             normalized = {
+                **deepcopy(table),
                 "id": table_id,
                 "name": str(table.get("name") or "").strip() or "未命名表",
                 "enabled": enabled,

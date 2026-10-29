@@ -29,8 +29,20 @@ export function startBackendConnection(
     }
   }
 
+  let taskRefreshing = false
+  let taskDirty = false
   const refreshTask = () => {
-    void client.fetchQuery({ ...taskQueryOptions(revision), staleTime: 0 }).catch(handleFailure)
+    taskDirty = true
+    if (taskRefreshing) return
+    taskRefreshing = true
+    void (async () => {
+      try {
+        while (taskDirty && current()) {
+          taskDirty = false
+          await client.fetchQuery({ ...taskQueryOptions(revision), staleTime: 0 }).catch(handleFailure)
+        }
+      } finally { taskRefreshing = false }
+    })()
   }
 
   const refreshSnapshots = () => {
@@ -38,6 +50,9 @@ export function startBackendConnection(
     refreshTask()
     void client.invalidateQueries({ queryKey: projectKeys.all(revision) })
     void client.invalidateQueries({ queryKey: platformQueryKey(revision) })
+    for (const name of ['items', 'analysis', 'tables', 'prompts', 'prompt-library']) {
+      void client.invalidateQueries({ queryKey: [...queryKeys.connection(revision), name] })
+    }
   }
 
   const socket = new BackendSocket(connection, {
@@ -60,6 +75,14 @@ export function startBackendConnection(
       }
       if (message.type === 'platforms.changed') {
         void client.invalidateQueries({ queryKey: platformQueryKey(revision) })
+        void client.invalidateQueries({ queryKey: queryKeys.config(revision) })
+      }
+      if (['table.update', 'task.state.changed', 'project.changed', 'analysis.task.done', 'analysis.data.changed'].includes(message.type)) {
+        for (const name of ['items', 'analysis']) void client.invalidateQueries({ queryKey: [...queryKeys.connection(revision), name] })
+        void client.invalidateQueries({ queryKey: projectKeys.all(revision) })
+      }
+      if (message.type === 'tables.changed' || message.type === 'prompts.changed') {
+        for (const name of ['tables', 'prompts', 'prompt-library']) void client.invalidateQueries({ queryKey: [...queryKeys.connection(revision), name] })
         void client.invalidateQueries({ queryKey: queryKeys.config(revision) })
       }
     },

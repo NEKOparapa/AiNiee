@@ -21,8 +21,13 @@ AUTH = {"Authorization": f"Bearer {TOKEN}"}
 class RuntimeStub:
     closed = False
 
+    def __init__(self):
+        from ModuleFolders.Service.Cache.CacheManager import CacheManager
+        self.cache_manager = CacheManager()
+
     def close(self):
         self.closed = True
+        self.cache_manager._cleanup_event_subscriptions()
 
 
 @pytest.fixture

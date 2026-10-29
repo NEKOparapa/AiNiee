@@ -15,6 +15,12 @@ from ModuleFolders.Application.ProjectService import ProjectService
 from ModuleFolders.Application.SystemService import SystemService
 from ModuleFolders.Application.TaskService import TaskService
 from ModuleFolders.Application.UpdateService import UpdateService
+from ModuleFolders.Application.ItemService import ItemService
+from ModuleFolders.Application.CheckService import CheckService
+from ModuleFolders.Application.ExportService import ExportService
+from ModuleFolders.Application.TableService import TableService
+from ModuleFolders.Application.PromptService import PromptService
+from ModuleFolders.Application.AnalysisService import AnalysisService
 
 
 bearer = HTTPBearer(auto_error=False, scheme_name="BearerToken")
@@ -107,7 +113,32 @@ def get_update_service(request: Request) -> UpdateService:
 
 
 def get_task_service(request: Request) -> TaskService:
-    return TaskService(request.app.state.runtime.cache_manager)
+    return request.app.state.task_service
+
+
+def get_table_service() -> TableService:
+    return TableService()
+
+
+def get_prompt_service() -> PromptService:
+    return PromptService()
+
+
+def get_analysis_service(request: Request) -> AnalysisService:
+    return AnalysisService(request.app.state.runtime.cache_manager)
+
+
+def get_item_service(request: Request) -> ItemService:
+    return ItemService(request.app.state.runtime.cache_manager)
+
+
+def get_check_service(request: Request) -> CheckService:
+    return CheckService(request.app.state.runtime.cache_manager)
+
+
+def get_export_service(request: Request) -> ExportService:
+    runtime = request.app.state.runtime
+    return ExportService(runtime.cache_manager, runtime.file_writer, runtime.task_executor)
 
 
 def get_platform_service(request: Request) -> PlatformService:
