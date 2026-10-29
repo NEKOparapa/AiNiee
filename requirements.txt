@@ -1,5 +1,5 @@
 # System
-pyinstaller>=6.21.0
+pyinstaller>=6.21.0,<7
 openai>=2.46.0
 boto3>=1.43.51
 anthropic>=0.117.0,<1

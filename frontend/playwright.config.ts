@@ -17,7 +17,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  webServer: {
+  webServer: process.env.AINIEE_TEST_EXECUTABLE ? undefined : {
     command: 'npm run dev -- --port 5173 --strictPort',
     url: 'http://127.0.0.1:5173',
     reuseExistingServer: true,

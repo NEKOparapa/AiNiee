@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useConnectionStore } from '@/stores/connection'
 import { assertCurrentConnection, getApiClient, throwApiError } from './client'
 import { queryKeys } from './query-client'
@@ -14,5 +14,19 @@ export function useVersion() {
       if (!result.data) throwApiError(result.response.status)
       return result.data
     },
+  })
+}
+
+export function useShutdown() {
+  return useMutation({
+    mutationFn: async () => {
+      const revision = useConnectionStore.getState().revision
+      const result = await getApiClient(assertCurrentConnection(revision)).POST('/api/v1/shutdown')
+      if (!result.data) throwApiError(result.response.status)
+      // Carry the originating connection through the async response. Mutation
+      // options can change after a new connection is selected.
+      return revision
+    },
+    onSuccess: revision => { useConnectionStore.getState().markShutdownRequested(revision) },
   })
 }

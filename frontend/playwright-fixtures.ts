@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { createServer } from 'node:net'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test as base, expect } from '@playwright/test'
@@ -25,32 +26,49 @@ async function withTimeout<T>(promise: Promise<T>, milliseconds: number, message
   }
 }
 
+async function freeLoopbackPort(): Promise<number> {
+  const server = createServer()
+  return new Promise((resolvePort, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address()
+      if (!address || typeof address === 'string') { server.close(); reject(new Error('No loopback port was assigned')); return }
+      server.close(error => error ? reject(error) : resolvePort(address.port))
+    })
+  })
+}
+
 export class BackendProcess {
   private child: ChildProcessWithoutNullStreams | null = null
   private exited: Promise<number | null> | null = null
   private output = ''
   port = 0
 
-  private constructor(readonly directory: string, private readonly mockProviders: boolean) {}
+  private constructor(readonly directory: string, private readonly mockProviders: boolean, private readonly hostedFrontend: boolean) {}
 
-  static async create(mockProviders = false) {
+  static async create(mockProviders = false, hostedFrontend = false) {
+    if (process.env.AINIEE_TEST_EXECUTABLE && (!hostedFrontend || mockProviders)) {
+      throw new Error('AINIEE_TEST_EXECUTABLE requires hostedFrontend and cannot be used with mockProviders')
+    }
     const directory = await mkdtemp(join(tmpdir(), directoryPrefix))
     await mkdir(join(directory, 'data'))
     await writeFile(join(directory, 'data', 'config.json'), '{}', 'utf8')
-    return new BackendProcess(directory, mockProviders)
+    return new BackendProcess(directory, mockProviders, hostedFrontend)
   }
 
   get origin() { return `http://127.0.0.1:${this.port}` }
   diagnostics() { return this.output }
 
   handoff(path = '/') {
-    return `${path}#${new URLSearchParams({ api: this.origin, token: testToken })}`
+    const target = this.hostedFrontend ? new URL(path, this.origin).toString() : path
+    return `${target}#${new URLSearchParams({ api: this.origin, token: testToken })}`
   }
 
   async start(port = 0) {
     if (this.child) throw new Error('Backend is already running')
+    const executable = process.env.AINIEE_TEST_EXECUTABLE
     const python = process.env.AINIEE_TEST_PYTHON ?? join(root, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python')
-    const env = {
+    const env: NodeJS.ProcessEnv = {
       ...process.env,
       PYTHONIOENCODING: 'utf-8',
       AINIEE_ALLOW_MULTI_INSTANCE: '1',
@@ -64,14 +82,46 @@ export class BackendProcess {
       AINIEE_DOWNLOADS_DIR: join(this.directory, 'downloads'),
       AINIEE_DOCUMENTS_DIR: join(this.directory, 'documents'),
     }
+    // A frozen smoke test must obtain its resources from the package, even
+    // when this fixture is run inside a checkout with usable source resources.
+    if (executable) {
+      delete env.AINIEE_RESOURCE_DIR
+      delete env.PYTHONPATH
+      delete env.PYTHONHOME
+    }
+    const listenPort = executable && port === 0 ? await freeLoopbackPort() : port
+    this.port = listenPort
     const entry = this.mockProviders ? join(root, 'tests', 'e2e', 'backend_fixture.py') : join(root, 'AiNiee.py')
-    const child = spawn(python, [entry, '--port', String(port), '--token', testToken], {
-      cwd: root, env, windowsHide: true, stdio: 'pipe',
+    const args = ['--port', String(listenPort), '--token', testToken, ...(this.hostedFrontend ? ['--web', '--no-browser'] : [])]
+    const child = spawn(executable ? resolve(executable) : python, executable ? args : [entry, ...args], {
+      cwd: executable ? this.directory : root, env, windowsHide: true, stdio: 'pipe',
     })
     this.child = child
     this.exited = new Promise((resolveExit) => child.once('close', resolveExit))
     const append = (chunk: Buffer) => { this.output = (this.output + chunk.toString('utf8')).slice(-40_000) }
     child.stderr.on('data', append)
+    if (executable) {
+      // Windowed executables intentionally have no stdout readiness protocol.
+      // Poll the selected port and check authentication before using it.
+      child.stdout.on('data', append)
+      let spawnError: Error | null = null
+      child.once('error', error => { spawnError = error })
+      const deadline = Date.now() + 90_000
+      while (Date.now() < deadline) {
+        if (spawnError) throw spawnError
+        if (child.exitCode !== null || child.signalCode !== null) throw new Error(`Packaged backend exited before health check (${child.exitCode}):\n${this.output}`)
+        let health: Response | undefined
+        try { health = await fetch(`${this.origin}/health`, { signal: AbortSignal.timeout(1000) }) }
+        catch { /* The process may still be initializing its listener. */ }
+        if (health?.ok) {
+          const version = await fetch(`${this.origin}/api/v1/version`, { headers: { Authorization: `Bearer ${testToken}` }, signal: AbortSignal.timeout(1000) })
+          if (!version.ok) throw new Error(`Packaged backend rejected the test token (${version.status})`)
+          return
+        }
+        await new Promise(resolveWait => setTimeout(resolveWait, 100))
+      }
+      throw new Error(`Packaged backend did not become ready:\n${this.output}`)
+    }
     let pending = ''
     const ready = new Promise<number>((resolveReady, reject) => {
       child.once('error', reject)
@@ -102,6 +152,11 @@ export class BackendProcess {
 
   async readPersistedConfig() {
     return JSON.parse(await readFile(join(this.directory, 'data', 'config.json'), 'utf8')) as Record<string, unknown>
+  }
+
+  async waitForExit(timeout = 30_000) {
+    if (!this.exited) throw new Error('Backend has not been started')
+    return withTimeout(this.exited, timeout, 'Backend did not finish shutting down')
   }
 
   async stop() {
@@ -146,16 +201,18 @@ export class BackendProcess {
   }
 }
 
-export const test = base.extend<{ backend: BackendProcess; mockProviders: boolean }>({
+export const test = base.extend<{ backend: BackendProcess; mockProviders: boolean; hostedFrontend: boolean }>({
   mockProviders: [false, { option: true }],
-  backend: async ({ mockProviders }, use, testInfo) => {
-    const backend = await BackendProcess.create(mockProviders)
+  hostedFrontend: [false, { option: true }],
+  backend: async ({ mockProviders, hostedFrontend }, use, testInfo) => {
+    const backend = await BackendProcess.create(mockProviders, hostedFrontend)
     try {
       await backend.start()
       await use(backend)
     } finally {
       if (testInfo.status !== testInfo.expectedStatus) {
-        await testInfo.attach('backend-log', { body: backend.diagnostics(), contentType: 'text/plain' })
+        const fileLog = await readFile(join(backend.directory, 'logs', 'ainiee.log'), 'utf8').catch(() => '')
+        await testInfo.attach('backend-log', { body: `${backend.diagnostics()}\n${fileLog.slice(-40_000)}`, contentType: 'text/plain' })
       }
       await backend.dispose()
     }

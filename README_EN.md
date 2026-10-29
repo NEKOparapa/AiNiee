@@ -43,7 +43,7 @@
 
 The backend runs as an independent Python 3.12 / FastAPI process. The React application in `frontend/` communicates with it over REST and WebSocket. The browser provides API management, project overview, proofreading, prompts, shared tables, quality checks, analysis, export and task logs. The interface defaults to Simplified Chinese and supports English, light and dark themes.
 
-One translation, polishing or analysis task runs at a time. The assistant panel is a placeholder; use `Ctrl+L` to toggle it. Audio, video and image translation, and new desktop packaging, are outside this branch's scope. [Earlier releases](https://github.com/NEKOparapa/AiNiee/releases) may have a different interface and startup procedure.
+One translation, polishing or analysis task runs at a time. The assistant panel is a placeholder; use `Ctrl+L` to toggle it. Audio, video and image translation are outside this branch's scope. The Windows portable package uses PyInstaller to bundle the backend and serve the built frontend; double-clicking opens the workspace in your default browser. [Earlier releases](https://github.com/NEKOparapa/AiNiee/releases) may have a different interface and startup procedure.
 
 ### Install dependencies
 
@@ -89,9 +89,11 @@ You can also open the frontend manually and enter the backend address and `TOKEN
 | Argument | Behavior |
 | --- | --- |
 | `--host 127.0.0.1` | The only permitted listening address; also the default. |
-| `--port 8000` | Set the backend port. Use `--port 0` to select a free port and read the result from `READY`. |
+| `--port 8000` | Set the backend port. Source runs default to `8000`; packaged runs default to `0` to choose a free port. Console runs print the selected port in `READY`. |
 | `--token <token>` | Use a specified token. Omit it to generate one. A specified token is not printed as a `TOKEN` line. |
 | `--dev` | Open the fixed frontend address, `http://127.0.0.1:5173`, after startup. |
+| `--web` | Serve `frontend/dist/` and open the workbench on the backend's own origin. Enabled by default in packaged runs; mutually exclusive with `--dev`. |
+| `--no-browser` | Do not open a browser or show native startup notifications; intended for automated checks. |
 
 If the backend port is occupied, select another port; keep the frontend on `5173`. Use `Ctrl+C` in the backend terminal to shut down. Shutdown waits for task cleanup and final cache saving.
 
@@ -102,7 +104,32 @@ npm --prefix frontend run build
 npm --prefix frontend run preview
 ```
 
-The build is written to `frontend/dist/`. Preview also listens on `http://127.0.0.1:5173`, so stop any development server already using that port. Run the backend in another terminal and connect as above. Preview is for local verification of the build; the backend does not currently serve frontend static files, and this branch has no new desktop package that launches by double-clicking.
+The build is written to `frontend/dist/`. Preview also listens on `http://127.0.0.1:5173`, so stop any development server already using that port. Run the backend in another terminal and connect as above.
+
+Alternatively, serve the built frontend directly from the backend without running Vite:
+
+```powershell
+npm --prefix frontend run build
+.venv\Scripts\python.exe AiNiee.py --web --port 0
+```
+
+The browser opens a random loopback port after startup. The token is passed through the URL fragment and removed from the address bar as soon as the frontend reads it. Reloading a deep link such as a settings page works too.
+
+### Windows portable package
+
+After installing the Python 3.12 and Node.js 24 dependencies above on Windows x64, run this from a complete Git checkout:
+
+```powershell
+.venv\Scripts\python.exe Tools/pyinstall.py
+```
+
+The script builds the frontend, then produces a PyInstaller folder package with a hidden console and a ZIP. Outputs live under `dist/windows-<UTC-time>-<random-ID>/`: run `AiNiee/AiNiee.exe`, distribute `AiNiee-<version>-windows-x64.zip`, and use its adjacent `.sha256` file to check integrity. The terminal prints the actual `EXECUTABLE`, `PACKAGE` and `SHA256`. Each build uses a new directory without replacing older packages. Use `--console` for a visible diagnostic console or `--skip-frontend-build` to reuse an already built `frontend/dist/`, which is still validated.
+
+Extract the entire ZIP, keep `AiNiee.exe`, `_internal/` and `portable.txt` together, then double-click `AiNiee.exe`. Python, Node.js and a separate frontend server are not needed to run it. The application listens only on `127.0.0.1`, generates a random port and token by default, and opens your default browser when ready. A second launch displays an already-running notification.
+
+Closing the tab leaves background work running. To stop the application, choose **Exit application** on **About / updates** and confirm. The backend stops work, waits for the current request to finish, saves the cache and then exits. The page's “Exit request accepted” message means shutdown has started; it does not claim the process has already exited. Source runs also support this button or `Ctrl+C` in the backend terminal.
+
+The package includes application resources and empty default configuration, without the builder's user configuration, caches or logs. `build-info.json` records the revision, dependencies and resource hashes. A writable portable directory creates `Resource/config.json`, `ProjectCache/` and `Logs/` beside the EXE after first startup. When upgrading, exit the application, preserve configuration and caches from the old folder, and copy them to the corresponding paths in the new package root. Do not put them under `_internal/` or replace existing settings with defaults. An unwritable portable directory falls back to the existing user-data location rules.
 
 ### Manual workflow
 
@@ -136,7 +163,7 @@ Inspect the paths resolved by your current environment from the repository root:
 
 ### Local access and API contracts
 
-Only `GET /health` is public. Other HTTP requests require `Authorization: Bearer <token>`; WebSocket uses `/api/v1/ws?token=<token>`. Allowlisted `OPTIONS` preflight requests are exempt, while actual requests remain authenticated. Browser origins are restricted to `http://127.0.0.1:5173`, `http://localhost:5173` and the backend's own address. Wildcard CORS and remote listening are not supported. Do not share links containing the access token.
+`GET /health` is public. With `--web` or the portable package, frontend static resources in the build directory also allow unauthenticated `GET/HEAD` so the browser can load the workbench; this exception does not expose user configuration, project files or APIs. Other HTTP requests, including OpenAPI, require `Authorization: Bearer <token>`; WebSocket uses `/api/v1/ws?token=<token>`. Allowlisted `OPTIONS` preflight requests are exempt, while actual API requests remain authenticated. Browser origins are restricted to `http://127.0.0.1:5173`, `http://localhost:5173` and the backend's own address. Wildcard CORS and remote listening are not supported. Do not share links containing the access token.
 
 REST endpoints are under `/api/v1/`. WebSocket pushes progress, logs and data changes. After a disconnect, the frontend reconnects and refetches current state; missed events are not replayed. Frontend API types and WebSocket contracts are generated from backend Pydantic / OpenAPI definitions. After changing an interface, run:
 
@@ -163,10 +190,30 @@ Before the first browser test run, install Playwright's Chromium from `frontend/
 ```powershell
 cd frontend
 npx playwright install chromium
+npm run build
 npm run test:e2e
 ```
 
 Playwright starts or reuses this project's frontend on `5173` and launches test backends with temporary data directories. It uses Python from the repository's `.venv` by default; override the executable with `AINIEE_TEST_PYTHON`. Tests use fixed model mocks and forbid real model requests. Configuration, caches and outputs are isolated from user data. Failure screenshots and traces are saved in `frontend/test-results/`.
+
+`hosted-workbench.spec.ts` loads `frontend/dist/` from the backend and verifies deep-link reloads, token handoff, saved settings and confirmed exit. To run that test against a package, set `AINIEE_TEST_EXECUTABLE` to the absolute path of the built `AiNiee.exe` from the `frontend/` directory and select only that spec:
+
+```powershell
+# Replace this with the EXECUTABLE path printed by the build.
+$env:AINIEE_TEST_EXECUTABLE = 'D:\packages\AiNiee\AiNiee.exe'
+npm run test:e2e -- hosted-workbench.spec.ts
+Remove-Item Env:AINIEE_TEST_EXECUTABLE
+```
+
+Executable verification does not start Vite or use the source resource directory, so it checks the bundled frontend. This test makes no model calls and cannot be combined with provider mocks. Clear the environment variable before running the complete suite.
+
+For the complete portable-package check, run this from the repository root, replacing `--bundle` with the directory containing the built `AiNiee.exe`:
+
+```powershell
+.venv\Scripts\python.exe Tools/smoke_package.py --bundle 'D:\packages\AiNiee' --report build/package-smoke.json
+```
+
+The script copies the bundle to a temporary path containing Chinese characters and spaces, uses an isolated user directory and a fixed local OpenAI mock, and verifies stopping, restart recovery, checks, editing, export and log redaction in the real EXE. It also checks no-argument startup, a random port and browser handoff through a temporary `BROWSER` capture command without changing the system default browser. Results are written to JSON; the original distributable receives no user data.
 
 Backend tests compare exported bytes from the old invocation path and the Application path, and exercise stopping, saving, restoring and continuing work. Browser tests cover translation, checks, editing and export, plus shared tables, prompts, analysis and settings.
 

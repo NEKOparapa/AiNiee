@@ -1,6 +1,7 @@
 import asyncio
 import http.client
 import json
+import io
 import logging
 import os
 import queue
@@ -27,6 +28,100 @@ def test_cli_defaults_and_random_port():
     assert args.port == 0
     assert args.token == "fixed-test-token"
     assert args.dev is True
+
+
+def test_packaged_defaults_host_the_web_app_on_a_random_port(monkeypatch):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    args = AiNiee.parse_args([])
+    assert args.port == 0
+    assert args.web and not args.dev and not args.no_browser
+    args = AiNiee.parse_args(["--dev", "--port", "9123", "--no-browser"])
+    assert args.dev and not args.web and args.no_browser and args.port == 9123
+
+
+def test_source_web_mode_is_explicit_and_conflicts_with_dev():
+    args = AiNiee.parse_args(["--web", "--no-browser"])
+    assert args.web and args.no_browser
+    with pytest.raises(SystemExit):
+        AiNiee.parse_args(["--web", "--dev"])
+
+
+def test_bundled_frontend_path_uses_internal_resources(monkeypatch, tmp_path):
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path / "_internal"), raising=False)
+    assert AiNiee.frontend_directory() == tmp_path / "_internal" / "frontend" / "dist"
+
+
+def test_windowed_readiness_never_falls_back_to_logging_stdout(capsys, caplog):
+    AiNiee._write_ready(None, 51234, "private-windowed-token", True)
+    assert "private-windowed-token" not in capsys.readouterr().out + caplog.text
+    stream = io.StringIO()
+    AiNiee._write_ready(stream, 51234, "private-windowed-token", True)
+    assert stream.getvalue() == "TOKEN private-windowed-token\nREADY 51234\n"
+    stream = io.StringIO()
+    AiNiee._write_ready(stream, 51234, "private-windowed-token", False)
+    assert stream.getvalue() == "READY 51234\n"
+
+
+@pytest.mark.parametrize("interactive", [True, False])
+def test_duplicate_instance_notifies_only_an_interactive_launch(monkeypatch, tmp_path, interactive):
+    from ModuleFolders.Infrastructure.Platform import RuntimeSetup, SingleInstance
+    from ModuleFolders.Log import LogSystem
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(RuntimeSetup, "prepare_working_directory", lambda: tmp_path)
+    monkeypatch.setattr(SingleInstance, "acquire_app_mutex", lambda: False)
+    monkeypatch.setattr(LogSystem, "install", lambda: None)
+    monkeypatch.delenv("AINIEE_ALLOW_MULTI_INSTANCE", raising=False)
+    notices = []
+    monkeypatch.setattr(AiNiee, "_notify_startup", notices.append)
+    assert AiNiee.run(AiNiee.parse_args([]), interactive=interactive) == 0
+    assert notices == (["already_running"] if interactive else [])
+
+
+@pytest.mark.parametrize("arguments,expected_notice", [([], True), (["--no-browser"], False)])
+def test_packaged_startup_failure_exits_and_respects_noninteractive_mode(monkeypatch, arguments, expected_notice):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(AiNiee.multiprocessing, "freeze_support", lambda: None)
+    def failed_run(*args, **kwargs):
+        raise FileNotFoundError("missing bundled frontend")
+    monkeypatch.setattr(AiNiee, "run", failed_run)
+    notices = []
+    monkeypatch.setattr(AiNiee, "_notify_startup", notices.append)
+    assert AiNiee.main(arguments) == 1
+    assert notices == (["startup_failed"] if expected_notice else [])
+
+
+def test_failed_browser_launch_stops_invisible_service_and_returns_failure(monkeypatch, tmp_path):
+    from ModuleFolders.Infrastructure.Platform import RuntimeSetup, SingleInstance
+    from ModuleFolders.Log import LogSystem
+    from Server import app as server_app
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(RuntimeSetup, "prepare_working_directory", lambda: tmp_path)
+    monkeypatch.setattr(RuntimeSetup, "migrate_config_if_needed", lambda: None)
+    monkeypatch.setattr(SingleInstance, "acquire_app_mutex", lambda: True)
+    monkeypatch.setattr(LogSystem, "install", lambda: None)
+    monkeypatch.setattr(server_app, "create_app", lambda *args, **kwargs: object())
+    monkeypatch.setattr(AiNiee, "_open_browser", lambda url: False)
+    notices = []
+    monkeypatch.setattr(AiNiee, "_notify_startup", notices.append)
+
+    class StartupStub:
+        def __init__(self, config, on_ready):
+            self.started, self.should_exit, self.on_ready = True, False, on_ready
+
+        def run(self, sockets):
+            async def scenario():
+                self.on_ready()
+                async def wait_for_shutdown():
+                    while not self.should_exit or not notices:
+                        await asyncio.sleep(0.01)
+                await asyncio.wait_for(wait_for_shutdown(), 2)
+            asyncio.run(scenario())
+
+    monkeypatch.setattr(AiNiee, "ReadyServer", StartupStub)
+    assert AiNiee.run(AiNiee.parse_args(["--web", "--port", "0", "--token", "fixed"]), interactive=True) == 1
+    assert notices == ["browser_failed"]
 
 
 @pytest.mark.parametrize("host", ["0.0.0.0", "localhost", "::1", "192.168.1.2"])
@@ -57,6 +152,15 @@ def test_dev_url_keeps_connection_details_in_fragment():
     assert url.netloc == "127.0.0.1:5173"
     assert url.query == ""
     assert parse_qs(url.fragment) == {"api": ["http://127.0.0.1:52345"], "token": [token]}
+
+
+def test_packaged_browser_handoff_uses_the_backend_origin():
+    url = urlsplit(AiNiee.browser_url(52345, "fixed/token&value"))
+    assert url.netloc == "127.0.0.1:52345"
+    assert url.path == "/" and not url.query
+    assert parse_qs(url.fragment) == {
+        "api": ["http://127.0.0.1:52345"], "token": ["fixed/token&value"],
+    }
 
 
 def test_readiness_callback_waits_for_successful_startup(monkeypatch):

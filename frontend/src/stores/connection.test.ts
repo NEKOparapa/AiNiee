@@ -7,7 +7,7 @@ beforeEach(() => {
   sessionStorage.clear()
   localStorage.clear()
   window.history.replaceState(null, '', '/')
-  useConnectionStore.setState({ connection: null, revision: 0, status: 'disconnected', error: null, initialized: false })
+  useConnectionStore.setState({ connection: null, revision: 0, status: 'disconnected', error: null, initialized: false, shutdownRequested: false })
 })
 
 describe('connection credentials', () => {
@@ -31,6 +31,20 @@ describe('connection credentials', () => {
     useConnectionStore.getState().disconnect()
     expect(useConnectionStore.getState().connection).toBeNull()
     expect(sessionStorage.getItem('ainiee.connection')).toBeNull()
+  })
+
+  it('marks an accepted shutdown for only its original connection and clears its credentials', () => {
+    useConnectionStore.getState().connect('http://127.0.0.1:8000', 'first')
+    const first = useConnectionStore.getState().revision
+    useConnectionStore.getState().connect('http://127.0.0.1:8001', 'second')
+    expect(useConnectionStore.getState().markShutdownRequested(first)).toBe(false)
+    expect(useConnectionStore.getState().connection?.token).toBe('second')
+    expect(useConnectionStore.getState().shutdownRequested).toBe(false)
+    expect(useConnectionStore.getState().markShutdownRequested(useConnectionStore.getState().revision)).toBe(true)
+    expect(useConnectionStore.getState()).toMatchObject({ connection: null, status: 'disconnected', shutdownRequested: true })
+    expect(sessionStorage.getItem('ainiee.connection')).toBeNull()
+    useConnectionStore.getState().connect('http://127.0.0.1:8002', 'third')
+    expect(useConnectionStore.getState().shutdownRequested).toBe(false)
   })
 
   it.each(['https://evil.example', 'http://localhost:8000', 'http://127.0.0.1:8000/path', 'http://user@127.0.0.1:8000', 'http://127.0.0.1:0', 'http://127.0.0.1:8000?token=other'])('rejects an unsafe API origin %s', (origin) => {

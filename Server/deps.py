@@ -1,6 +1,7 @@
 """Authentication applies before routing, including unknown HTTP/WS paths."""
 
 import secrets
+from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, WebSocket, WebSocketException
@@ -46,10 +47,12 @@ def _websocket_token(scope: Scope) -> str | None:
 
 
 class TokenAuthMiddleware:
-    def __init__(self, app: ASGIApp, *, token: str, allowed_origins: tuple[str, ...]):
+    def __init__(self, app: ASGIApp, *, token: str, allowed_origins: tuple[str, ...],
+                 public_http: Callable[[Scope], bool] | None = None):
         self.app = app
         self.token = token
         self.allowed_origins = allowed_origins
+        self.public_http = public_http
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] not in ("http", "websocket"):
@@ -73,7 +76,8 @@ class TokenAuthMiddleware:
                 and "access-control-request-method" in headers
             )
             health = scope["method"] == "GET" and scope["path"] == "/health"
-            if not health and not preflight and not token_matches(_http_token(headers), self.token):
+            public_file = self.public_http is not None and self.public_http(scope)
+            if not health and not preflight and not public_file and not token_matches(_http_token(headers), self.token):
                 response_headers = {"WWW-Authenticate": "Bearer"}
                 if origin is not None:
                     response_headers.update({"Access-Control-Allow-Origin": origin, "Vary": "Origin"})

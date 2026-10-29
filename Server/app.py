@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Callable, Sequence
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -20,6 +21,7 @@ from ModuleFolders.Application.TaskService import TaskService
 from ModuleFolders.Base.EventManager import EventManager
 from Server.deps import TokenAuthMiddleware
 from Server.event_bridge import EventBridge
+from Server.frontend import FrontendFiles
 from Server.routers import analysis, checks, config, export, items, platforms, projects, prompts, system, tables, tasks
 from Server.schemas.events import WebSocketMessage
 from Server.schemas.system import ErrorResponse
@@ -35,12 +37,14 @@ def create_app(
     allowed_origins: Sequence[str] | None = None,
     shutdown_callback: Callable[[], None] | None = None,
     runtime_factory: Callable[[], ApplicationRuntime] = bootstrap,
+    frontend_dir: str | Path | None = None,
 ) -> FastAPI:
     if not token or any(character.isspace() for character in token):
         raise ValueError("token must be non-empty and contain no whitespace")
     origins = tuple(DEV_ORIGINS if allowed_origins is None else allowed_origins)
     if any(origin == "*" or origin == "null" for origin in origins):
         raise ValueError("CORS requires explicit trusted origins")
+    frontend = FrontendFiles(frontend_dir) if frontend_dir is not None else None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -66,7 +70,8 @@ def create_app(
         lifespan=lifespan, docs_url=None, redoc_url=None,
         responses={status: {"model": ErrorResponse} for status in (400, 404, 409, 502)},
         middleware=[
-            Middleware(TokenAuthMiddleware, token=token, allowed_origins=origins),
+            Middleware(TokenAuthMiddleware, token=token, allowed_origins=origins,
+                       public_http=frontend.is_public if frontend else None),
             Middleware(
                 CORSMiddleware, allow_origins=origins,
                 allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
@@ -89,6 +94,8 @@ def create_app(
     app.include_router(prompts.router, prefix="/api/v1")
     app.include_router(analysis.router, prefix="/api/v1")
     app.include_router(websocket_router, prefix="/api/v1")
+    if frontend is not None:
+        app.mount("/", frontend, name="frontend")
 
     @app.exception_handler(ApplicationError)
     async def application_error(request: Request, error: ApplicationError):

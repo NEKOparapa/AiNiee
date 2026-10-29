@@ -48,7 +48,7 @@
 
 后端是独立的 Python 3.12 / FastAPI 进程，前端是 `frontend/` 中的 React 应用，通过 REST 和 WebSocket 通信。浏览器提供接口管理、项目概览、条目校对、提示词、公共表格、质量检查、分析、导出和任务日志。界面默认中文，也可切换英文、浅色或深色主题。
 
-当前一次运行一个翻译、润色或分析任务。右侧智能体面板为占位，可用 `Ctrl+L` 展开或收起。音频、视频、图片翻译，以及新版桌面打包不在本分支的交付范围内。[历史发行版](https://github.com/NEKOparapa/AiNiee/releases)的界面和启动方式可能与本分支不同。
+当前一次运行一个翻译、润色或分析任务。右侧智能体面板为占位，可用 `Ctrl+L` 展开或收起。音频、视频、图片翻译不在本分支的交付范围内。Windows 便携包由 PyInstaller 打包后端并托管已构建的前端，双击后在默认浏览器中操作。[历史发行版](https://github.com/NEKOparapa/AiNiee/releases)的界面和启动方式可能与本分支不同。
 
 ### 安装依赖
 
@@ -94,9 +94,11 @@ READY <实际监听端口>
 | 参数 | 行为 |
 | --- | --- |
 | `--host 127.0.0.1` | 唯一允许的监听地址，也是默认值。 |
-| `--port 8000` | 指定后端端口；`--port 0` 自动选择空闲端口，以 `READY` 为准。 |
+| `--port 8000` | 指定后端端口；源码默认 `8000`，打包版默认 `0` 自动选择空闲端口。控制台模式以 `READY` 为准。 |
 | `--token <令牌>` | 使用指定令牌；省略时生成随机令牌。指定令牌时不再打印 `TOKEN` 行。 |
 | `--dev` | 就绪后打开固定的前端地址 `http://127.0.0.1:5173`。 |
+| `--web` | 托管 `frontend/dist/`，就绪后打开后端同源的工作台；打包版默认启用。与 `--dev` 互斥。 |
+| `--no-browser` | 不自动打开浏览器，也不显示原生启动提示，适用于自动化验收。 |
 
 端口已被占用时，可以为后端选择其他端口；前端保持 `5173`。停止后端时使用终端的 `Ctrl+C`，进程会等待正在进行的任务收尾和缓存保存。
 
@@ -107,7 +109,32 @@ npm --prefix frontend run build
 npm --prefix frontend run preview
 ```
 
-构建结果写入 `frontend/dist/`；预览服务同样使用 `http://127.0.0.1:5173`，需要先停止占用此端口的开发服务。另开终端运行后端，再连接前端即可。`preview` 用于本地验证构建结果；当前后端不托管前端静态文件，也没有新版可双击启动的桌面包。
+构建结果写入 `frontend/dist/`；预览服务同样使用 `http://127.0.0.1:5173`，需要先停止占用此端口的开发服务。另开终端运行后端，再连接前端即可。
+
+也可由后端直接托管构建结果，无需另外运行 Vite：
+
+```powershell
+npm --prefix frontend run build
+.venv\Scripts\python.exe AiNiee.py --web --port 0
+```
+
+就绪后浏览器自动打开随机本机端口，连接令牌通过 fragment 传入，前端读取后立即从地址栏移除。直接刷新设置等深层页面也可正常加载。
+
+### Windows 便携包
+
+在 Windows x64 上完成上面的 Python 3.12、Node.js 24 依赖安装后，从完整 Git 检出目录运行：
+
+```powershell
+.venv\Scripts\python.exe Tools/pyinstall.py
+```
+
+脚本自动构建前端，再生成隐藏控制台的 PyInstaller 文件夹包和 ZIP。输出位于 `dist/windows-<UTC时间>-<随机ID>/`：其中 `AiNiee/AiNiee.exe` 可直接运行，`AiNiee-<版本>-windows-x64.zip` 用于分发，旁边的 `.sha256` 用于核对完整性。终端会打印实际 `EXECUTABLE`、`PACKAGE` 和 `SHA256`。每次构建使用新目录，不覆盖已有包；`--console` 可生成可见的诊断控制台，`--skip-frontend-build` 可复用已经构建且会再次校验的 `frontend/dist/`。
+
+使用时完整解压 ZIP，保留 `AiNiee.exe`、`_internal/` 和 `portable.txt`，然后双击 `AiNiee.exe`。无需安装 Python、Node.js，也无需另开前端服务。程序只监听 `127.0.0.1`，默认随机端口与令牌，就绪后打开默认浏览器。重复启动会提示已有实例运行。
+
+关闭标签页后，后台任务仍继续运行。需要结束程序时，在「关于 / 更新」点击「退出应用」并确认；后端会停止任务，等待正在执行的请求结束并保存缓存，再退出。页面显示「退出请求已接受」只表示已开始关闭流程，不代表进程已经结束。源码模式也可以使用此按钮或终端的 `Ctrl+C`。
+
+包内仅带应用资源和空默认配置，不复制构建者的用户配置、缓存或日志。`build-info.json` 记录构建版本、依赖和资源校验信息。首次启动后，可写的便携目录会在 EXE 旁创建 `Resource/config.json`、`ProjectCache/` 和 `Logs/`。升级前先退出程序，保留旧目录的配置和缓存，将它们复制到新包根目录对应位置；不要放进 `_internal/`，也不要用默认配置覆盖原配置。目录不可写时沿用现有规则回落到用户数据目录。
 
 ### 人工操作流程
 
@@ -141,7 +168,7 @@ npm --prefix frontend run preview
 
 ### 本机访问与接口契约
 
-只有 `GET /health` 无需令牌。其他 HTTP 请求使用 `Authorization: Bearer <token>`，WebSocket 使用 `/api/v1/ws?token=<token>`。白名单来源的 `OPTIONS` 预检免令牌，实际请求仍鉴权。允许的浏览器来源是 `http://127.0.0.1:5173`、`http://localhost:5173` 和当前后端自身地址；不使用通配 CORS，也不支持远程监听。令牌不应随链接共享。
+`GET /health` 无需令牌。启用 `--web` 或使用便携包时，构建目录内的前端静态资源也允许免令牌的 `GET/HEAD`，便于浏览器首次加载页面；此例外不开放用户配置、项目文件或 API。其他 HTTP 请求（包括 OpenAPI）使用 `Authorization: Bearer <token>`，WebSocket 使用 `/api/v1/ws?token=<token>`。白名单来源的 `OPTIONS` 预检免令牌，实际 API 请求仍鉴权。允许的浏览器来源是 `http://127.0.0.1:5173`、`http://localhost:5173` 和当前后端自身地址；不使用通配 CORS，也不支持远程监听。令牌不应随链接共享。
 
 REST 入口为 `/api/v1/`。WebSocket 推送进度、日志和数据变化；断线后前端自动重连并重新查询状态，不重放已丢失事件。前端接口类型和 WebSocket 契约均来自后端 Pydantic / OpenAPI，修改接口后执行：
 
@@ -168,10 +195,30 @@ npm --prefix frontend run check:api
 ```powershell
 cd frontend
 npx playwright install chromium
+npm run build
 npm run test:e2e
 ```
 
 Playwright 会启动或复用 `5173` 上的本项目前端，并为测试启动使用临时数据目录的后端。默认使用仓库 `.venv` 中的 Python；可用 `AINIEE_TEST_PYTHON` 指定其他解释器路径。测试里的模型请求使用固定 mock，禁止访问真实模型接口；缓存、配置和输出均与用户数据隔离。浏览器失败截图和 trace 保存在 `frontend/test-results/`。
+
+`hosted-workbench.spec.ts` 直接访问后端托管的 `frontend/dist/`，验证深层页面刷新、令牌交接、配置保存和确认退出。还可在 `frontend/` 中设置 `AINIEE_TEST_EXECUTABLE` 为本次构建的 `AiNiee.exe` 绝对路径，仅运行这一用例：
+
+```powershell
+# 将路径替换为本次构建终端打印的 EXECUTABLE。
+$env:AINIEE_TEST_EXECUTABLE = 'D:\packages\AiNiee\AiNiee.exe'
+npm run test:e2e -- hosted-workbench.spec.ts
+Remove-Item Env:AINIEE_TEST_EXECUTABLE
+```
+
+可执行文件验收不启动 Vite，不借用源码资源目录，验证前端来自包内。此用例不调用模型接口，不能和模型 mock 模式混用；清除环境变量后再运行完整套件。
+
+还可从仓库根目录运行完整的便携包验收，将 `--bundle` 替换为包含本次 `AiNiee.exe` 的文件夹：
+
+```powershell
+.venv\Scripts\python.exe Tools/smoke_package.py --bundle 'D:\packages\AiNiee' --report build/package-smoke.json
+```
+
+脚本把包复制到临时中文、空格路径，使用临时用户目录和本机固定 OpenAI mock，验证真实 EXE 的停止、重启恢复、检查、校对、导出和日志脱敏。无参数启动也会验证随机端口与浏览器交接；测试通过临时 `BROWSER` 命令捕获地址，不修改系统默认浏览器。结果写入 JSON，原始发布包不写入用户数据。
 
 后端测试覆盖旧调用路径与 Application 调用路径的导出字节一致性，以及停止、保存、恢复和继续；浏览器测试覆盖翻译、检查、编辑、导出，以及表格、提示词、分析和设置流程。
 

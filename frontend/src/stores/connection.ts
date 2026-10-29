@@ -61,9 +61,11 @@ type ConnectionState = {
   status: ConnectionStatus
   error: string | null
   initialized: boolean
+  shutdownRequested: boolean
   initialize: () => void
   connect: (api: string, token: string) => void
   disconnect: () => void
+  markShutdownRequested: (revision: number) => boolean
   setStatus: (status: ConnectionStatus, error?: string | null) => void
 }
 
@@ -73,6 +75,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
   status: 'disconnected',
   error: null,
   initialized: false,
+  shutdownRequested: false,
   initialize: () => {
     if (get().initialized) return
     set({ initialized: true })
@@ -85,7 +88,7 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
         get().connect(fragment.get('api') ?? '', fragment.get('token') ?? '')
       } catch (error) {
         saveSession(null)
-        set({ connection: null, status: 'disconnected', error: error instanceof ConnectionError ? error.code : 'connection.invalidOrigin' })
+        set({ connection: null, status: 'disconnected', shutdownRequested: false, error: error instanceof ConnectionError ? error.code : 'connection.invalidOrigin' })
       }
       return
     }
@@ -95,11 +98,18 @@ export const useConnectionStore = create<ConnectionState>((set, get) => ({
   connect: (api, token) => {
     const connection = validateConnection(api, token)
     saveSession(connection)
-    set((state) => ({ connection, revision: state.revision + 1, status: 'connecting', error: null, initialized: true }))
+    set((state) => ({ connection, revision: state.revision + 1, status: 'connecting', error: null, initialized: true, shutdownRequested: false }))
   },
   disconnect: () => {
     saveSession(null)
-    set((state) => ({ connection: null, revision: state.revision + 1, status: 'disconnected', error: null }))
+    set((state) => ({ connection: null, revision: state.revision + 1, status: 'disconnected', error: null, shutdownRequested: false }))
+  },
+  markShutdownRequested: (revision) => {
+    // An acknowledgement for an old service must not disconnect a new one.
+    if (get().revision !== revision || !get().connection) return false
+    saveSession(null)
+    set({ connection: null, revision: revision + 1, status: 'disconnected', error: null, shutdownRequested: true })
+    return true
   },
   setStatus: (status, error = null) => set({ status, error }),
 }))

@@ -197,28 +197,67 @@ def test_analysis_event_values_are_redacted_before_leaving_worker_scope():
     asyncio.run(scenario())
 
 
-def test_progress_is_flushed_before_lifecycle_and_project_change():
+def test_progress_is_flushed_before_lifecycle_and_project_change(monkeypatch):
     async def scenario():
         manager = EventManager()
-        bridge = EventBridge(manager, asyncio.get_running_loop())
+        loop = asyncio.get_running_loop()
+        bridge = EventBridge(manager, loop)
+        timers = []
+        original_call_later = loop.call_later
+
+        class ControlledTimer:
+            def __init__(self, delay, callback, args):
+                self.delay = delay
+                self.callback = callback
+                self.args = args
+                self.cancelled = False
+
+            def cancel(self):
+                self.cancelled = True
+
+            def fire(self):
+                if not self.cancelled:
+                    self.callback(*self.args)
+
+        def call_later(delay, callback, *args, context=None):
+            if callback == bridge._flush_task:
+                timer = ControlledTimer(delay, callback, args)
+                timers.append(timer)
+                return timer
+            return original_call_later(delay, callback, *args, context=context)
+
+        monkeypatch.setattr(loop, "call_later", call_later)
         bridge.start()
         queue = bridge.subscribe()
         try:
             manager.emit(Event.TASK_UPDATE, {"line": 7})
             manager.emit(Event.TASK_STATE_CHANGED, {})
             manager.emit(Event.PROJECT_CHANGED, {"project_id": "new-project"})
-            messages = [await asyncio.wait_for(queue.get(), timeout=0.1) for _ in range(3)]
+            await asyncio.sleep(0)  # Deliver all posted call_soon_threadsafe callbacks.
+            messages = [queue.get_nowait() for _ in range(3)]
             assert [message.type for message in messages] == ["task.update", "task.state.changed", "project.changed"]
             assert [message.seq for message in messages] == [1, 2, 3]
             assert messages[0].data.line == 7
+            assert len(timers) == 1
+            original = timers[0]
+            assert original.delay == 0.1 and original.cancelled
             # Flushing cancels the original timer instead of allowing it to
-            # prematurely flush the new project's next 100 ms batch.
-            await asyncio.sleep(0.05)
+            # prematurely flush the new project's next 100 ms batch. Exercise
+            # those deadlines explicitly so OS scheduling cannot make the
+            # new deadline expire while the test intends to check the old one.
             manager.emit(Event.TASK_UPDATE, {"line": 1})
-            await asyncio.sleep(0.07)
+            await asyncio.sleep(0)
+            assert len(timers) == 2
+            current = timers[1]
+            assert current.delay == 0.1 and not current.cancelled
+            original.fire()
             assert queue.empty()
-            message = await asyncio.wait_for(queue.get(), timeout=0.1)
+            assert not current.cancelled
+            current.fire()
+            message = queue.get_nowait()
+            assert message.type == "task.update" and message.seq == 4
             assert message.data.line == 1
+            assert queue.empty()
         finally:
             await bridge.close()
 
