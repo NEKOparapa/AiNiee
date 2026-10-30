@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useConfig, usePatchConfig } from '@/api/config'
 import { projectKeys, useCurrentProject, useOpenProject } from '@/api/projects'
 import { useConnectionStore } from '@/stores/connection'
+import { PageHeading } from '@/components/common/PageHeading'
 import { PageState } from '@/components/common/PageState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,14 +72,14 @@ export function HomePage() {
     else setDropNotice(true)
   }
   return <div className="workspace home-page">
-    <div className="welcome"><span className="eyebrow">{t('eyebrow')}</span><h1>{t('title')}</h1><p>{t('intro')}</p><div className="welcome-mark" aria-hidden="true"><span>文</span><span>A</span></div></div>
+    <PageHeading title={t('title')} subtitle={t('intro')}/>
     {!connection ? <PageState disconnected/> : current.isPending ? <ProjectFeedback loading/> : current.isError ? <ProjectFeedback error={current.error} retry={() => void current.refetch()}/> : <>
-      <section className={`project-open-card${dragging ? ' drag-active' : ''}`} onDragOver={e => { e.preventDefault(); setDragging(true) }} onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false) }} onDrop={onDrop} aria-label={t('openTitle')}>
-        <div className="project-open-heading"><span className="card-symbol"><FolderOpen size={23}/></span><div><h2>{t('openTitle')}</h2><p>{t('openDetail')}</p></div></div>
-        <div className="project-format"><label htmlFor="project-type">{t('type')}</label><select id="project-type" className="select-control" value={selectedType} disabled={pending || config.isPending} onChange={e => void changeType(e.target.value)}>
+        <section className="setting-card project-type-card"><div className="setting-copy"><h3><label htmlFor="project-type">{t('type')}</label></h3><p>{t('typeDetail')}</p></div><select id="project-type" className="select-control" value={selectedType} disabled={pending || config.isPending} onChange={e => void changeType(e.target.value)}>
           {!types.includes(selectedType) && <option value={selectedType}>{selectedType === 'AutoType' ? t('autoType') : selectedType}</option>}
           {types.map(type => <option value={type} key={type}>{type === 'AutoType' ? t('autoType') : type}</option>)}
-        </select></div>
+        </select></section>
+      <section className={`project-open-card${dragging ? ' drag-active' : ''}`} onDragOver={e => { e.preventDefault(); setDragging(true) }} onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false) }} onDrop={onDrop} aria-label={t('openTitle')}>
+        <div className="project-open-heading"><span className="project-drop-icon"><FolderOpen size={44} strokeWidth={1.2}/></span><div><h2>{t('openTitle')}</h2><p>{t('openDetail')}</p></div></div>
         <form onSubmit={e => { e.preventDefault(); void openPath(path) }}>
           <label htmlFor="project-path">{t('path')}</label><div className="project-path-row"><Input id="project-path" placeholder={t('pathPlaceholder')} value={path} disabled={pending} onChange={e => { setPath(e.target.value); setDirtyPath(true); setDropNotice(false) }}/><Button type="button" variant="outline" disabled={pending} onClick={() => setBrowsing(true)}><FolderOpen size={16}/>{t('browse')}</Button></div>
           {dropNotice && <p className="project-feedback" role="status">{t('dropUnavailable')}</p>}

@@ -19,7 +19,7 @@ export function SettingsFrame({ page, children }: {
   const id = useId()
   return <section className="settings-page" aria-labelledby={id}>
     <header className="settings-page-heading">
-      <div><p className="settings-eyebrow">{t('eyebrow')}</p><h1 id={id}>{t(`${page}.title`)}</h1>
+      <div><h1 id={id}>{t(`${page}.title`)}</h1>
         <p className="settings-description">{t(`${page}.description`)}</p></div>
       <span className="settings-autosave"><CircleCheck size={15} />{t('autoSave')}</span>
     </header>

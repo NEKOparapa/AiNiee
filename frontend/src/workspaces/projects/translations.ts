@@ -1,9 +1,9 @@
 import i18n from '@/i18n'
 
 const zh = {
-  title: '从这里，开启翻译', intro: '打开本机项目，继续上次进度，让每一句表达都恰到好处。', platformLink: '管理模型接口', defaultDirectory: '默认位置',
+  title: '开始翻译', intro: '打开原文文件夹，或从项目记录继续翻译。', platformLink: '管理模型接口', defaultDirectory: '默认位置',
   eyebrow: 'AI · TRANSLATION WORKSPACE', openTitle: '打开项目', openDetail: '选择包含原文的文件夹，或输入文件路径。项目会保存在本机缓存中。',
-  type: '项目类型', autoType: '自动识别', path: '项目路径', pathPlaceholder: '输入文件或文件夹的完整路径', browse: '浏览文件夹', open: '打开项目', opening: '正在读取项目…',
+  type: '项目类型', typeDetail: '设置原始文本格式；不确定时，可选择自动识别。', autoType: '自动识别', path: '项目路径', pathPlaceholder: '输入文件或文件夹的完整路径', browse: '浏览文件夹', open: '打开项目', opening: '正在读取项目…',
   dropHint: '可将完整路径拖入此处；浏览器无法读取文件夹路径时，请使用目录浏览。', dropUnavailable: '浏览器没有提供完整路径。请点击“浏览文件夹”选择项目位置。',
   historyTitle: '最近的项目', historyDetail: '从缓存继续，保留已完成的翻译与修改。', historyNoStats: '暂无任务统计', notStarted: '尚未开始', noHistory: '还没有项目记录', noHistoryDetail: '打开第一个项目后，你可以随时从这里继续。',
   continue: '继续项目', viewProject: '查看项目', deleteCurrentHint: '请先打开其他项目，再删除当前缓存。', remove: '删除缓存', historyProgress: '{{done}} / {{total}} 条', complete: '已完成', pending: '进行中', current: '当前项目',
@@ -27,9 +27,9 @@ const zh = {
   },
 }
 const en = {
-  title: 'Make room for every word', intro: 'Open a local project or pick up your saved progress.', platformLink: 'Manage model connections', defaultDirectory: 'Default location',
+  title: 'Start translating', intro: 'Open your source folder or continue from a saved project.', platformLink: 'Manage model connections', defaultDirectory: 'Default location',
   eyebrow: 'AI · TRANSLATION WORKSPACE', openTitle: 'Open a project', openDetail: 'Choose a folder containing source files, or enter a file path. Progress is cached locally.',
-  type: 'Project format', autoType: 'Detect automatically', path: 'Project path', pathPlaceholder: 'Enter a full file or folder path', browse: 'Browse folders', open: 'Open project', opening: 'Reading project…',
+  type: 'Project format', typeDetail: 'Choose the source format, or use automatic detection if you are unsure.', autoType: 'Detect automatically', path: 'Project path', pathPlaceholder: 'Enter a full file or folder path', browse: 'Browse folders', open: 'Open project', opening: 'Reading project…',
   dropHint: 'Drop a full path here, or use the folder browser when your browser cannot read it.', dropUnavailable: 'Your browser did not provide the full path. Use “Browse folders” to select the project.',
   historyTitle: 'Recent projects', historyDetail: 'Resume cached translations and edits.', historyNoStats: 'No task statistics yet', notStarted: 'Not started', noHistory: 'No projects yet', noHistoryDetail: 'Open your first project to continue it here later.',
   continue: 'Resume project', viewProject: 'View project', deleteCurrentHint: 'Open another project before deleting this cache.', remove: 'Delete cache', historyProgress: '{{done}} / {{total}} items', complete: 'Complete', pending: 'In progress', current: 'Current project',

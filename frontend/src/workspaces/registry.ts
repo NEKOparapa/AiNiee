@@ -1,4 +1,4 @@
-import { BookOpen, BookText, Braces, CheckCheck, CircleHelp, FileOutput, FileText, FolderTree, Home, Languages, ListFilter, MessagesSquare, Palette, PencilLine, ScanText, Settings2, SlidersHorizontal, Sparkles, Table2, Terminal, TextCursorInput, TextQuote, Users, WandSparkles, Workflow } from 'lucide-react'
+import { BookOpen, BookText, Braces, CheckCheck, CircleHelp, FileOutput, FileText, FolderTree, Home, Languages, ListFilter, MessagesSquare, Palette, PencilLine, Play, ScanText, Settings2, SlidersHorizontal, Sparkles, Table2, Terminal, TextCursorInput, TextQuote, Users, WandSparkles, Workflow } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export type WorkspaceKind = 'home' | 'platforms' | 'overview' | 'items' | 'checks' | 'export' | 'analysis' | 'prompt' | 'table' | 'task' | 'output' | 'advanced' | 'appearance' | 'logs' | 'about' | 'placeholder'
@@ -34,4 +34,19 @@ export const workspaces: WorkspaceEntry[] = [
 ]
 
 export const workspaceForPath = (path: string) => workspaces.find(entry => entry.path === path)
+
+export type NavigationItem = string | { id: string; label: string; icon: LucideIcon; children: string[] }
+export const navigationSections: { id: string; items: NavigationItem[] }[] = [
+  { id: 'start', items: ['platforms', 'workflow'] },
+  { id: 'settings', items: ['task', 'output', 'advanced'] },
+  { id: 'prompts', items: [
+    { id: 'translationPrompts', label: 'translationPrompts', icon: BookOpen, children: ['systemPrompt', 'charactersPrompt', 'worldPrompt', 'stylePrompt', 'examplesPrompt'] },
+    'polishPrompt', 'promptLibrary',
+  ] },
+  { id: 'tables', items: ['glossary', 'exclusion',
+    { id: 'replacementTables', label: 'replacementTables', icon: TextCursorInput, children: ['replaceA', 'replaceB'] },
+  ] },
+]
+export const workflowNavigation = { icon: Play, path: '/', label: 'startTranslation' }
+export const workflowWorkspaces = ['overview', 'analysis', 'items', 'checks', 'export'].map(id => workspaces.find(item => item.id === id)!)
 export { FileText, Sparkles }
