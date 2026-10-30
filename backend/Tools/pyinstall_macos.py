@@ -13,7 +13,8 @@ from pathlib import Path
 import PyInstaller.__main__
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
+BACKEND = ROOT / "backend"
 APP_NAME = "AiNiee"
 BUNDLE_ID = "com.nekoparapa.AiNiee"
 VALID_TARGET_ARCHES = {"arm64", "x86_64"}
@@ -36,7 +37,7 @@ def target_arch(explicit_arch: str | None = None) -> str:
 
 
 def app_version() -> str:
-    version_file = ROOT / "Resource" / "Version" / "version.json"
+    version_file = BACKEND / "Resource" / "Version" / "version.json"
     if not version_file.exists():
         return "0.0.0"
 
@@ -45,7 +46,7 @@ def app_version() -> str:
 
 
 def build_icns() -> Path:
-    source_png = ROOT / "Resource" / "Logo" / "Avatar.png"
+    source_png = BACKEND / "Resource" / "Logo" / "Avatar.png"
     output_icns = ROOT / "build" / "macos" / "AiNiee.icns"
     if output_icns.exists():
         return output_icns
@@ -119,7 +120,7 @@ def sign_app_bundle() -> None:
     # 没有证书时使用 ad-hoc 签名；有证书时启用 hardened runtime 以便公证。
     identity = os.environ.get("CODESIGN_IDENTITY") or os.environ.get("MACOS_CODESIGN_IDENTITY", "-")
     cmd = ["codesign", "--force", "--deep", "--sign", identity]
-    entitlements = ROOT / "Tools" / "Packaging" / "macOS" / "entitlements.plist"
+    entitlements = BACKEND / "Tools" / "Packaging" / "macOS" / "entitlements.plist"
     if entitlements.exists():
         cmd.extend(["--entitlements", str(entitlements)])
     if identity != "-":
@@ -131,7 +132,8 @@ def sign_app_bundle() -> None:
 def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
     macos_arch = target_arch(arch)
     return [
-        "./AiNiee.py",
+        str(BACKEND / "AiNiee.py"),
+        f"--paths={BACKEND}",
         f"--name={APP_NAME}",
         "--windowed",
         "--clean",
@@ -140,7 +142,7 @@ def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
         f"--osx-bundle-identifier={BUNDLE_ID}",
         f"--icon={icon_path}",
         # 资源随 app 打入包内，运行期再通过 FilePathConfig 定位。
-        "--add-data=Resource:Resource",
+        f"--add-data={BACKEND / 'Resource'}:Resource",
         "--hidden-import=babeldoc",
         "--hidden-import=sklearn",
         "--hidden-import=mediapipe.tasks.c",
@@ -173,7 +175,7 @@ def main() -> None:
     args = parser.parse_args()
 
     os.chdir(ROOT)
-    sys.path.insert(0, str(ROOT))
+    sys.path.insert(0, str(BACKEND))
     icon_path = build_icns()
     PyInstaller.__main__.run(pyinstaller_command(icon_path, args.target_arch))
     patch_info_plist()

@@ -45,19 +45,37 @@ The backend runs as an independent Python 3.12 / FastAPI process. The React appl
 
 One translation, polishing or analysis task runs at a time. The assistant panel is a placeholder; use `Ctrl+L` to toggle it. Audio, video and image translation are outside this branch's scope. The Windows portable package uses PyInstaller to bundle the backend and serve the built frontend; double-clicking opens the workspace in your default browser. [Earlier releases](https://github.com/NEKOparapa/AiNiee/releases) may have a different interface and startup procedure.
 
+Backend code and bundled resources live in `backend/`. Existing user configuration, project caches and logs keep their original repository-root paths; translation progress does not need to be moved. The repository virtual environment, `build/` and `dist/` also stay in place.
+
+```text
+backend/                 # Python backend
+  AiNiee.py              # Startup entry
+  Server/                # FastAPI / WebSocket / schemas
+  ModuleFolders/         # Application services and translation core
+  Resource/              # Bundled models, templates and presets
+  Tools/                 # Packaging and verification tools
+  requirements*.txt      # Python dependencies
+  openapi.json           # Generated API contract
+  pytest.ini             # Backend test configuration
+frontend/                # React application
+Resource/config.json     # Existing user configuration (not tracked)
+ProjectCache/            # Existing project progress (not tracked)
+Logs/                    # Runtime logs (not tracked)
+```
+
 ### Install dependencies
 
-Prepare **64-bit Python 3.12**, **Node.js 24** and npm. Run the following from this branch's repository root, containing `AiNiee.py`, `Server/` and `frontend/`. These Windows examples use PowerShell and do not require activating the virtual environment.
+Prepare **64-bit Python 3.12**, **Node.js 24** and npm. Run the following from this branch's repository root, containing `backend/` and `frontend/`. These Windows examples use PowerShell and do not require activating the virtual environment.
 
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe -m pip install --no-deps -r requirements_no_deps.txt
+.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+.venv\Scripts\python.exe -m pip install --no-deps -r backend/requirements_no_deps.txt
 npm --prefix frontend ci
 ```
 
-The Python dependencies are intentionally split across two files: install `requirements.txt` first, followed by `requirements_no_deps.txt` with `--no-deps`. Do not replace the latter with ordinary dependency resolution. Use `npm ci` to install from the committed frontend lockfile.
+The Python dependencies are intentionally split across two files: install `backend/requirements.txt` first, followed by `backend/requirements_no_deps.txt` with `--no-deps`. Do not replace the latter with ordinary dependency resolution. Use `npm ci` to install from the committed frontend lockfile.
 
 On macOS / Linux, create the environment with `python3.12 -m venv .venv` and replace `.venv\Scripts\python.exe` with `.venv/bin/python` in the Python commands. Your operating system and architecture must also satisfy the individual Python dependencies' installation requirements.
 
@@ -72,7 +90,7 @@ npm --prefix frontend run dev
 Run the backend in terminal two:
 
 ```powershell
-.venv\Scripts\python.exe AiNiee.py --dev
+.venv\Scripts\python.exe backend/AiNiee.py --dev
 ```
 
 The frontend uses `http://127.0.0.1:5173`; the backend defaults to `http://127.0.0.1:8000`. Once the backend is ready, `--dev` opens the browser and passes its address and access token to the frontend through the URL fragment. **It does not start the frontend process.** Keep both processes running.
@@ -110,7 +128,7 @@ Alternatively, serve the built frontend directly from the backend without runnin
 
 ```powershell
 npm --prefix frontend run build
-.venv\Scripts\python.exe AiNiee.py --web --port 0
+.venv\Scripts\python.exe backend/AiNiee.py --web --port 0
 ```
 
 The browser opens a random loopback port after startup. The token is passed through the URL fragment and removed from the address bar as soon as the frontend reads it. Reloading a deep link such as a settings page works too.
@@ -120,7 +138,7 @@ The browser opens a random loopback port after startup. The token is passed thro
 After installing the Python 3.12 and Node.js 24 dependencies above on Windows x64, run this from a complete Git checkout:
 
 ```powershell
-.venv\Scripts\python.exe Tools/pyinstall.py
+.venv\Scripts\python.exe backend/Tools/pyinstall.py
 ```
 
 The script builds the frontend, then produces a PyInstaller folder package with a hidden console and a ZIP. Outputs live under `dist/windows-<UTC-time>-<random-ID>/`: run `AiNiee/AiNiee.exe`, distribute `AiNiee-<version>-windows-x64.zip`, and use its adjacent `.sha256` file to check integrity. The terminal prints the actual `EXECUTABLE`, `PACKAGE` and `SHA256`. Each build uses a new directory without replacing older packages. Use `--console` for a visible diagnostic console or `--skip-frontend-build` to reuse an already built `frontend/dist/`, which is still validated.
@@ -158,7 +176,9 @@ Set `AINIEE_USER_DATA_DIR` to choose the configuration directory containing `con
 Inspect the paths resolved by your current environment from the repository root:
 
 ```powershell
-.venv\Scripts\python.exe -c "from ModuleFolders.Config.FilePathConfig import config_path, project_cache_root, user_log_dir; print(config_path()); print(project_cache_root()); print(user_log_dir())"
+Push-Location backend
+..\.venv\Scripts\python.exe -c "from ModuleFolders.Config.FilePathConfig import config_path, project_cache_root, user_log_dir; print(config_path()); print(project_cache_root()); print(user_log_dir())"
+Pop-Location
 ```
 
 ### Local access and API contracts
@@ -168,17 +188,19 @@ Inspect the paths resolved by your current environment from the repository root:
 REST endpoints are under `/api/v1/`. WebSocket pushes progress, logs and data changes. After a disconnect, the frontend reconnects and refetches current state; missed events are not replayed. Frontend API types and WebSocket contracts are generated from backend Pydantic / OpenAPI definitions. After changing an interface, run:
 
 ```powershell
-.venv\Scripts\python.exe -m Server.export_openapi
+.venv\Scripts\python.exe backend/Server/export_openapi.py
 npm --prefix frontend run generate:api
 npm --prefix frontend run check:api
 ```
 
-Commit both `openapi.json` and `frontend/src/api/generated/schema.d.ts`. Do not edit generated files manually.
+Commit both `backend/openapi.json` and `frontend/src/api/generated/schema.d.ts`. Do not edit generated files manually.
 
 ### Development checks and tests
 
+The cleanup commit removed the backend pytest and Playwright cases. Their commands and workflow descriptions below are retained for when cases are added again; currently they report no tests found. Frontend Vitest, builds and API type checks remain available.
+
 ```powershell
-.venv\Scripts\python.exe -m pytest -q
+.venv\Scripts\python.exe -m pytest -c backend/pytest.ini -q
 npm --prefix frontend run typecheck
 npm --prefix frontend test
 npm --prefix frontend run build
@@ -210,7 +232,7 @@ Executable verification does not start Vite or use the source resource directory
 For the complete portable-package check, run this from the repository root, replacing `--bundle` with the directory containing the built `AiNiee.exe`:
 
 ```powershell
-.venv\Scripts\python.exe Tools/smoke_package.py --bundle 'D:\packages\AiNiee' --report build/package-smoke.json
+.venv\Scripts\python.exe backend/Tools/smoke_package.py --bundle 'D:\packages\AiNiee' --report build/package-smoke.json
 ```
 
 The script copies the bundle to a temporary path containing Chinese characters and spaces, uses an isolated user directory and a fixed local OpenAI mock, and verifies stopping, restart recovery, checks, editing, export and log redaction in the real EXE. It also checks no-argument startup, a random port and browser handoff through a temporary `BROWSER` capture command without changing the system default browser. Results are written to JSON; the original distributable receives no user data.
@@ -299,9 +321,9 @@ The following historical guides explain the underlying features. For this branch
 
 
 
-* **`Improve or Add Supported Files`**: File handling lives in `ModuleFolders/Domain/`; see the [reader/writer development guide](ModuleFolders/Domain/FileAccessor/README.md). This separation project preserves that business logic. Application services belong in `ModuleFolders/Application/`; HTTP routes only validate and delegate. Frontend workspaces live in `frontend/src/workspaces/`, with navigation registered centrally in `registry.ts`.
+* **`Improve or Add Supported Files`**: File handling lives in `backend/ModuleFolders/Domain/`; see the [reader/writer development guide](backend/ModuleFolders/Domain/FileAccessor/README.md). This separation project preserves that business logic. Application services belong in `backend/ModuleFolders/Application/`; HTTP routes only validate and delegate. Frontend workspaces live in `frontend/src/workspaces/`, with navigation registered centrally in `registry.ts`.
 
-* **`Improve the Regex Library`**: A comprehensive regex library will greatly help with in-game embedding work and benefit future game translation work and other translation users. The regex library is in the [Resource\Regex](https://github.com/NEKOparapa/AiNiee/blob/main/Resource/Regex/regex.json) folder
+* **`Improve the Regex Library`**: A comprehensive regex library will greatly help with in-game embedding work and benefit future game translation work and other translation users. The regex library is in the [backend/Resource/Regex](backend/Resource/Regex/regex.json) folder
 
 * **`Improve Interface Translation`**: Shared frontend strings live in `frontend/src/i18n/`, and workspace strings in their respective `translations.ts` files. Include Simplified Chinese and English for new interface text.
 

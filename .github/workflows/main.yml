@@ -27,8 +27,8 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: |
-            requirements.txt
-            requirements_no_deps.txt
+            backend/requirements.txt
+            backend/requirements_no_deps.txt
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -41,9 +41,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install -r requirements.txt
+          python -m pip install -r backend/requirements.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install --no-deps -r requirements_no_deps.txt
+          python -m pip install --no-deps -r backend/requirements_no_deps.txt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Install frontend dependencies
@@ -51,6 +51,7 @@ jobs:
         run: npm ci
 
       - name: Backend tests and OpenAPI contract
+        working-directory: backend
         run: python -m pytest -q
 
       - name: Frontend tests, build and generated types

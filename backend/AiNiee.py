@@ -58,7 +58,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def frontend_directory() -> Path:
-    root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
     return root / "frontend" / "dist"
 
 

@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5173 --strictPort",
     "typecheck": "tsc --noEmit",
-    "generate:api": "openapi-typescript ../openapi.json --default-non-nullable false -o src/api/generated/schema.d.ts",
+    "generate:api": "openapi-typescript ../backend/openapi.json --default-non-nullable false -o src/api/generated/schema.d.ts",
     "check:api": "node scripts/check-api.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

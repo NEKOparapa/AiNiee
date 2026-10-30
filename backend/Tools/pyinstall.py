@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 RESOURCE_DIRECTORIES = frozenset({
     "Localization", "Logo", "Models", "platforms", "Prompt", "Regex", "Version",
 })
@@ -100,9 +100,10 @@ def _git(root: Path, *args: str) -> bytes:
 
 
 def resource_manifest(root: Path) -> list[Path]:
-    """Use a directory allowlist and Git tracking, never the local folder wholesale."""
+    """Return backend-relative paths using an allowlist and Git tracking."""
+    backend = root / "backend"
     selected = []
-    names = _git(root, "ls-files", "-z", "--", "Resource").decode("utf-8").split("\0")
+    names = _git(backend, "ls-files", "-z", "--", "Resource").decode("utf-8").split("\0")
     for name in names:
         if not name:
             continue
@@ -113,8 +114,8 @@ def resource_manifest(root: Path) -> list[Path]:
             continue
         if relative.parts[1] not in RESOURCE_DIRECTORIES:
             continue
-        source = root.joinpath(*relative.parts)
-        _source_file(root / "Resource", source)
+        source = backend.joinpath(*relative.parts)
+        _source_file(backend / "Resource", source)
         selected.append(Path(*relative.parts))
     missing = REQUIRED_RESOURCES - {path.as_posix() for path in selected}
     if missing:
@@ -157,7 +158,7 @@ def stage_payload(paths: BuildPaths) -> list[dict[str, str]]:
     _inside(paths.root / "build", paths.payload)
     paths.payload.mkdir(parents=True, exist_ok=False)
     staged = []
-    inputs = [(paths.root / path, path) for path in resources]
+    inputs = [(paths.root / "backend" / path, path) for path in resources]
     inputs += [(paths.root / "frontend" / "dist" / path, Path("frontend/dist") / path) for path in frontend]
     for source, relative in inputs:
         target = _inside(paths.payload, paths.payload / relative)
@@ -172,7 +173,7 @@ def stage_payload(paths: BuildPaths) -> list[dict[str, str]]:
 
 
 def package_version(root: Path) -> str:
-    document = json.loads((root / "Resource" / "Version" / "version.json").read_text(encoding="utf-8"))
+    document = json.loads((root / "backend" / "Resource" / "Version" / "version.json").read_text(encoding="utf-8"))
     match = re.fullmatch(r"(?:AiNiee\s+)?(\d+(?:\.\d+){1,3})", document["version"])
     if not match:
         raise ValueError("Version must contain a numeric dotted release version")
@@ -199,10 +200,10 @@ def build_metadata(root: Path, staged: list[dict[str, str]], *, console: bool) -
 
 def pyinstaller_command(paths: BuildPaths, *, console: bool = False) -> list[str]:
     command = [
-        str(paths.root / "AiNiee.py"), "--name=AiNiee", "--onedir", "--contents-directory=_internal",
+        str(paths.root / "backend" / "AiNiee.py"), "--name=AiNiee", "--onedir", "--contents-directory=_internal",
         "--console" if console else "--windowed", "--noupx",
         f"--icon={paths.payload / 'Resource' / 'Logo' / 'Avatar.png'}",
-        f"--paths={paths.root}", f"--distpath={paths.output}",
+        f"--paths={paths.root / 'backend'}", f"--distpath={paths.output}",
         f"--workpath={paths.work / 'pyinstaller'}", f"--specpath={paths.work}",
         f"--add-data={paths.payload / 'Resource'}{os.pathsep}Resource",
         f"--add-data={paths.payload / 'frontend' / 'dist'}{os.pathsep}frontend/dist",
@@ -274,8 +275,8 @@ def main(argv: list[str] | None = None) -> int:
     staged = stage_payload(paths)
     metadata = build_metadata(paths.root, staged, console=args.console)
     # Importing this module is safe for tests and documentation tools.
-    if str(ROOT) not in sys.path:
-        sys.path.insert(0, str(ROOT))
+    if str(ROOT / "backend") not in sys.path:
+        sys.path.insert(0, str(ROOT / "backend"))
     import PyInstaller.__main__
 
     PyInstaller.__main__.run(pyinstaller_command(paths, console=args.console))

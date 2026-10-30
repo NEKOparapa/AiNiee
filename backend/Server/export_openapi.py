@@ -2,7 +2,12 @@
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+# Support the repository-root command: python backend/Server/export_openapi.py.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from Server.app import create_app
 

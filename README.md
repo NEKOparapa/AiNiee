@@ -50,19 +50,37 @@
 
 当前一次运行一个翻译、润色或分析任务。右侧智能体面板为占位，可用 `Ctrl+L` 展开或收起。音频、视频、图片翻译不在本分支的交付范围内。Windows 便携包由 PyInstaller 打包后端并托管已构建的前端，双击后在默认浏览器中操作。[历史发行版](https://github.com/NEKOparapa/AiNiee/releases)的界面和启动方式可能与本分支不同。
 
+后端代码和内置资源统一位于 `backend/`；用户配置、项目缓存和日志继续使用仓库根目录的原路径，已有翻译进度无需搬迁。仓库级虚拟环境、`build/` 和 `dist/` 也保持原位置。
+
+```text
+backend/                 # Python backend
+  AiNiee.py              # Startup entry
+  Server/                # FastAPI / WebSocket / schemas
+  ModuleFolders/         # Application services and translation core
+  Resource/              # Bundled models, templates and presets
+  Tools/                 # Packaging and verification tools
+  requirements*.txt      # Python dependencies
+  openapi.json           # Generated API contract
+  pytest.ini             # Backend test configuration
+frontend/                # React application
+Resource/config.json     # Existing user configuration (not tracked)
+ProjectCache/            # Existing project progress (not tracked)
+Logs/                    # Runtime logs (not tracked)
+```
+
 ### 安装依赖
 
-准备 Python **3.12（64 位）**、Node.js **24** 和 npm。下列命令从包含 `AiNiee.py`、`Server/`、`frontend/` 的仓库根目录执行；Windows 示例使用 PowerShell，无需激活虚拟环境。
+准备 Python **3.12（64 位）**、Node.js **24** 和 npm。下列命令从包含 `backend/` 和 `frontend/` 的仓库根目录执行；Windows 示例使用 PowerShell，无需激活虚拟环境。
 
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m pip install --upgrade pip
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe -m pip install --no-deps -r requirements_no_deps.txt
+.venv\Scripts\python.exe -m pip install -r backend/requirements.txt
+.venv\Scripts\python.exe -m pip install --no-deps -r backend/requirements_no_deps.txt
 npm --prefix frontend ci
 ```
 
-`requirements_no_deps.txt` 中的包按仓库的依赖拆分方式安装；先安装 `requirements.txt`，再执行 `--no-deps` 步骤。不要将第二步替换为普通的依赖解析安装。前端使用已提交的 `package-lock.json`，因此用 `npm ci` 安装。
+`backend/requirements_no_deps.txt` 中的包按仓库的依赖拆分方式安装；先安装 `backend/requirements.txt`，再执行 `--no-deps` 步骤。不要将第二步替换为普通的依赖解析安装。前端使用已提交的 `package-lock.json`，因此用 `npm ci` 安装。
 
 macOS / Linux 可用 `python3.12 -m venv .venv` 创建环境，并将上述 Python 命令中的 `.venv\Scripts\python.exe` 替换为 `.venv/bin/python`。系统和架构仍需满足各 Python 依赖的安装要求。
 
@@ -77,7 +95,7 @@ npm --prefix frontend run dev
 终端二运行后端：
 
 ```powershell
-.venv\Scripts\python.exe AiNiee.py --dev
+.venv\Scripts\python.exe backend/AiNiee.py --dev
 ```
 
 前端地址为 `http://127.0.0.1:5173`。后端默认地址为 `http://127.0.0.1:8000`。`--dev` 在后端就绪后打开浏览器，将后端地址和访问令牌通过 URL fragment 交给前端；**它不会启动前端进程**。两端均需保持运行。
@@ -115,7 +133,7 @@ npm --prefix frontend run preview
 
 ```powershell
 npm --prefix frontend run build
-.venv\Scripts\python.exe AiNiee.py --web --port 0
+.venv\Scripts\python.exe backend/AiNiee.py --web --port 0
 ```
 
 就绪后浏览器自动打开随机本机端口，连接令牌通过 fragment 传入，前端读取后立即从地址栏移除。直接刷新设置等深层页面也可正常加载。
@@ -125,7 +143,7 @@ npm --prefix frontend run build
 在 Windows x64 上完成上面的 Python 3.12、Node.js 24 依赖安装后，从完整 Git 检出目录运行：
 
 ```powershell
-.venv\Scripts\python.exe Tools/pyinstall.py
+.venv\Scripts\python.exe backend/Tools/pyinstall.py
 ```
 
 脚本自动构建前端，再生成隐藏控制台的 PyInstaller 文件夹包和 ZIP。输出位于 `dist/windows-<UTC时间>-<随机ID>/`：其中 `AiNiee/AiNiee.exe` 可直接运行，`AiNiee-<版本>-windows-x64.zip` 用于分发，旁边的 `.sha256` 用于核对完整性。终端会打印实际 `EXECUTABLE`、`PACKAGE` 和 `SHA256`。每次构建使用新目录，不覆盖已有包；`--console` 可生成可见的诊断控制台，`--skip-frontend-build` 可复用已经构建且会再次校验的 `frontend/dist/`。
@@ -163,7 +181,9 @@ npm --prefix frontend run build
 可从仓库根目录查看本次环境解析到的实际路径：
 
 ```powershell
-.venv\Scripts\python.exe -c "from ModuleFolders.Config.FilePathConfig import config_path, project_cache_root, user_log_dir; print(config_path()); print(project_cache_root()); print(user_log_dir())"
+Push-Location backend
+..\.venv\Scripts\python.exe -c "from ModuleFolders.Config.FilePathConfig import config_path, project_cache_root, user_log_dir; print(config_path()); print(project_cache_root()); print(user_log_dir())"
+Pop-Location
 ```
 
 ### 本机访问与接口契约
@@ -173,17 +193,19 @@ npm --prefix frontend run build
 REST 入口为 `/api/v1/`。WebSocket 推送进度、日志和数据变化；断线后前端自动重连并重新查询状态，不重放已丢失事件。前端接口类型和 WebSocket 契约均来自后端 Pydantic / OpenAPI，修改接口后执行：
 
 ```powershell
-.venv\Scripts\python.exe -m Server.export_openapi
+.venv\Scripts\python.exe backend/Server/export_openapi.py
 npm --prefix frontend run generate:api
 npm --prefix frontend run check:api
 ```
 
-提交更新后的 `openapi.json` 和 `frontend/src/api/generated/schema.d.ts`，不要手改生成文件。
+提交更新后的 `backend/openapi.json` 和 `frontend/src/api/generated/schema.d.ts`，不要手改生成文件。
 
 ### 开发检查与测试
 
+当前清理提交已删除后端 pytest 和 Playwright 用例；下列相关命令与流程说明保留供后续补回用例时使用，现阶段会报告未找到测试。前端 Vitest、构建和接口类型检查仍可运行。
+
 ```powershell
-.venv\Scripts\python.exe -m pytest -q
+.venv\Scripts\python.exe -m pytest -c backend/pytest.ini -q
 npm --prefix frontend run typecheck
 npm --prefix frontend test
 npm --prefix frontend run build
@@ -215,7 +237,7 @@ Remove-Item Env:AINIEE_TEST_EXECUTABLE
 还可从仓库根目录运行完整的便携包验收，将 `--bundle` 替换为包含本次 `AiNiee.exe` 的文件夹：
 
 ```powershell
-.venv\Scripts\python.exe Tools/smoke_package.py --bundle 'D:\packages\AiNiee' --report build/package-smoke.json
+.venv\Scripts\python.exe backend/Tools/smoke_package.py --bundle 'D:\packages\AiNiee' --report build/package-smoke.json
 ```
 
 脚本把包复制到临时中文、空格路径，使用临时用户目录和本机固定 OpenAI mock，验证真实 EXE 的停止、重启恢复、检查、校对、导出和日志脱敏。无参数启动也会验证随机端口与浏览器交接；测试通过临时 `BROWSER` 命令捕获地址，不修改系统默认浏览器。结果写入 JSON，原始发布包不写入用户数据。
@@ -371,9 +393,9 @@ GitHub Actions 使用 Windows、Python 3.12 和 Node.js 24，运行后端测试�
 
 
 
-* **`改进或增加支持文件`**: 读写业务代码位于 `ModuleFolders/Domain/`，参见[读写器系统编写指南](ModuleFolders/Domain/FileAccessor/README.md)。本次分离改造保持这些业务逻辑不变；应用服务放在 `ModuleFolders/Application/`，HTTP 路由只校验参数并转发，前端页面位于 `frontend/src/workspaces/`，导航由 `registry.ts` 统一注册。
+* **`改进或增加支持文件`**: 读写业务代码位于 `backend/ModuleFolders/Domain/`，参见[读写器系统编写指南](backend/ModuleFolders/Domain/FileAccessor/README.md)。本次分离改造保持这些业务逻辑不变；应用服务放在 `backend/ModuleFolders/Application/`，HTTP 路由只校验参数并转发，前端页面位于 `frontend/src/workspaces/`，导航由 `registry.ts` 统一注册。
 
-* **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利好下一次游戏翻译工作和造福其他翻译用户，正则库在[Resource\Regex](https://github.com/NEKOparapa/AiNiee/blob/main/Resource/Regex/regex.json)文件夹中
+* **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利好下一次游戏翻译工作和造福其他翻译用户，正则库在[backend/Resource/Regex](backend/Resource/Regex/regex.json)文件夹中
 
 * **`改进界面翻译`**: 前端通用文案位于 `frontend/src/i18n/`，各工作区文案位于对应目录的 `translations.ts`。新增文案需同时提供简体中文和英文。
 

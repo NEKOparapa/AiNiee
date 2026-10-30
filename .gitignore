@@ -10,6 +10,7 @@
 /ProjectCache/
 /Logs/
 /Resource/config.json
+/backend/Resource/config.json
 .venv
 dist/
 build/

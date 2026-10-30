@@ -23,6 +23,11 @@ def _is_windows() -> bool:
 
 # 源码运行时的仓库根目录。
 def repo_root() -> Path:
+    return backend_root().parent
+
+
+# 后端源码及内置资源目录；用户数据仍使用原来的仓库根目录。
+def backend_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
@@ -102,6 +107,9 @@ def resource_root() -> Path:
     if override:
         return Path(override).expanduser().resolve()
 
+    if not getattr(sys, "frozen", False):
+        return backend_root() / "Resource"
+
     candidates = []
     if hasattr(sys, "_MEIPASS"):
         candidates.append(Path(sys._MEIPASS) / "Resource")
@@ -112,7 +120,7 @@ def resource_root() -> Path:
         [
             app_contents / "Resources" / "Resource",
             executable_root() / "Resource",
-            repo_root() / "Resource",
+            backend_root() / "Resource",
         ]
     )
 

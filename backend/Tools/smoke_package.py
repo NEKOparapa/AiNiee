@@ -1,6 +1,6 @@
 """Exercise the real Windows bundle using only Python's standard library.
 
-Run after building: python Tools/smoke_package.py --bundle dist/AiNiee
+Run after building: python backend/Tools/smoke_package.py --bundle <package-folder>
 The executable is copied to a temporary Unicode path. It receives only normal
 CLI/API requests; a loopback OpenAI server supplies fixed model responses.
 """

@@ -11,6 +11,7 @@ import type { components } from './src/api/generated/schema'
 // Specs in the repository-level tests/e2e directory import the helper instead
 // of requiring a second node_modules installation at the repository root.
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const backendRoot = join(root, 'backend')
 const testToken = 'ainiee-m2-e2e-fixed-local-token'
 const directoryPrefix = 'ainiee-m2-e2e-'
 
@@ -71,9 +72,10 @@ export class BackendProcess {
     const env: NodeJS.ProcessEnv = {
       ...process.env,
       PYTHONIOENCODING: 'utf-8',
+      PYTHONPATH: backendRoot,
       AINIEE_ALLOW_MULTI_INSTANCE: '1',
       AINIEE_PORTABLE: '1',
-      AINIEE_RESOURCE_DIR: join(root, 'Resource'),
+      AINIEE_RESOURCE_DIR: join(backendRoot, 'Resource'),
       AINIEE_USER_DATA_DIR: join(this.directory, 'data'),
       AINIEE_CACHE_DIR: join(this.directory, 'cache'),
       AINIEE_PROJECT_CACHE_DIR: join(this.directory, 'projects'),
@@ -91,10 +93,10 @@ export class BackendProcess {
     }
     const listenPort = executable && port === 0 ? await freeLoopbackPort() : port
     this.port = listenPort
-    const entry = this.mockProviders ? join(root, 'tests', 'e2e', 'backend_fixture.py') : join(root, 'AiNiee.py')
+    const entry = this.mockProviders ? join(root, 'tests', 'e2e', 'backend_fixture.py') : join(backendRoot, 'AiNiee.py')
     const args = ['--port', String(listenPort), '--token', testToken, ...(this.hostedFrontend ? ['--web', '--no-browser'] : [])]
     const child = spawn(executable ? resolve(executable) : python, executable ? args : [entry, ...args], {
-      cwd: executable ? this.directory : root, env, windowsHide: true, stdio: 'pipe',
+      cwd: executable ? this.directory : backendRoot, env, windowsHide: true, stdio: 'pipe',
     })
     this.child = child
     this.exited = new Promise((resolveExit) => child.once('close', resolveExit))
