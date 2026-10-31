@@ -1,0 +1,308 @@
+import re
+from pathlib import Path
+
+from bs4 import BeautifulSoup, Tag, NavigableString
+
+
+from Backend.domain.models.cache_file import CacheFile
+from Backend.domain.models.cache_item import CacheItem
+from Backend.domain.models.cache_project import ProjectType
+from Backend.infrastructure.files.accessors.epub_accessor import EpubAccessor
+from Backend.domain.text.epub_markup import (
+    TOKEN_RE, has_link_or_anchor, is_note_reference, protect_fragment,
+)
+from Backend.infrastructure.files.readers.base_reader import (
+    BaseSourceReader,
+    InputConfig,
+    PreReadMetadata
+)
+
+
+class EpubReader(BaseSourceReader):
+    def __init__(self, input_config: InputConfig):
+        super().__init__(input_config)
+        self.file_accessor = EpubAccessor()
+
+    @classmethod
+    def get_project_type(cls):
+        return ProjectType.EPUB
+
+    @property
+    def support_file(self):
+        return 'epub'
+
+    # 正则字典，只包含成对标签，暂不考虑自闭合标签
+    TAG_PATTERNS_LIST = [
+        ("heading", r"<h[1-7]\b[^>]*>(.*?)</h[1-7]>", []),
+        ("li", r"<li\b[^>]*>(.*?)</li>", ['p']), # 有些p标签内容嵌套在li标签里
+        ("p", r"<p\b[^>]*>(.*?)</p>", []),
+        ("section", r"<section\b[^>]*>(.*?)</section>", []),
+
+        ("blockquote", r"<blockquote\b[^>]*>(.*?)</blockquote>", []),
+        ("text", r"<text\b[^>]*>(.*?)</text>", []),
+        ("td", r"<td\b[^>]*>(.*?)</td>", []),
+
+        # div标签要放在最后面，这是提取不到前面任何文本内容再考虑的标签
+        ("div", r"<div\b[^>]*>(.*?)</div>", ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'li', 'text', 'blockquote', 'td']),
+    ]
+
+    def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+        items = []
+        content_items, _ = self.file_accessor.read_content(file_path)
+        for item_id, filename, content in content_items:
+            # 判断是否是 NCX 文件（目录文件）
+            if filename.endswith('.ncx'):
+                ncx_items = self._read_ncx_content(item_id, content)
+                items.extend(ncx_items)
+            else:
+                # XHTML 处理逻辑
+                xhtml_items = self._read_xhtml_content(item_id, content)
+                items.extend(xhtml_items)
+        return CacheFile(items=items)
+
+    def _read_xhtml_content(self, item_id, html_content):
+        """从 XHTML 文件中提取文本内容"""
+        items = []
+        extracted_ranges = []
+        for tag_type, pattern, forbidden_tags in self.TAG_PATTERNS_LIST:
+            # 使用 finditer 查找所有匹配项，可以迭代处理
+            for match in re.finditer(pattern, html_content, re.DOTALL):
+                html_text_A = match.group(0)  # 完整匹配到的HTML标签
+
+                # 针对同名嵌套标签内容的处理。正则提取时标签提前闭合，而造成的提取错误。只提取同名子标签的内容，放弃父级标签的内容
+                html_text_B = self.extract_inner_html_from_incomplete_tag(html_text_A)
+
+                # 处理多层嵌套标签的情况，找到存储文本内容的标签
+                tag_type_refined, html_text_C = self.extract_epub_content_refined(html_text_B)
+                if not html_text_C: 
+                    continue
+
+                # 子段落优先；避免 section/blockquote 等父元素再次覆盖已提取段落。
+                relative_start = html_text_A.find(html_text_C)
+                if relative_start < 0:
+                    continue
+                fragment_start = match.start() + relative_start
+                fragment_end = fragment_start + len(html_text_C)
+                if any(fragment_start < end and start < fragment_end for start, end in extracted_ranges):
+                    continue
+
+                # 保留注号及锚点结构，普通正文仍按完整段落翻译。
+                soup = BeautifulSoup(html_text_C, 'html.parser')
+                text_content, placeholders = protect_fragment(html_text_C)
+
+                if not TOKEN_RE.sub('', text_content).strip() or is_note_reference(soup.find()):
+                    continue
+
+                if forbidden_tags:
+                    # 检查是否包含禁止的子标签
+                    forbidden_soup_elemnt = soup.find(forbidden_tags)
+                    if forbidden_soup_elemnt is not None:
+                        continue
+                    
+                extra = {
+                    "original_html": html_text_C,
+                    "tag_type": tag_type_refined,
+                    "item_id": item_id,
+                    "epub_placeholders": placeholders,
+                }
+                items.append(CacheItem(source_text=text_content, extra=extra))
+                extracted_ranges.append((fragment_start, fragment_end))
+        return items
+
+    def _read_ncx_content(self, item_id, ncx_content):
+        """从 NCX 文件（toc.ncx）中提取 text 标签的文本
+        
+        NCX 文件结构示例:
+        <navPoint id="navpoint1" playOrder="1">
+            <navLabel><text>Chapter 1</text></navLabel>
+            <content src="chapter1.xhtml"/>
+        </navPoint>
+        """
+        items = []
+        
+        # 匹配 <text>...</text> 标签（NCX 文件中的目录文本）
+        # 使用非贪婪匹配确保正确提取嵌套结构中的内容
+        text_pattern = r'<text\b[^>]*>(.*?)</text>'
+        
+        for match in re.finditer(text_pattern, ncx_content, re.DOTALL):
+            original_html = match.group(0)  # 完整的 <text>...</text>
+            text_content = match.group(1).strip()  # 标签内的文本内容
+            
+            if not text_content:
+                continue
+                
+            extra = {
+                "original_html": original_html,
+                "tag_type": "ncx_text",
+                "item_id": item_id,
+            }
+            items.append(CacheItem(source_text=text_content, extra=extra))
+        
+        return items
+
+    def _extract_balanced_tag(self, html_string: str, tag_name: str, start_pos: int = 0):
+        """从 html_string 中提取完整的平衡标签，正确处理同名嵌套。
+
+        与非贪婪正则不同，此方法通过跟踪嵌套深度来找到正确的闭合标签。
+        例如对于 <span><span>text</span></span>，能正确匹配完整的外层标签，
+        而非在第一个 </span> 处截断。
+        """
+        open_pattern = re.compile(
+            r'<{0}(?![a-zA-Z0-9\-_])[^>]*>'.format(re.escape(tag_name)),
+            re.IGNORECASE
+        )
+        close_pattern = re.compile(
+            r'</{0}>'.format(re.escape(tag_name)),
+            re.IGNORECASE
+        )
+
+        open_match = open_pattern.search(html_string, start_pos)
+        if not open_match:
+            return None
+
+        tag_start = open_match.start()
+        depth = 1
+        search_pos = open_match.end()
+
+        while depth > 0 and search_pos < len(html_string):
+            next_open = open_pattern.search(html_string, search_pos)
+            next_close = close_pattern.search(html_string, search_pos)
+
+            if next_close is None:
+                return None  # 没有闭合标签，不平衡
+
+            if next_open is not None and next_open.start() < next_close.start():
+                depth += 1
+                search_pos = next_open.end()
+            else:
+                depth -= 1
+                search_pos = next_close.end()
+                if depth == 0:
+                    return html_string[tag_start:search_pos]
+
+        return None
+
+    # 提取最内层包含文本的标签及其内容（改进点：可以考虑保留部分标签的内容，比如span）
+    def extract_epub_content_refined(self, html_string: str):
+        """
+        从HTML字符串中提取最内层包含实际内容的标签及其原始字符串
+        
+        参数:
+            html_string: 待解析的HTML片段字符串
+            
+        返回:
+            元组(标签名, 标签原始完整字符串) 或 (None, None)
+            保持原始字符串中的属性顺序和格式
+        """
+        if not html_string or not html_string.strip():
+            return None, None
+
+        # 首先用BeautifulSoup分析结构
+        soup = BeautifulSoup(html_string.strip(), 'html.parser')
+        
+        # 查找第一个实际标签
+        top_tag = None
+        for element in soup.contents:
+            if isinstance(element, Tag):
+                top_tag = element
+                break
+
+        if not top_tag:
+            return None, None
+
+        # 保留整个含链接/锚点的片段。向下钻取会遗漏空锚点，或把注号变成
+        # 独立的纯数字翻译项，导致写出时无法恢复完整的往返跳转结构。
+        if any(has_link_or_anchor(tag) for tag in top_tag.find_all(True)):
+            return top_tag.name, html_string.strip()
+
+        # 迭代查找最具体的标签
+        current_tag = top_tag
+        while True:
+            text_containing_children = []
+            for child in current_tag.children:
+                has_meaningful_text = False
+                if isinstance(child, NavigableString):
+                    if child.strip():
+                        has_meaningful_text = True
+                elif isinstance(child, Tag):
+                    if child.get_text(strip=True):
+                        has_meaningful_text = True
+
+                if has_meaningful_text:
+                    text_containing_children.append(child)
+
+            num_text_children = len(text_containing_children)
+
+            if num_text_children == 1:
+                the_child = text_containing_children[0]
+                if isinstance(the_child, Tag):
+                    current_tag = the_child
+                    continue
+                else:
+                    break
+            else:
+                break
+
+        # 获取标签在原始字符串中的位置
+        original_html = html_string.strip()
+        tag_name = current_tag.name
+
+        # 如果最内层标签就是最外层标签（没有向下钻取），直接返回原始 HTML
+        if current_tag == top_tag:
+            return tag_name, original_html
+
+        # 否则，使用平衡标签提取找到正确的内层标签（正确处理同名嵌套）
+        balanced_tag = self._extract_balanced_tag(original_html, tag_name)
+        if balanced_tag:
+            return tag_name, balanced_tag
+        else:
+            # 如果平衡提取失败，回退到BeautifulSoup生成
+            return current_tag.name, str(current_tag)
+        
+    # 提取同名嵌套标签的完整子标签内容
+    def extract_inner_html_from_incomplete_tag(self, html_string: str) -> str:
+        """
+        识别残缺的非闭合标签内容，并自动提取第一个符合条件的同名子标签的原始内容。
+        如果不是残缺标签，或者没有找到合适的子标签，则返回原内容。
+        提取子标签时，使用正则表达式以获取原始字符串内容。
+
+        Args:
+            html_string: HTML内容字符串
+
+        Returns:
+            处理后的HTML内容 (可能是原始子标签的字符串，或原输入内容)
+        """
+        # 确定第一个标签的名称
+        first_tag_name_match = re.match(rf'<([a-zA-Z][a-zA-Z0-9]*)(?![a-zA-Z0-9\-_])', html_string)
+        if not first_tag_name_match:
+            # 如果字符串不是以一个可识别的标签开头，则返回原内容
+            return html_string
+
+        tag_name = first_tag_name_match.group(1)
+
+        # 构建用于查找开标签和闭标签的正则表达式 (忽略大小写)
+        open_tag_pattern = rf'<{tag_name}(?![a-zA-Z0-9\-_])[^>]*>'
+        close_tag_pattern = rf'</{tag_name}>'
+
+        # 统计开标签和闭标签的数量
+        open_tags_found = re.findall(open_tag_pattern, html_string, re.IGNORECASE)
+        close_tags_found = re.findall(close_tag_pattern, html_string, re.IGNORECASE)
+
+        # 如果开标签数量大于闭标签数量，则认为可能是残缺标签
+        if len(open_tags_found) > len(close_tags_found):
+            # 找到第一个主开标签的结束位置，以便从其后开始搜索子标签
+            first_actual_open_tag_match = re.search(open_tag_pattern, html_string, re.IGNORECASE)
+            
+            if not first_actual_open_tag_match:
+                return html_string 
+                
+            # 从第一个主开标签之后的内容中搜索子标签
+            search_start_offset = first_actual_open_tag_match.end()
+
+            # 使用平衡标签提取找到第一个完整的同名子标签（正确处理多层嵌套）
+            balanced_inner = self._extract_balanced_tag(html_string, tag_name, search_start_offset)
+            if balanced_inner:
+                return balanced_inner
+        
+        # 如果标签不是残缺的，或者没有找到符合条件的子标签，则返回原内容
+        return html_string

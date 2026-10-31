@@ -1,95 +1,29 @@
+"""Build the independent Windows desktop client."""
 import os
-import re
 import sys
-import glob
-import PyInstaller.__main__
+from pathlib import Path
 
-cmd = [
-    "./AiNiee.py",
-    "--icon=./Resource/Logo/Avatar.png",  # FILE.ico: apply the icon to a Windows executable.
-    "--clean",  # Clean PyInstaller cache and remove temporary files before building.
-    "--windowed",  # Hide console window on Windows; logs go to user_log_dir.
-    #"--onefile",  # Create a one-file bundled executable.
-    "--noconfirm",  # Replace output directory (default: SPECPATH/dist/SPECNAME) without asking for confirmation
-    f"--add-data=Resource{os.pathsep}Resource",
-    "--hidden-import=babeldoc",
-    "--hidden-import=sklearn",
-    "--collect-all=babeldoc",
-    # chardet 7.x loads pipeline/__mypyc modules dynamically; collect the whole
-    # package so the packaged EXE does not crash on startup.
-    "--collect-all=chardet",
-    "--collect-all=sklearn",
-    "--collect-all=rich",
-    "--collect-all=bitstring",
-    "--collect-all=darkdetect",
-    "--collect-all=opencc",
-    "--collect-all=magika",
-    # FileReader/FileOutputer use importlib-based lazy loading; collect their
-    # submodules so packaged builds can load formats at runtime.
-    "--collect-submodules=ModuleFolders.Domain.FileReader",
-    "--collect-submodules=ModuleFolders.Domain.FileOutputer",
-    # "--distpath=./dist/AiNiee" #指定输出目录
-]
-
-# 需要排除的软件包
-# 由mediapipe导入，但不需要这些任务，会增加很多大小
-MODULES_TO_EXCLUDE = [
-    "jaxlib",
-]
-
-# 添加显式排除参数
-for module_name in MODULES_TO_EXCLUDE:
-    cmd.append(f"--exclude-module={module_name}")
-    print(f"[INFO] Explicitly excluding module: {module_name}")
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def _exclude_opencc_binaries_from_upx():
-    try:
-        import opencc
-    except Exception as error:
-        print(f"[WARNING] Failed to locate OpenCC for UPX exclusion: {error}")
-        return
-
-    opencc_clib_dir = os.path.join(os.path.dirname(opencc.__file__), "clib")
-    for pattern in ("*.pyd", "*.dll"):
-        for path in glob.glob(os.path.join(opencc_clib_dir, pattern)):
-            cmd.append("--upx-exclude=" + os.path.basename(path))
-            print(f"[INFO] Excluding OpenCC binary from UPX: {os.path.basename(path)}")
-
-def _hidden_imports_from(path):
-    with open(path, "r", encoding="utf-8") as reader:
-        for raw in reader:
-            line = raw.split("#", 1)[0].split(";")[0].strip()
-            if not line or line.startswith("-") or "://" in line:
-                continue
-            line = re.split(r"[<>=!~\[ ]", line, maxsplit=1)[0].strip()
-            if line:
-                yield line
+def pyinstaller_command():
+    return [
+        "./AiNiee.py", "--name=AiNiee", "--windowed", "--clean", "--noconfirm",
+        "--icon=./Frontend/resources/icons/Avatar.png",
+        f"--add-data=Frontend/resources{os.pathsep}Frontend/resources",
+        "--collect-all=qfluentwidgets", "--collect-all=darkdetect",
+        "--collect-all=rich", "--collect-all=openpyxl",
+        "--hidden-import=websockets.sync.client",
+        "--exclude-module=Backend",
+    ]
 
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-os.chdir(ROOT)
-_req = os.path.join(ROOT, "requirements.txt")
-if not os.path.exists(_req):
-    raise SystemExit(f"requirements.txt not found at {_req}; refusing to build an incomplete EXE")
-for pkg in _hidden_imports_from(_req):
-    cmd.append("--hidden-import=" + pkg)
-_req_nodeps = os.path.join(ROOT, "requirements_no_deps.txt")
-if os.path.exists(_req_nodeps):
-    for pkg in _hidden_imports_from(_req_nodeps):
-        cmd.append("--hidden-import=" + pkg)
+def main():
+    import PyInstaller.__main__
+    os.chdir(ROOT)
+    sys.path.insert(0, str(ROOT))
+    PyInstaller.__main__.run(pyinstaller_command())
 
-# mediapipe 不在 requirements.txt（只以 no-deps pin 存在），PyInstaller 的
-# dependency graph 拿不到它，打包产物会缺包导致 AutoType 语言检测在运行期
-# 报 No module named 'mediapipe.tasks.c' 而整本书读取失败。显式 collect。
-try:
-    import mediapipe  # noqa: F401
 
-    cmd.append("--collect-all=mediapipe")
-except Exception:
-    print("[WARNING] mediapipe not installed; packaged AutoType language "
-          "detection will fall back / fail")
-
-sys.path.insert(0, ROOT)
-_exclude_opencc_binaries_from_upx()
-PyInstaller.__main__.run(cmd)
+if __name__ == "__main__":
+    main()

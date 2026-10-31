@@ -202,11 +202,11 @@
 
 
 
-* **`改进或增加支持文件`**: 需要有一定的代码编程能力，拉取源码进行改进。文件具体读取代码在ModuleFolders\FileReader与FileOutputer文件夹中。[读写器系统编写指南](https://github.com/NEKOparapa/AiNiee/blob/main/ModuleFolders/Domain/FileAccessor/README.md)。UI支持在UserInterface\Setting的ProjectSettingsPage。
+* **`改进或增加支持文件`**: 需要有一定的代码编程能力，拉取源码进行改进。文件具体读取代码在Backend/infrastructure/files/readers与 Backend/infrastructure/files/writers 文件夹中。[读写器系统编写指南](Backend/infrastructure/files/accessors/README.md)。项目选择界面位于 `Frontend/pages/workspace/startup/startup_page.py`。
 
-* **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利好下一次游戏翻译工作和造福其他翻译用户，正则库在[Resource\Regex](https://github.com/NEKOparapa/AiNiee/blob/main/Resource/Regex/regex.json)文件夹中
+* **`完善正则库`**: 正则库的完备将极大帮助游戏内嵌工作的进行，并利好下一次游戏翻译工作和造福其他翻译用户，正则库在[Backend/resources/regex](Backend/resources/regex/regex.json)文件夹中
 
-* **`改进界面翻译`**: 多语言界面的UI文本可能翻译不够准确合适，可以提交你的修改意见，或者直接进行修改。本地化文本在[Resource\Localization](https://github.com/NEKOparapa/AiNiee/tree/main/Resource/Localization)文件夹中
+* **`改进界面翻译`**: 多语言界面的UI文本可能翻译不够准确合适，可以提交你的修改意见，或者直接进行修改。本地化文本在[Frontend/resources/localization](Frontend/resources/localization)文件夹中
 
 </details>
 

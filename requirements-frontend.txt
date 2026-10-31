@@ -1,0 +1,12 @@
+# Desktop client connecting to an already running backend. Python 3.12+.
+PyQt5>=5.15.11
+PyQt-Fluent-Widgets[full]~=1.10.0
+pyobjc-framework-Cocoa>=12.2.1; sys_platform == "darwin"
+httpx[http2]>=0.28.1
+websockets>=15,<17
+requests>=2.34.2
+python-rapidjson>=1.23
+rich>=15.0.0
+openpyxl>=3.1.5
+pandas>=3.0.3
+beautifulsoup4>=4.15.0

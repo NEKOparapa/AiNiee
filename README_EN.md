@@ -131,11 +131,11 @@
 
 
 
-* **`Improve or Add Supported Files`**: Requires some programming ability to pull the source code and make improvements. Specific file reading code is in the ModuleFolders\FileReader and FileOutputer folders. [Reader-Writer System Development Guide](https://github.com/NEKOparapa/AiNiee/blob/main/ModuleFolders/FileAccessor/README.md). UI support is in UserInterface\Setting\ProjectSettingsPage.
+* **`Improve or Add Supported Files`**: Requires some programming ability to pull the source code and make improvements. Specific file reading code is in the Backend/infrastructure/files/readers and Backend/infrastructure/files/writers folders. [Reader-Writer System Development Guide](Backend/infrastructure/files/accessors/README.md). The project selection UI is in `Frontend/pages/workspace/startup/startup_page.py`.
 
-* **`Improve the Regex Library`**: A comprehensive regex library will greatly help with in-game embedding work and benefit future game translation work and other translation users. The regex library is in the [Resource\Regex](https://github.com/NEKOparapa/AiNiee/blob/main/Resource/Regex/regex.json) folder
+* **`Improve the Regex Library`**: A comprehensive regex library will greatly help with in-game embedding work and benefit future game translation work and other translation users. The regex library is in the [Backend/resources/regex](Backend/resources/regex/regex.json) folder
 
-* **`Improve Interface Translation`**: The UI text for multilingual interfaces may not be translated accurately or appropriately. You can submit your modification suggestions or make changes directly. Localization text is in the [Resource\Localization](https://github.com/NEKOparapa/AiNiee/tree/main/Resource/Localization) folder
+* **`Improve Interface Translation`**: The UI text for multilingual interfaces may not be translated accurately or appropriately. You can submit your modification suggestions or make changes directly. Localization text is in the [Frontend/resources/localization](Frontend/resources/localization) folder
 
 </details>
 

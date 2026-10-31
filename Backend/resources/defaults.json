@@ -1,0 +1,109 @@
+{
+    "AppFluentWindow": {
+        "theme": "auto"
+    },
+    "PlatformPage": {
+        "platforms": {},
+        "api_settings": {
+            "active": null,
+            "extract": null,
+            "translate": null,
+            "polish": null,
+            "proofread": null
+        }
+    },
+    "AppSettingsPage": {
+        "proxy_url": "",
+        "proxy_enable": false,
+        "scale_factor": "AUTO",
+        "interface_language_setting": "简中",
+        "auto_check_update": true,
+        "label_input_exclude_rule": ""
+    },
+    "ExtractionSettingsPage": {
+        "extract_task_token_limit": 10000,
+        "auto_extract_non_translate_switch": false,
+        "extract_short_name_merge_switch": true
+    },
+    "OutputSettingsPage": {
+        "auto_set_output_path": true,
+        "output_filename_suffix": "_translated",
+        "bilingual_text_order": "translation_first",
+        "translation_result_check_switch": false,
+        "response_conversion_toggle": false,
+        "opencc_preset": "s2t",
+        "keep_original_encoding": false
+    },
+    "PolishingSettingsPage": {
+        "polishing_pre_line_counts": 10
+    },
+    "TaskSettingsPage": {
+        "lines_limit_switch": false,
+        "tokens_limit_switch": true,
+        "lines_limit": 10,
+        "tokens_limit": 1024,
+        "user_thread_counts": 0,
+        "request_timeout": 120,
+        "round_limit": 10
+    },
+    "StartupPage": {
+        "translation_project": "AutoType"
+    },
+    "LanguageCheckDialog": {
+        "check_lang_mode_text": "judge",
+        "check_chunk_size": 20,
+        "check_threshold_ratio": 0.75,
+        "check_exclude_non_translate": true
+    },
+    "RuleCheckDialog": {
+        "rule_check_exclusion": true,
+        "rule_check_auto_process": true,
+        "rule_check_placeholder": true,
+        "rule_check_number": true,
+        "rule_check_example": true,
+        "rule_check_newline": true,
+        "rule_check_untranslated": true
+    },
+    "CharacterizationPromptPage": {
+        "characterization_switch": false,
+        "characterization_data": [
+            {
+                "original_name": "远坂[Separator]凛",
+                "translated_name": "远坂凛",
+                "gender": "女",
+                "age": "少女",
+                "personality": "高傲，自满",
+                "speech_style": "大小姐，严厉",
+                "additional_info": "在人前言谈举止高雅，对所有人都用敬语，但在熟人面前本性其实是一个爱恶作剧和捉弄自己喜欢的人的小恶魔。"
+            }
+        ]
+    },
+    "TranslationExamplePromptPage": {
+        "translation_example_switch": false,
+        "translation_example_data": []
+    },
+    "TranslationSettingsPage": {
+        "source_language": "auto",
+        "target_language": "chinese_simplified",
+        "language_filter_switch": false,
+        "code_filter_switch": false,
+        "pre_line_counts": 0,
+        "few_shot_and_example_switch": true,
+        "auto_process_text_code_segment": false,
+        "text_symbol_repair_switch": false,
+        "response_check_switch": {
+            "return_to_original_text_check": true,
+            "residual_original_text_check": true,
+            "newline_character_count_check": true,
+            "reply_format_check": false
+        }
+    },
+    "WorldBuildingPromptPage": {
+        "world_building_switch": false,
+        "world_building_content": "故事发生在魔法世界，到三十岁还保持童贞，就可以学会大火球魔法，成为魔法师。"
+    },
+    "WritingStylePromptPage": {
+        "writing_style_switch": false,
+        "writing_style_content": "根据原文语境，可以适当调整，使表达更生动形象，提升译文的冲击力与张力。"
+    }
+}

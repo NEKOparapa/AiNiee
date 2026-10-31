@@ -8,7 +8,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import PyInstaller.__main__
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,7 +33,7 @@ def target_arch(explicit_arch: str | None = None) -> str:
 
 
 def app_version() -> str:
-    version_file = ROOT / "Resource" / "Version" / "version.json"
+    version_file = ROOT / "Frontend" / "resources" / "version" / "version.json"
     if not version_file.exists():
         return "0.0.0"
 
@@ -43,7 +42,7 @@ def app_version() -> str:
 
 
 def build_icns() -> Path:
-    source_png = ROOT / "Resource" / "Logo" / "Avatar.png"
+    source_png = ROOT / "Frontend" / "resources" / "icons" / "Avatar.png"
     output_icns = ROOT / "build" / "macos" / "AiNiee.icns"
     if output_icns.exists():
         return output_icns
@@ -137,34 +136,23 @@ def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
         f"--target-arch={macos_arch}",
         f"--osx-bundle-identifier={BUNDLE_ID}",
         f"--icon={icon_path}",
-        # 资源随 app 打入包内，运行期再通过 FilePathConfig 定位。
-        "--add-data=Resource:Resource",
-        "--hidden-import=babeldoc",
-        "--hidden-import=sklearn",
-        "--hidden-import=mediapipe.tasks.c",
-        "--collect-all=babeldoc",
-        "--collect-all=chardet",
-        "--collect-all=sklearn",
-        "--collect-all=rich",
-        "--collect-all=bitstring",
-        "--collect-all=mediapipe.tasks.c",
+        "--add-data=Frontend/resources:Frontend/resources",
+        "--collect-all=qfluentwidgets",
         "--collect-all=darkdetect",
-        "--collect-all=opencc",
-        "--collect-all=magika",
+        "--collect-all=rich",
+        "--collect-all=openpyxl",
         "--collect-all=objc",
         "--collect-all=Foundation",
         "--collect-all=AppKit",
-        # FileReader/FileOutputer use importlib-based lazy loading; collect
-        # their submodules so packaged builds can load formats at runtime.
-        "--collect-submodules=ModuleFolders.Domain.FileReader",
-        "--collect-submodules=ModuleFolders.Domain.FileOutputer",
-        "--exclude-module=jaxlib",
+        "--hidden-import=websockets.sync.client",
+        "--exclude-module=Backend",
         "--exclude-module=win32com",
         "--exclude-module=pythoncom",
     ]
 
 
 def main() -> None:
+    import PyInstaller.__main__
     parser = argparse.ArgumentParser(description="Build the AiNiee macOS app bundle.")
     parser.add_argument(
         "--target-arch",
