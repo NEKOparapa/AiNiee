@@ -3,67 +3,7 @@ import time
 import threading
 import concurrent.futures
 
-import opencc
-import shutil
-import tempfile
-import atexit
 from tqdm import tqdm
-
-
-# 缓存临时目录路径，避免重复创建
-_opencc_temp_dir = None
-
-def _create_opencc_converter(preset: str) -> opencc.OpenCC:
-    """创建 opencc 转换器，处理 Windows 下路径包含非 ASCII 字符导致 C 扩展失败的问题"""
-    global _opencc_temp_dir
-
-    use_temp_dir = os.name == "nt"
-    if not use_temp_dir:
-        try:
-            return opencc.OpenCC(preset)
-        except (RuntimeError, OSError) as e:
-            # 仅对路径相关错误进行 fallback，避免吞掉不相关的 bug
-            error_msg = str(e).lower()
-            if "not found" not in error_msg and "not accessible" not in error_msg:
-                raise
-            use_temp_dir = True
-
-    if use_temp_dir and _opencc_temp_dir is None:
-        opencc_dir = os.path.dirname(opencc.__file__)
-        share_dir = os.path.join(opencc_dir, "clib", "share", "opencc")
-        candidate_roots = [tempfile.gettempdir()]
-        if os.name == "nt":
-            candidate_roots.append(os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Temp"))
-
-        temp_dir = None
-        last_error = None
-        for root in candidate_roots:
-            try:
-                os.makedirs(root, exist_ok=True)
-                candidate_dir = tempfile.mkdtemp(prefix="opencc_", dir=root)
-                try:
-                    candidate_dir.encode("ascii")
-                except UnicodeEncodeError:
-                    shutil.rmtree(candidate_dir, ignore_errors=True)
-                    continue
-                temp_dir = candidate_dir
-                break
-            except OSError as error:
-                last_error = error
-
-        if temp_dir is None:
-            raise RuntimeError("无法创建纯 ASCII 路径的 OpenCC 临时目录") from last_error
-
-        try:
-            shutil.copytree(share_dir, temp_dir, dirs_exist_ok=True)
-        except Exception:
-            shutil.rmtree(temp_dir, ignore_errors=True)
-            raise
-        _opencc_temp_dir = temp_dir
-        atexit.register(shutil.rmtree, _opencc_temp_dir, ignore_errors=True)
-
-    config_name = preset if preset.endswith(".json") else preset + ".json"
-    return opencc.OpenCC(os.path.join(_opencc_temp_dir, config_name))
 
 from Backend.core.base import Base
 from Backend.core.config import ConfigMixin
@@ -156,29 +96,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         """将输出文件使用的译文语言名称转换为 BCP 47 代码。"""
         return map_language_name_to_code(configured_target) if configured_target else None
 
-    def _convert_translated_text_with_opencc(self, preset: str | None) -> bool:
-        preset = preset or "s2t"
-        self.print("")
-        self.info(f"已启动自动简繁转换功能，正在使用 {preset} 配置进行字形转换 ...")
-        self.print("")
-
-        try:
-            converter = _create_opencc_converter(preset)
-            cache_list = self.cache_manager.project.items_iter()
-            for item in cache_list:
-                if item.translation_status in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
-                    item.translated_text = converter.convert(item.translated_text)
-        except Exception as error:
-            self.print("")
-            self.error(f"简繁转换失败，已取消本次输出：{error}", error)
-            self.print("")
-            return False
-
-        self.print("")
-        self.info("简繁转换完成。")
-        self.print("")
-        return True
-
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:
         Base.work_status = Base.STATUS.STOPING
@@ -256,11 +173,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
         
         output_path = data.get("export_path")
         inpput_path = config.get("label_input_path")
-
-        # 如果开启了转换简繁开关功能，则进行文本转换
-        if config.get("response_conversion_toggle"):  # 使用 .get()
-            if not self._convert_translated_text_with_opencc(config.get("opencc_preset")):
-                return False
 
         # 输出配置包
         output_config = {
@@ -509,13 +421,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 等待可能存在的缓存文件写入请求处理完毕
         time.sleep(CacheManager.SAVE_INTERVAL)
-
-        # 如果开启了转换简繁开关功能，则进行文本转换
-        if self.config.response_conversion_toggle:
-            if not self._convert_translated_text_with_opencc(self.config.opencc_preset):
-                Base.work_status = Base.STATUS.TASKSTOPPED
-                self.emit(Base.EVENT.TASK_STOP_DONE, {})
-                return
 
         # 输出配置包
         output_config = {

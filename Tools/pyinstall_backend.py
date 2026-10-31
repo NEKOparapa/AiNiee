@@ -16,12 +16,11 @@ def pyinstaller_command(arch=None):
         "--clean", "--noconfirm", "--noupx",
         f"--paths={ROOT}", f"--distpath={ROOT / 'build' / 'backend-dist'}",
         f"--workpath={ROOT / 'build' / 'backend-work'}", f"--specpath={ROOT / 'build'}",
-        f"--additional-hooks-dir={ROOT / 'Tools' / 'Packaging' / 'hooks'}",
         f"--add-data={ROOT / 'Backend' / 'resources'}{os.pathsep}Backend/resources",
         "--collect-submodules=Backend", "--collect-submodules=tiktoken_ext",
         "--collect-submodules=uvicorn", "--copy-metadata=tiktoken",
     ]
-    for package in ("babeldoc", "mediapipe", "chardet", "sklearn", "rich", "bitstring", "opencc", "magika"):
+    for package in ("babeldoc", "mediapipe", "chardet", "sklearn", "rich", "bitstring", "magika"):
         command.append(f"--collect-all={package}")
     for package in ("Frontend", "PyQt5", "PyQt6", "PySide2", "PySide6", "tkinter",
                     "IPython", "pytest", "jax", "jaxlib", "torch", "tensorflow", "skimage", "hyperscan"):

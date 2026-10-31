@@ -30,8 +30,6 @@
         "output_filename_suffix": "_translated",
         "bilingual_text_order": "translation_first",
         "translation_result_check_switch": false,
-        "response_conversion_toggle": false,
-        "opencc_preset": "s2t",
         "keep_original_encoding": false
     },
     "PolishingSettingsPage": {

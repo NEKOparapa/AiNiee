@@ -9,7 +9,6 @@ google-genai>=2.12.1
 tiktoken>=0.13.0
 numpy>=2.5.1
 openpyxl>=3.1.5
-opencc>=1.4.1
 beautifulsoup4>=4.15.0
 lxml>=6.1.1
 chardet>=7.4.3

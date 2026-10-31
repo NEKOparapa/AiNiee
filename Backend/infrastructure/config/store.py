@@ -15,7 +15,10 @@ from Backend.domain.config.prompt_selection import TranslationPromptConfigHelper
 class ConfigStore:
     CONFIG_FILE_LOCK = threading.RLock()
     CONFIG_PATH = None
-    RETIRED_SETTINGS = frozenset(("http_server_enable", "http_listen_address", "http_callback_url"))
+    RETIRED_SETTINGS = frozenset((
+        "http_server_enable", "http_listen_address", "http_callback_url",
+        "response_conversion_toggle", "opencc_preset",
+    ))
 
     def initialize_config(self):
         from Backend.infrastructure.config.defaults import get_defaults
