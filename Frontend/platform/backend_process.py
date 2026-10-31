@@ -95,7 +95,7 @@ def bundled_backend_executable():
     name = "AiNieeBackend.exe" if os.name == "nt" else "AiNieeBackend"
     root = executable_root()
     if sys.platform == "darwin":
-        return root.parent / "Helpers" / "AiNieeBackend" / name
+        return root.parent / "Helpers" / "AiNieeBackend.app" / "Contents" / "MacOS" / "AiNieeBackend"
     return root / "backend" / name
 
 

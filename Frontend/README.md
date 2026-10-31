@@ -68,4 +68,4 @@ python -m Frontend --backend-url http://127.0.0.1:3389
 
 `core/resources.py` 统一定位 `Frontend/resources`，支持 `AINIEE_FRONTEND_RESOURCE_DIR` 覆盖路径和 PyInstaller 包内路径。Windows/macOS 桌面仍以根目录 `AiNiee.py` 为入口，只收集前端模块和资源并排除 `Backend`。打包脚本另行构建 `AiNieeBackend`，后端业务模块、配置模板和模型依赖只进入后端程序目录，两端使用各自的 Python 运行环境。
 
-构建完整发布包时，先安装 `requirements-frontend.txt`、`requirements-backend.txt`、PyInstaller 6.21+，再以 `--no-deps` 安装 `requirements_no_deps.txt`。Windows 执行 `python Tools/pyinstall.py`；macOS 执行 `python Tools/pyinstall_macos.py`。Windows 发布目录包含 `AiNiee.exe`、前端 `_internal` 和 `backend` 子目录，必须整体解压。macOS 后端位于应用包的 `Contents/Helpers/AiNieeBackend`。
+构建完整发布包时，先安装 `requirements-frontend.txt`、`requirements-backend.txt`、PyInstaller 6.21+，再以 `--no-deps` 安装 `requirements_no_deps.txt`。Windows 执行 `python Tools/pyinstall.py`；macOS 执行 `python Tools/pyinstall_macos.py`。Windows 发布目录包含 `AiNiee.exe`、前端 `_internal` 和 `backend` 子目录，必须整体解压。macOS 后端位于应用包的 `Contents/Helpers/AiNieeBackend.app`，通过其中的 `Contents/MacOS/AiNieeBackend` 启动；后台包不会显示额外的 Dock 图标。

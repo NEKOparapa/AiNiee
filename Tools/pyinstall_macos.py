@@ -107,6 +107,15 @@ def patch_info_plist() -> None:
     with plist_path.open("wb") as writer:
         plistlib.dump(plist, writer)
 
+    # The service is a nested app for code-signing, but has no UI or Dock icon.
+    # Patch its metadata before sign_app_bundle() signs both app bundles.
+    backend_plist = plist_path.parent / "Helpers" / "AiNieeBackend.app" / "Contents" / "Info.plist"
+    with backend_plist.open("rb") as reader:
+        backend_info = plistlib.load(reader)
+    backend_info["LSBackgroundOnly"] = True
+    with backend_plist.open("wb") as writer:
+        plistlib.dump(backend_info, writer)
+
 
 def sign_app_bundle() -> None:
     app_path = ROOT / "dist" / f"{APP_NAME}.app"
@@ -167,7 +176,7 @@ def main() -> None:
     icon_path = build_icns()
     PyInstaller.__main__.run(pyinstaller_command(icon_path, args.target_arch))
     from Tools.pyinstall_backend import build_backend
-    build_backend(ROOT / "dist" / f"{APP_NAME}.app" / "Contents" / "Helpers" / "AiNieeBackend", target_arch(args.target_arch))
+    build_backend(ROOT / "dist" / f"{APP_NAME}.app" / "Contents" / "Helpers" / "AiNieeBackend.app", target_arch(args.target_arch))
     patch_info_plist()
     sign_app_bundle()
 

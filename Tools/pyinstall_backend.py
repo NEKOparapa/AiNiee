@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def pyinstaller_command(arch=None):
     command = [
         str(ROOT / "Tools" / "backend_entry.py"), "--name=AiNieeBackend",
-        "--onedir", "--console", "--clean", "--noconfirm", "--noupx",
+        "--onedir", "--windowed" if sys.platform == "darwin" else "--console",
+        "--clean", "--noconfirm", "--noupx",
         f"--paths={ROOT}", f"--distpath={ROOT / 'build' / 'backend-dist'}",
         f"--workpath={ROOT / 'build' / 'backend-work'}", f"--specpath={ROOT / 'build'}",
         f"--additional-hooks-dir={ROOT / 'Tools' / 'Packaging' / 'hooks'}",
@@ -27,12 +28,18 @@ def pyinstaller_command(arch=None):
         command.append(f"--exclude-module={package}")
     if arch:
         command.append(f"--target-arch={arch}")
+    if sys.platform == "darwin":
+        command.append("--osx-bundle-identifier=com.nekoparapa.AiNiee.backend")
     return command
 
 
 def build_backend(destination, arch=None):
     subprocess.run([sys.executable, "-m", "PyInstaller", *pyinstaller_command(arch)], cwd=ROOT, check=True)
-    shutil.copytree(ROOT / "build" / "backend-dist" / "AiNieeBackend", destination, symlinks=True)
+    # A plain onedir tree is not a valid nested macOS bundle: codesign treats
+    # dotted data directories (such as *.dist-info) as malformed code bundles.
+    # Let PyInstaller's BUNDLE arrange Frameworks/Resources and their symlinks.
+    name = "AiNieeBackend.app" if sys.platform == "darwin" else "AiNieeBackend"
+    shutil.copytree(ROOT / "build" / "backend-dist" / name, destination, symlinks=True)
 
 
 if __name__ == "__main__":

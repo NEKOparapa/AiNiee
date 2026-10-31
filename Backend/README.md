@@ -25,7 +25,7 @@ python -m Frontend --backend-url http://127.0.0.1:3389
 
 源码部署时，后端需要 `Backend` 目录及其依赖；前端需要 `Frontend`、`AiNiee.py` 及前端依赖。前端默认连接 `http://127.0.0.1:3389`，也可以设置 `AINIEE_BACKEND_URL`。前端不导入后端代码；本机自动启动通过独立进程完成，远程部署仅连接已有服务。
 
-发布包同时携带前端和后端可执行程序及各自运行环境，无需安装 Python。Windows 后端位于 `backend/AiNieeBackend.exe`；macOS 后端位于应用包的 `Contents/Helpers/AiNieeBackend/AiNieeBackend`。桌面优先连接已有服务，必要时自动启动随包后端。可用 `AINIEE_BACKEND_EXECUTABLE` 指定其他后端程序，或设置 `AINIEE_BACKEND_PYTHON`（Python 解释器）与 `AINIEE_BACKEND_DIR`（包含 `Backend` 包的目录）使用源码后端。自动启动时，`AINIEE_APP_ROOT` 将后端的便携数据位置设为桌面发布目录。
+发布包同时携带前端和后端可执行程序及各自运行环境，无需安装 Python。Windows 后端位于 `backend/AiNieeBackend.exe`；macOS 后端位于应用包的 `Contents/Helpers/AiNieeBackend.app/Contents/MacOS/AiNieeBackend`。macOS 后端使用标准后台应用包，将运行库与数据资源分开放置以满足签名要求。桌面优先连接已有服务，必要时自动启动随包后端。可用 `AINIEE_BACKEND_EXECUTABLE` 指定其他后端程序，或设置 `AINIEE_BACKEND_PYTHON`（Python 解释器）与 `AINIEE_BACKEND_DIR`（包含 `Backend` 包的目录）使用源码后端。自动启动时，`AINIEE_APP_ROOT` 将后端的便携数据位置设为桌面发布目录。
 
 用户确认退出界面后，通过 `POST /api/shutdown` 通知后端停止任务、保存缓存并退出。取消退出不会关闭任何一端；关闭请求失败会提示错误并保留窗口。仅断线或客户端异常退出不会关闭后端，重连时重新读取项目和状态。
 
