@@ -78,12 +78,6 @@
       "English": "Extraction Settings",
       "日本語": "抽出設定"
     },
-    "润色设置": {
-      "简中": "润色设置",
-      "繁中": "潤色設定",
-      "English": "Polishing Settings",
-      "日本語": "推敲設定"
-    },
     "提取任务的 Token 切分数": {
       "简中": "提取任务的 Token 切分数",
       "繁中": "提取任務的 Token 切分數",
@@ -119,12 +113,6 @@
       "繁中": "例如同時提取到「亞瑟」和「亞瑟王」時，開啟後會合併為一項，關閉後會分別保留",
       "English": "For example, if both “Arthur” and “King Arthur” are extracted, enabling this option merges them into one entry; disabling it keeps them separate.",
       "日本語": "たとえば「アーサー」と「アーサー王」の両方が抽出された場合、有効にすると1件にまとめ、無効にすると別々に保持します。"
-    },
-    "只影响润色流程的上文参考行数": {
-      "简中": "只影响润色流程的上文参考行数",
-      "繁中": "只影響潤色流程的上文參考行數",
-      "English": "Only affects the number of previous context lines used by polishing.",
-      "日本語": "推敲フローで参照する上文行数にのみ影響します。"
     },
     "自动预处理文本": {
         "简中": "自动预处理文本",

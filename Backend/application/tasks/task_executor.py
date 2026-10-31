@@ -14,11 +14,9 @@ from Backend.domain.models.cache_project import CacheProjectStatistics
 from Backend.domain.config.task_type import TaskType
 from Backend.application.tasks.analysis_task import AnalysisTask
 from Backend.application.tasks.translator_task import TranslatorTask
-from Backend.application.tasks.polisher_task import PolisherTask
 from Backend.application.tasks.proofread_task import ProofreadTask
 from Backend.domain.config.task_config import TaskConfig
 from Backend.domain.prompts.prompt_builder import PromptBuilder
-from Backend.domain.prompts.prompt_builder_polishing import PromptBuilderPolishing
 from Backend.domain.prompts.prompt_builder_enum import PromptBuilderEnum
 from Backend.domain.prompts.prompt_builder_local import PromptBuilderLocal
 from Backend.domain.prompts.prompt_builder_sakura import PromptBuilderSakura
@@ -248,13 +246,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 args = (self.translation_start_target, continue_status,),
             ).start()
         
-        # 润色任务
-        elif current_mode == TaskType.POLISH:
-            threading.Thread(
-                target = run_task_target,
-                args = (self.polish_start_target, continue_status,),
-            ).start()
-
         else:
             self.print("")
             self.error(f"非法的翻译模式：{current_mode}，请检查配置文件 ...")
@@ -335,7 +326,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
                 "line" if self.config.tokens_limit_switch == False else "token",
                 self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
                 self.config.pre_line_counts,
-                TaskType.TRANSLATION
             )
 
             # 生成翻译任务合集列表
@@ -454,182 +444,6 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
 
         # 触发翻译完成事件
         self.emit(Base.EVENT.TASK_COMPLETED, {})
-
-    # 润色主流程
-    def polish_start_target(self, continue_status: bool) -> None:
-
-        # 设置翻译状态为正在翻译状态
-        Base.work_status = Base.STATUS.TASKING
-
-        # 读取配置文件，并保存到该类中
-        self.config.initialize("polish")
-
-        # 配置当前激活接口信息
-        self.config.prepare_for_active_platform("polish")
-        self.config.load_project_table_data(self.cache_manager)
-
-        # 配置请求限制器
-        self.request_limiter.set_limit(self.config.rpm_limit)
-
-        # 初开始任务时，生成监控数据
-        if continue_status == False:
-            self.project_status_data = CacheProjectStatistics()
-            self.cache_manager.project.stats_data = self.project_status_data
-        # 继续翻译时加载存储的监控数据
-        else:
-            self.project_status_data = self.cache_manager.project.stats_data
-            self.project_status_data.start_time = time.time() # 重置开始时间
-            self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量                  
-
-        # 更新监控面板信息
-        self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
-
-        # 文本过滤
-        self.text_filter.filter_project(self.config, self.cache_manager.project)
-
-
-        # 根据最大轮次循环
-        for current_round in range(self.config.round_limit + 1):
-            # 检测是否需要停止任务
-            if Base.work_status == Base.STATUS.STOPING:
-                # 循环次数比实际最大轮次要多一轮，当触发停止翻译的事件时，最后都会从这里退出任务
-                # 执行到这里说明停止任意的任务已经执行完毕，可以重置内部状态了
-                Base.work_status = Base.STATUS.TASKSTOPPED
-                return None
-
-            # 获取待润色的条目数量
-            item_count_status_unpolishd = self.cache_manager.get_item_count_by_status(TranslationStatus.TRANSLATED)
-
-            # 判断是否需要继续润色
-            if item_count_status_unpolishd == 0:
-                self.print("")
-                self.info("所有文本均已润色，润色任务已结束 ...")
-                self.print("")
-                break
-
-            # 达到最大任务轮次时
-            if item_count_status_unpolishd > 0 and current_round == self.config.round_limit:
-                self.print("")
-                self.warning("已达到最大任务轮次，仍有部分文本未润色，请检查结果 ...")
-                self.print("")
-                break
-
-            # 第一轮时且不是继续润色时，记录总行数
-            if current_round == 0 and continue_status == False:
-             self.project_status_data.total_line = item_count_status_unpolishd
-
-            # 第二轮开始对半切分
-            if current_round > 0:
-                self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
-                self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
-
-            # 生成缓存数据条目片段的合集列表
-            chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
-                "line" if self.config.tokens_limit_switch == False else "token",
-                self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                getattr(self.config, "polishing_pre_line_counts", 10),
-                TaskType.POLISH
-            )
-
-            # 生成润色任务合集列表
-            tasks_list = []
-            print("")
-            self.info(f"正在生成润色任务 ...")
-            for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成润色任务", total=len(chunks)):
-                if Base.work_status == Base.STATUS.STOPING:
-                    break
-
-                task = PolisherTask(self.config, self.request_limiter)  # 实例化
-                task.set_items(chunk)  # 传入该任务待润色文
-                task.set_previous_items(previous_chunk)  # 传入该任务待润色文的上文
-                task.prepare()  # 预先构建消息列表
-                tasks_list.append(task)
-            GlossaryHelper.clear_cache()
-            if Base.work_status == Base.STATUS.STOPING:
-                Base.work_status = Base.STATUS.TASKSTOPPED
-                return None
-            self.info(f"已经生成全部润色任务 ...")
-            self.print("")
-
-            # 输出开始润色的日志
-            self.print("")
-            self.info(f"当前轮次 - {current_round + 1}")
-            self.info(f"最大轮次 - {self.config.round_limit}")
-            self.info(f"项目类型 - {self.config.translation_project}")
-            self.print("")
-            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get('name', '未知')}")
-            self.info(f"接口地址 - {self.config.base_url}")
-            self.info(f"模型名称 - {self.config.model}")
-            self.print("")
-            self.info(f"RPM 限额 - {self.config.rpm_limit}")
-
-            # 根据提示词规则打印基础指令
-            system = ""
-            if self.config.polishing_prompt_selection["last_selected_id"] == PromptBuilderEnum.POLISH_COMMON:
-                system = PromptBuilderPolishing.build_system(self.config)
-            else:
-                system = self.config.polishing_prompt_selection["prompt_content"]
-            self.print("")
-            if system:
-                self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
-
-            self.info(f"即将开始执行润色任务，预计任务总数为 {len(tasks_list)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
-            time.sleep(3)
-            self.print("")
-
-            # 开始执行润色务,构建异步线程池
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "polisher")
-            self._set_active_executor(executor)
-            try:
-                for task in tasks_list:
-                    if Base.work_status == Base.STATUS.STOPING:
-                        break
-
-                    try:
-                        future = executor.submit(task.start)
-                    except RuntimeError:
-                        if Base.work_status == Base.STATUS.STOPING:
-                            break
-                        raise
-
-                    future.add_done_callback(self.task_done_callback)  # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
-            finally:
-                try:
-                    executor.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
-                finally:
-                    self._clear_active_executor(executor)
-
-        # 等待可能存在的缓存文件写入请求处理完毕
-        time.sleep(CacheManager.SAVE_INTERVAL)
-
-        # 输出配置包
-        output_config = {
-             "translated_suffix": self.config.output_filename_suffix,
-             "bilingual_suffix": "_bilingual",
-             "bilingual_order": self.config.bilingual_text_order,
-             "source_lang_code": self._resolve_output_source_language(self.config.source_language),
-             "target_lang_code": self._resolve_output_target_language(self.config.target_language),
-        }
-
-        # 写入文件
-        self.file_writer.output_translated_content(
-            self.cache_manager.project,
-            self.config.label_polish_output_path,
-            self.config.label_input_path,
-            output_config,
-        )
-        self.print("")
-        self.info(f"润色结果已保存至 {self.config.label_polish_output_path} 目录 ...")
-        self.print("")
-
-        # 重置内部状态
-        Base.work_status = Base.STATUS.TASKSTOPPED
-
-        # 触发事件
-        self.emit(Base.EVENT.TASK_STOP_DONE, {})     # 翻译停止完成的事件
-        self.emit(Base.EVENT.TASK_COMPLETED, {})     # 翻译完成事件
-
-
 
     # 单个翻译任务完成时,更新项目进度状态   
     def task_done_callback(self, future: concurrent.futures.Future) -> None:

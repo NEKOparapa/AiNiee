@@ -1,12 +1,10 @@
 from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QHBoxLayout
 from qfluentwidgets import (
-    Action,
     CardWidget,
     FluentIcon as FIF,
     MessageBox,
-    PrimarySplitPushButton,
-    RoundMenu,
+    PrimaryPushButton,
     TransparentPushButton,
     TransparentToolButton,
 )
@@ -16,7 +14,6 @@ from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
 from Frontend.services.protocol import TaskType
 from Frontend.core.log import LogMixin
-from Frontend.services.protocol import TranslationStatus
 from Frontend.components.toast import ToastMixin
 
 
@@ -34,7 +31,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.layout.setContentsMargins(18, 12, 18, 12)
         self.layout.setSpacing(12)
 
-        self.current_mode = TaskType.TRANSLATION
         self.has_resumable_task = False
         self.task_action_mode = None
 
@@ -42,26 +38,13 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.ui_update_timer.setInterval(1000)
         self.ui_update_timer.timeout.connect(lambda: self.emit(Base.EVENT.TASK_UPDATE, {}))
 
-        self.menu = RoundMenu(parent=self)
-        self.translate_action = Action(FIF.PLAY, self.tra("开始翻译"))
-        self.polish_action = Action(FIF.ALBUM, self.tra("开始润色"))
-        self.menu.addAction(self.translate_action)
-        self.menu.addAction(self.polish_action)
-
-        self.reset_menu = RoundMenu(parent=self)
-        self.reset_translation_action = Action(FIF.DELETE, self.tra("重置翻译"))
-        self.reset_polish_action = Action(FIF.DELETE, self.tra("重置润色"))
-        self.reset_menu.addAction(self.reset_translation_action)
-        self.reset_menu.addAction(self.reset_polish_action)
-
-        self.start_btn = PrimarySplitPushButton(FIF.PLAY, self.tra("开始翻译"))
-        self.start_btn.setFlyout(self.menu)
+        self.start_btn = PrimaryPushButton(FIF.PLAY, self.tra("开始翻译"))
         self.task_action_btn = TransparentPushButton(FIF.ROTATE, self.tra("继续"))
         self.task_action_btn.setFixedWidth(96)
         self.task_action_btn.setEnabled(False)
         self.reset_btn = TransparentToolButton(FIF.DELETE, self)
         self.reset_btn.setFixedWidth(32)
-        self.reset_btn.setToolTip(self.tra("重置"))
+        self.reset_btn.setToolTip(self.tra("重置翻译"))
         self.reset_btn.setEnabled(False)
 
         for button in (self.start_btn, self.task_action_btn, self.reset_btn):
@@ -78,29 +61,8 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.task_action_btn.clicked.connect(self.command_task_action)
         self.reset_btn.clicked.connect(self.command_reset)
 
-        self.translate_action.triggered.connect(
-            lambda checked=False: self._on_mode_selected(TaskType.TRANSLATION, self.translate_action)
-        )
-        self.polish_action.triggered.connect(
-            lambda checked=False: self._on_mode_selected(TaskType.POLISH, self.polish_action)
-        )
-        self.reset_translation_action.triggered.connect(
-            lambda checked=False: self.command_reset_status(TaskType.TRANSLATION)
-        )
-        self.reset_polish_action.triggered.connect(
-            lambda checked=False: self.command_reset_status(TaskType.POLISH)
-        )
-
         self.subscribe(Base.EVENT.TASK_STOP_DONE, self.task_stop_done)
         self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
-
-    def _on_mode_selected(self, mode: str, action: Action) -> None:
-        self.current_mode = mode
-        self.start_btn.setText(action.text())
-        if self.current_mode == TaskType.TRANSLATION:
-            self.info_toast(self.tra("模式已切换为"), ": " + self.tra("翻译模式"))
-        elif self.current_mode == TaskType.POLISH:
-            self.info_toast(self.tra("模式已切换为"), ": " + self.tra("润色模式"))
 
     def update_task_action_button(self, mode: str | None) -> None:
         self.task_action_mode = mode
@@ -149,8 +111,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
     def command_play(self) -> None:
         if not self._has_valid_api_binding():
             return
-        if self.current_mode == TaskType.POLISH and not self._has_sufficient_translated_lines_for_polish():
-            return
 
         if self.has_resumable_task:
             content = self.tra("将重置尚未完成的任务") + " ..."
@@ -168,7 +128,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
             Base.EVENT.TASK_START,
             {
                 "continue_status": False,
-                "current_mode": self.current_mode,
+                "current_mode": TaskType.TRANSLATION,
             },
         )
 
@@ -199,7 +159,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
             Base.EVENT.TASK_START,
             {
                 "continue_status": True,
-                "current_mode": self.current_mode,
+                "current_mode": TaskType.TRANSLATION,
             },
         )
 
@@ -210,27 +170,14 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
             self._update_reset_button_state()
             return
 
-        self.reset_menu.exec(self.reset_btn.mapToGlobal(self.reset_btn.rect().bottomLeft()))
-
-    def command_reset_status(self, task_mode: int) -> None:
-        if not self._can_reset_project(show_message=True):
-            self._update_reset_button_state()
-            return
-
-        if task_mode == TaskType.TRANSLATION:
-            content = self.tra("是否确认重置项目的已翻译状态？")
-        elif task_mode == TaskType.POLISH:
-            content = self.tra("是否确认重置项目的已润色状态？")
-        else:
-            return
-
+        content = self.tra("是否确认重置项目的已翻译状态？")
         message_box = MessageBox(self.tra("警告"), content, self.window())
         message_box.yesButton.setText(self.tra("确认"))
         message_box.cancelButton.setText(self.tra("取消"))
         if not message_box.exec():
             return
 
-        changed_count = self.cache_manager.reset_project_status(task_mode)
+        changed_count = self.cache_manager.reset_project_status(TaskType.TRANSLATION)
         if changed_count <= 0:
             self.info_toast(self.tra("提示"), self.tra("没有可重置的项目状态。"))
             return
@@ -258,10 +205,8 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
             self.reset_btn.setEnabled(self._can_reset_project())
 
     def _has_valid_api_binding(self) -> bool:
-        interface_role = "translate" if self.current_mode == TaskType.TRANSLATION else "polish"
-        interface_name = self.tra("翻译接口") if interface_role == "translate" else self.tra("润色接口")
-
-        result = self.config_backend().request("GET", f"/api/project/preflight/{interface_role}")
+        interface_name = self.tra("翻译接口")
+        result = self.config_backend().request("GET", "/api/project/preflight/translate")
         selected_tag = result["selected_tag"]
 
         if not selected_tag:
@@ -270,21 +215,6 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
 
         if not result["exists"]:
             self.error_toast(self.tra("错误"), f"{interface_name}{self.tra('配置不存在，请到接口管理页面重新选择。')}")
-            return False
-
-        return True
-
-    def _has_sufficient_translated_lines_for_polish(self) -> bool:
-        if not self.cache_manager or not self.cache_manager.project:
-            self.error("Polish pre-check failed: cache manager or current project is unavailable.")
-            self.error_toast(self.tra("错误"), self.tra("请先执行翻译流程"))
-            return False
-
-        project_id = getattr(self.cache_manager.project, "project_id", "")
-        translated_line = self.cache_manager.get_item_count_by_status(TranslationStatus.TRANSLATED)
-        if translated_line <= 0:
-            self.error(f"Polish pre-check failed: no translated lines are available for project {project_id}.")
-            self.error_toast(self.tra("错误"), self.tra("请先执行翻译流程"))
             return False
 
         return True

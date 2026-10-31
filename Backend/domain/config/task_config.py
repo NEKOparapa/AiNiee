@@ -8,7 +8,7 @@ from Backend.core.base import Base
 from Backend.core.config import ConfigMixin
 from Backend.core.headers import normalize_extra_headers
 from Backend.domain.config.tables import TableConfigHelper
-from Backend.core.paths import auto_output_dir, auto_polish_output_dir, default_polish_output_dir
+from Backend.core.paths import auto_output_dir
 from Backend.core.log import LogMixin
 
 
@@ -300,14 +300,10 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
         if self.auto_set_output_path is True:
             self.label_output_path = auto_output_dir(self.label_input_path)
-            self.label_polish_output_path = auto_polish_output_dir(self.label_input_path)
-        elif not hasattr(self, "label_polish_output_path"):
-            self.label_polish_output_path = str(default_polish_output_dir())
 
         # 保存新配置
         config = self.load_config()
         config["label_output_path"] = self.label_output_path
-        config["label_polish_output_path"] = self.label_polish_output_path
         self.save_config(config)
 
         # 计算实际线程数

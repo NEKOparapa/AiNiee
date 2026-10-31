@@ -17,7 +17,7 @@ Frontend/
   pages/
     workspace/                 项目启动、提取、翻译和校对
     providers/                 接口管理、模型选择和参数编辑
-    prompts/                   翻译、提取、润色提示词编辑
+    prompts/                   翻译、提取提示词编辑
     settings/                  应用、任务和输出等设置
     tables/                    词典、排除表和替换表
     logs/                      运行日志

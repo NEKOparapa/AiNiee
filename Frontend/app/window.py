@@ -28,7 +28,6 @@ from Frontend.pages.workspace.edit_view_page import EditViewPage
 from Frontend.platform.macos import about_message, app_menu_title, command_shortcut
 from Frontend.pages.providers.platform_page import PlatformPage
 from Frontend.pages.prompts.extraction.extraction_prompt_page import ExtractionPromptPage
-from Frontend.pages.prompts.polishing.polishing_system_prompt_page import PolishingSystemPromptPage
 from Frontend.pages.logs.log_view_page import LogViewPage
 from Frontend.pages.settings.advanced_settings_page import AdvancedSettingsPage
 from Frontend.pages.settings.app_settings_page import AppSettingsPage
@@ -359,17 +358,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("翻译风格"), parent=self.prompt_optimization_navigation_item)
         self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
         self.addSubInterface(self.translation_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("翻译示例"), parent=self.prompt_optimization_navigation_item)
-
-        # 润色提示词
-        self.polishing_prompt_navigation = BaseNavigationItem("polishing_prompt_navigation", self)
-        self.addSubInterface(
-            self.polishing_prompt_navigation,
-            FluentIcon.PALETTE,
-            self.tra("润色提示词"),
-            NavigationItemPosition.SCROLL,
-        )
-        self.polishing_system_prompt_page = PolishingSystemPromptPage("polishing_system_prompt_page", self)
-        self.addSubInterface(self.polishing_system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent=self.polishing_prompt_navigation)
 
     # 添加表格设置
     def add_table_pages(self) -> None:

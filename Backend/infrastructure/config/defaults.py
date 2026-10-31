@@ -4,7 +4,7 @@ import json
 from functools import lru_cache
 
 from Backend.core.paths import (
-    default_input_dir, default_output_dir, default_polish_output_dir, backend_resource_path,
+    default_input_dir, default_output_dir, backend_resource_path,
 )
 
 
@@ -19,7 +19,6 @@ def get_default_section(name):
         result["label_input_path"] = str(default_input_dir())
     elif name == "OutputSettingsPage":
         result["label_output_path"] = str(default_output_dir())
-        result["label_polish_output_path"] = str(default_polish_output_dir())
     elif name == "AppFluentWindow":
         result["accent_color"] = "#808b9d"
     return result

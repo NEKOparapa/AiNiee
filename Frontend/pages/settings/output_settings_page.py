@@ -6,12 +6,7 @@ from qfluentwidgets import FluentIcon, HorizontalSeparator, SingleDirectionScrol
 
 from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
-from Frontend.services.backend_paths import (
-    auto_output_dir,
-    auto_polish_output_dir,
-    default_output_dir,
-    default_polish_output_dir,
-)
+from Frontend.services.backend_paths import auto_output_dir
 from Frontend.components.cards.combo_box_card import ComboBoxCard
 from Frontend.components.cards.push_button_card import PushButtonCard
 from Frontend.components.cards.switch_button_card import SwitchButtonCard
@@ -53,7 +48,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         # 添加控件
         self.add_widget_filename_suffix(self.vbox, config)
         self.add_widget_translation_output_path(self.vbox, config)
-        self.add_widget_polish_output_path(self.vbox, config)
         self.add_widget_auto_set(self.vbox, config)
         self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_bilingual_text_order(self.vbox, config)
@@ -68,8 +62,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
 
     def _resolve_output_display(self, config, config_key: str) -> str:
         if config.get("auto_set_output_path") and (config.get("label_input_path") or "").strip():
-            if config_key == "label_polish_output_path":
-                return auto_polish_output_dir(config["label_input_path"])
             return auto_output_dir(config["label_input_path"])
         return config.get(config_key, "")
 
@@ -84,10 +76,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
     # 翻译输出文件夹
     def add_widget_translation_output_path(self, parent, config) -> None:
         self.add_widget_output_path(parent, config, "label_output_path", self.tra("翻译输出文件夹"))
-
-    # 润色输出文件夹
-    def add_widget_polish_output_path(self, parent, config) -> None:
-        self.add_widget_output_path(parent, config, "label_polish_output_path", self.tra("润色输出文件夹"))
 
     # 输出文件夹
     def add_widget_output_path(self, parent, config, config_key: str, title: str) -> None:

@@ -1,6 +1,6 @@
 # FastAPI 后端
 
-后端独立管理配置、项目、缓存、翻译、润色、提取、校对和导出。PyQt 桌面仅通过 HTTP 与 WebSocket 访问后端，两端不导入对方的 Python 模块。
+后端独立管理配置、项目、缓存、翻译、表格条目润色、提取、校对和导出。PyQt 桌面仅通过 HTTP 与 WebSocket 访问后端，两端不导入对方的 Python 模块。
 
 ## 启动与部署
 
@@ -104,6 +104,8 @@ HTTP 和 WebSocket 均使用 `Authorization: Bearer ...`。跨网络部署时通
 ```json
 {"event": 210, "data": {"current_mode": 1000, "continue_status": false}}
 ```
+
+整项目任务只支持翻译；旧的 `current_mode: 2000` 润色请求返回 400。表格条目润色继续使用 `event: 810`，传入 `file_path`、`items_to_polish`（包含 `text_index`、`source_text`、`translation_text`），可指定表格更新和完成事件。结果写入当前项目缓存，沿用项目导出功能。整项目润色的独立输出目录和上文行数配置会自动清理。
 
 WebSocket 消息类型为 `connected`、`status`、`event`、`log`、`settled`、`resync`。状态心跳间隔两秒；慢客户端队列满时断开并要求重新获取项目。前端拥有独立的协议常量和显示数据结构，测试检查协议兼容性，不通过共享 Python 类交换对象。
 

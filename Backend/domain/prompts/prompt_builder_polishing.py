@@ -4,7 +4,6 @@ from Backend.domain.config.tables import TableConfigHelper
 from Backend.domain.text.regex import RegexSwitchHelper
 from Backend.domain.prompts.prompt_builder import PromptBuilder
 from Backend.domain.prompts.prompt_builder_enum import PromptBuilderEnum
-from Backend.domain.prompts.character_helper import CharacterHelper
 from Backend.core.paths import prompt_path
 from Backend.domain.config.task_config import TaskConfig
 
@@ -80,15 +79,6 @@ class PromptBuilderPolishing(Base):
 
         return result
 
-    def build_pre_text(config: TaskConfig, input_list: list[str]) -> str:
-        if config.target_language in ("chinese_simplified", "chinese_traditional"):
-            profile = "###上文内容\n"
-        else:
-            profile = "###Previous text\n"
-
-        profile += "\n".join(input_list) + "\n"
-        return profile
-
     def build_translated_prefix(config: TaskConfig) -> tuple[str, str]:
         if config.target_language in ("chinese_simplified", "chinese_traditional"):
             return " ###原文文本\n", "###这是你接下来的润色任务，初译文本如下\n"
@@ -111,7 +101,6 @@ class PromptBuilderPolishing(Base):
         config,
         source_text_dict: dict,
         translation_text_dict: dict,
-        previous_text_list: list[str],
     ) -> tuple[list[dict], str, list[str]]:
         messages = []
         extra_log = []
@@ -161,17 +150,10 @@ class PromptBuilderPolishing(Base):
                 system += characterization
                 extra_log.append(characterization)
 
-        previous = ""
-        if getattr(config, "polishing_pre_line_counts", 0) and previous_text_list:
-            previous = PromptBuilderPolishing.build_pre_text(config, previous_text_list)
-            if previous:
-                extra_log.append(f"###上文内容\n{'\n'.join(previous_text_list)}")
-
         source_text = PromptBuilder.build_source_text(config, source_text_dict)
         translation_text = PromptBuilder.build_source_text(config, translation_text_dict)
         pre_prompt_a, pre_prompt_b = PromptBuilderPolishing.build_translated_prefix(config)
         source_text_str = (
-            f"{previous}\n"
             f"{pre_prompt_a}\n"
             f"{source_text}\n"
             f"{pre_prompt_b}<textarea>\n{translation_text}\n</textarea>"

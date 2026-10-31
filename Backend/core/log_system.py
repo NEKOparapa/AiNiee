@@ -209,7 +209,7 @@ def _gui_row_kind(row) -> str:
         return "thinking"
     if combined.startswith("模型回复内容："):
         return "response"
-    # TranslatorTask/PolisherTask 的最后一行是完整原文、译文对照。
+    # TranslatorTask 的最后一行是完整原文、译文对照。
     if " --> " in combined:
         return "comparison"
     if combined.startswith((

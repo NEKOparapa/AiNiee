@@ -531,7 +531,7 @@ class SimpleExecutor(ConfigMixin, LogMixin, Base):
             index_map = [item['text_index'] for item in batch_items]
 
             messages, system_prompt, _ = PromptBuilderPolishing.generate_prompt(
-                config, source_text_dict, translation_text_dict, []
+                config, source_text_dict, translation_text_dict
             )
             
             print(f" -> [批次 {batch_num}] 正在发送请求 ({len(batch_items)}行)...")

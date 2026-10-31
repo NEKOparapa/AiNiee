@@ -32,9 +32,6 @@
         "translation_result_check_switch": false,
         "keep_original_encoding": false
     },
-    "PolishingSettingsPage": {
-        "polishing_pre_line_counts": 10
-    },
     "TaskSettingsPage": {
         "lines_limit_switch": false,
         "tokens_limit_switch": true,

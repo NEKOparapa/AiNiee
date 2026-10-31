@@ -206,7 +206,7 @@ class TaskSettingsPage(QFrame, ConfigMixin, Base):
         parent.addWidget(
             SpinCard(
                 self.tra("任务流程的最大轮次"),
-                self.tra("当完成一轮任务后，如果还有未翻译/润色的条目，将重新开始新的任务流程，直到翻译/润色完成或者达到最大轮次"),
+                self.tra("当完成一轮任务后，如果还有未翻译的条目，将重新开始新的任务流程，直到翻译完成或者达到最大轮次"),
                 init = init,
                 value_changed = value_changed,
             )

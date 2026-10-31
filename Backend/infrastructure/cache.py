@@ -537,13 +537,15 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         return has_translated and has_untranslated
 
     def reset_project_status(self, task_mode: int) -> int:
-        """批量回退项目翻译/润色状态，并保存缓存。"""
-        changed_count = self._reset_project_status_in_memory(task_mode)
+        """批量回退项目的已翻译状态（包括已润色条目），并保存缓存。"""
+        if task_mode != TaskType.TRANSLATION:
+            raise ValueError("仅支持重置项目的已翻译状态")
+        changed_count = self._reset_project_status_in_memory()
         if changed_count > 0:
             self.save_to_file()
         return changed_count
 
-    def _reset_project_status_in_memory(self, task_mode: int) -> int:
+    def _reset_project_status_in_memory(self) -> int:
         if not self.project:
             return 0
 
@@ -552,16 +554,9 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             for file in self.project.files.values():
                 for item in file.items:
                     with item.atomic_scope():
-                        if task_mode == TaskType.TRANSLATION:
-                            if item.translation_status not in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
-                                continue
-                            item.translation_status = TranslationStatus.UNTRANSLATED
-                        elif task_mode == TaskType.POLISH:
-                            if item.translation_status != TranslationStatus.POLISHED:
-                                continue
-                            item.translation_status = TranslationStatus.TRANSLATED
-                        else:
-                            return changed_count
+                        if item.translation_status not in (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED):
+                            continue
+                        item.translation_status = TranslationStatus.UNTRANSLATED
 
                         changed_count += 1
 
@@ -593,19 +588,12 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         limit_type: str,
         limit_count: int,
         previous_line_count: int,
-        task_mode,
     ) -> Tuple[List[List[CacheItem]], List[List[CacheItem]], List[str]]:
-        """按任务类型和限制条件生成待处理片段。"""
+        """按限制条件生成待翻译片段。"""
         chunks, previous_chunks, file_paths = [], [], []
 
         for file in self.project.files.values():
-            # 先按任务模式筛选当前需要处理的条目
-            if task_mode == TaskType.TRANSLATION:
-                items = [item for item in file.items if item.translation_status == TranslationStatus.UNTRANSLATED]
-            elif task_mode == TaskType.POLISH:
-                items = [item for item in file.items if item.translation_status == TranslationStatus.TRANSLATED]
-            else:
-                items = []
+            items = [item for item in file.items if item.translation_status == TranslationStatus.UNTRANSLATED]
 
             if not items:
                 continue

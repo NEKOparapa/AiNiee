@@ -64,7 +64,6 @@ def command_failure(event, data, message):
 class TaskType:
 
     TRANSLATION = 1000
-    POLISH = 2000
 
 class PromptBuilderEnum:
 
@@ -72,8 +71,6 @@ class PromptBuilderEnum:
     COT = 200
     LOCAL = 400
     CUSTOM = 1000
-
-    POLISH_COMMON = 10001
 
     FORMAT_COMMON = 20001
 

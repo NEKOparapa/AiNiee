@@ -18,6 +18,7 @@ class ConfigStore:
     RETIRED_SETTINGS = frozenset((
         "http_server_enable", "http_listen_address", "http_callback_url",
         "response_conversion_toggle", "opencc_preset",
+        "polishing_pre_line_counts", "label_polish_output_path",
     ))
 
     def initialize_config(self):
@@ -166,7 +167,6 @@ class ConfigStore:
             from Backend.core.paths import (
                 default_input_dir,
                 default_output_dir,
-                default_polish_output_dir,
                 resolve_user_dir,
             )
             if "label_input_path" in config:
@@ -180,12 +180,6 @@ class ConfigStore:
                     config["label_output_path"],
                     default_output_dir(),
                     ("./output", "output"),
-                )
-            if "label_polish_output_path" in config:
-                config["label_polish_output_path"] = resolve_user_dir(
-                    config["label_polish_output_path"],
-                    default_polish_output_dir(),
-                    ("./polish_output", "polish_output"),
                 )
 
         return config

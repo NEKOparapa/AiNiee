@@ -222,8 +222,8 @@ class Runtime(ConfigStore):
                 raise ValueError("无效的表格完成事件")
             if event == Base.EVENT.TASK_START:
                 mode = data.get("current_mode")
-                if mode not in (TaskType.TRANSLATION, TaskType.POLISH):
-                    raise ValueError("无效的任务类型")
+                if mode != TaskType.TRANSLATION:
+                    raise ValueError("整项目任务仅支持翻译，请使用表格条目润色")
                 if data.get("continue_status") and self.cache.project.stats_data is None:
                     raise ValueError("当前项目没有可继续的任务")
             self.last_error = None
@@ -246,8 +246,7 @@ class Runtime(ConfigStore):
             E = Base.EVENT
             if event == E.TASK_START:
                 self.cache.start_interval_saving(event, data)
-                target = self.executor.translation_start_target if data["current_mode"] == TaskType.TRANSLATION else self.executor.polish_start_target
-                target(bool(data.get("continue_status")))
+                self.executor.translation_start_target(bool(data.get("continue_status")))
             elif event == E.ANALYSIS_TASK_START:
                 self.executor.analysis_start_target()
             elif event == E.TABLE_PROOFREAD_START:

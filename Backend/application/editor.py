@@ -3,8 +3,7 @@ import inspect
 
 from Backend.core.headers import normalize_extra_headers, parse_extra_headers
 from Backend.core.paths import (
-    auto_output_dir, auto_polish_output_dir, default_input_dir,
-    default_output_dir, default_polish_output_dir,
+    auto_output_dir, default_input_dir, default_output_dir,
 )
 from Backend.domain.config.tables import TableConfigHelper
 from Backend.domain.prompts.character_helper import CharacterHelper
@@ -34,9 +33,7 @@ OPERATIONS = {
     "headers.parse": parse_extra_headers,
     "paths.input": lambda: str(default_input_dir()),
     "paths.output": lambda: str(default_output_dir()),
-    "paths.polish": lambda: str(default_polish_output_dir()),
     "paths.auto_output": auto_output_dir,
-    "paths.auto_polish": auto_polish_output_dir,
 }
 
 

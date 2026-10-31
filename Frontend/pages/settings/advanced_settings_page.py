@@ -5,7 +5,6 @@ from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
 from Frontend.pages.settings.translation_settings_page import TranslationSettingsPage
 from Frontend.pages.settings.extraction_settings_page import ExtractionSettingsPage
-from Frontend.pages.settings.polishing_settings_page import PolishingSettingsPage
 
 
 class AdvancedSettingsPage(QFrame, ConfigMixin, Base):
@@ -27,18 +26,15 @@ class AdvancedSettingsPage(QFrame, ConfigMixin, Base):
 
         self.extraction_settings_page = ExtractionSettingsPage("extraction_settings_page", self)
         self.translation_settings_page = TranslationSettingsPage("translation_settings_page", self)
-        self.polishing_settings_page = PolishingSettingsPage("polishing_settings_page", self)
 
         self.route_to_widget = {
             "extraction": self.extraction_settings_page,
             "translation": self.translation_settings_page,
-            "polishing": self.polishing_settings_page,
         }
 
         for route_key, tab_text in (
             ("extraction", self.tra("提取设置")),
             ("translation", self.tra("翻译设置")),
-            ("polishing", self.tra("润色设置")),
         ):
             item = self.tab_bar.addItem(
                 routeKey=route_key,
