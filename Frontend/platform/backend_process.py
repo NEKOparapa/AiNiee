@@ -1,4 +1,4 @@
-"""Start a separately installed backend without importing its Python modules."""
+"""Start a separate backend executable or interpreter without importing its code."""
 from contextlib import contextmanager
 import getpass
 import hashlib
@@ -10,7 +10,7 @@ import sys
 import tempfile
 import time
 
-from Frontend.core.paths import backend_log_dir, repo_root
+from Frontend.core.paths import backend_log_dir, executable_root, repo_root
 
 
 # This bootstrap runs in the child interpreter, not the desktop process. Its
@@ -91,25 +91,65 @@ def backend_startup_lock(port, deadline):
                 fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
 
+def bundled_backend_executable():
+    name = "AiNieeBackend.exe" if os.name == "nt" else "AiNieeBackend"
+    root = executable_root()
+    if sys.platform == "darwin":
+        return root.parent / "Helpers" / "AiNieeBackend" / name
+    return root / "backend" / name
+
+
+@contextmanager
+def _child_library_path():
+    # Frozen Windows apps alter the DLL search path process-wide. A separate
+    # backend must load its own bundled DLLs, not the desktop's copies.
+    if os.name != "nt" or not getattr(sys, "frozen", False):
+        yield
+        return
+    import ctypes
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetDllDirectoryW.argtypes = [ctypes.c_uint32, ctypes.c_wchar_p]
+    kernel32.SetDllDirectoryW.argtypes = [ctypes.c_wchar_p]
+    buffer = ctypes.create_unicode_buffer(32768)
+    kernel32.GetDllDirectoryW(len(buffer), buffer)
+    kernel32.SetDllDirectoryW(None)
+    try:
+        yield
+    finally:
+        kernel32.SetDllDirectoryW(buffer.value or None)
+
+
 def launch_backend(host, port):
     python = os.environ.get("AINIEE_BACKEND_PYTHON")
-    if not python:
-        if getattr(sys, "frozen", False):
-            raise RuntimeError("请设置 AINIEE_BACKEND_PYTHON 指向后端 Python 解释器，或先手动启动后端")
-        python = sys.executable
-    directory = Path(os.environ.get("AINIEE_BACKEND_DIR", str(repo_root()))).expanduser().resolve()
+    binary = os.environ.get("AINIEE_BACKEND_EXECUTABLE")
+    if binary or (getattr(sys, "frozen", False) and not python):
+        executable = Path(binary).expanduser().resolve() if binary else bundled_backend_executable()
+        if not executable.is_file():
+            raise RuntimeError(f"发布包缺少后端程序：{executable}。请完整解压安装包。")
+        command = [str(executable), "--host", host, "--port", str(port)]
+        directory = executable.parent
+    else:
+        command = [python or sys.executable, "-c", _BACKEND_BOOTSTRAP, "--host", host, "--port", str(port)]
+        directory = Path(os.environ.get("AINIEE_BACKEND_DIR", str(repo_root()))).expanduser().resolve()
     log_path = backend_log_dir() / "ainiee.log"
     log_path.parent.mkdir(parents=True, exist_ok=True)
+    environment = {**os.environ, "AINIEE_BACKEND_LOG_DIR": str(log_path.parent),
+        "AINIEE_APP_ROOT": str(executable_root()), "PYINSTALLER_RESET_ENVIRONMENT": "1",
+        "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
+    if getattr(sys, "frozen", False) and sys.platform != "win32":
+        for key in ("LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"):
+            if key + "_ORIG" in environment:
+                environment[key] = environment[key + "_ORIG"]
+            else:
+                environment.pop(key, None)
     try:
-        process = subprocess.Popen(
-            [python, "-c", _BACKEND_BOOTSTRAP, "--host", host, "--port", str(port)],
-            cwd=directory,
-            env={**os.environ, "AINIEE_BACKEND_LOG_DIR": str(log_path.parent),
-                "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"},
-            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-            start_new_session=os.name != "nt",
-        )
+        with _child_library_path():
+            process = subprocess.Popen(
+                command, cwd=directory, env=environment,
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                start_new_session=os.name != "nt",
+            )
     except OSError as error:
         # No child exists yet, so recording launch failure cannot race its logger.
         from Frontend.core.log_system import redact

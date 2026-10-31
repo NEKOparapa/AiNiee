@@ -1,4 +1,4 @@
-"""Build the independent Windows desktop client."""
+"""Build a Windows release with independent desktop and backend executables."""
 import os
 import sys
 from pathlib import Path
@@ -23,6 +23,8 @@ def main():
     os.chdir(ROOT)
     sys.path.insert(0, str(ROOT))
     PyInstaller.__main__.run(pyinstaller_command())
+    from Tools.pyinstall_backend import build_backend
+    build_backend(ROOT / "dist" / "AiNiee" / "backend")
 
 
 if __name__ == "__main__":

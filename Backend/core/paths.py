@@ -28,9 +28,15 @@ def repo_root() -> Path:
 
 # 程序实际启动的位置。
 def executable_root() -> Path:
+    override = os.environ.get("AINIEE_APP_ROOT")
+    if override:
+        return Path(override).expanduser().resolve()
     # 打包后用可执行文件旁边的位置，别写进 PyInstaller 临时目录。
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
+        root = Path(sys.executable).resolve().parent
+        if root.name == "backend" and (root.parent / "AiNiee.exe").is_file():
+            return root.parent
+        return root
     return repo_root()
 
 

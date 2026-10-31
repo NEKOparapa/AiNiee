@@ -62,8 +62,10 @@ python -m Backend --port 3389
 python -m Frontend --backend-url http://127.0.0.1:3389
 ```
 
-`AINIEE_BACKEND_URL` 可指定连接地址，`AINIEE_API_TOKEN` 指定访问令牌。只对无路径前缀的本机 HTTP 地址自动启动；远程地址、HTTPS 地址仅连接已有服务，鉴权失败或协议不兼容时不会重复启动。默认使用当前 Python 在独立进程中运行 `Backend` 入口；后端使用独立环境或目录时，设置 `AINIEE_BACKEND_PYTHON` 为解释器路径、`AINIEE_BACKEND_DIR` 为包含 `Backend` 包的目录。打包后的桌面必须配置后端解释器或连接已运行的服务，不使用桌面可执行文件充当后端解释器。启动最多等待 60 秒。后端启动、运行及 Uvicorn 日志统一写入后端主日志（便携模式默认 `Logs/backend/ainiee.log`），可通过 `AINIEE_BACKEND_LOG_DIR` 指定目录；不再生成单独的启动日志。前端日志仍由前端独立记录。
+`AINIEE_BACKEND_URL` 可指定连接地址，`AINIEE_API_TOKEN` 指定访问令牌。只对无路径前缀的本机 HTTP 地址自动启动；远程地址、HTTPS 地址仅连接已有服务，鉴权失败或协议不兼容时不会重复启动。源码默认使用当前 Python 在独立进程中运行 `Backend` 入口；发布版默认启动随包的独立后端可执行程序，无需安装 Python。可用 `AINIEE_BACKEND_EXECUTABLE` 指定后端程序，或用 `AINIEE_BACKEND_PYTHON` 和 `AINIEE_BACKEND_DIR` 指定源码后端的解释器和目录。启动最多等待 60 秒。后端启动、运行及 Uvicorn 日志统一写入后端主日志（便携模式默认 `Logs/backend/ainiee.log`），可通过 `AINIEE_BACKEND_LOG_DIR` 指定目录；不再生成单独的启动日志。前端日志仍由前端独立记录。
 
 前后端始终为独立进程，不提供单进程模式。关闭窗口时选择确认，会通过 FastAPI 退出接口通知后端停止任务、保存缓存并退出；选择取消则两端继续运行。请求失败时保留窗口并提示原因。仅关闭网络连接或前端异常退出不会触发后端退出。依赖安装、配置所有权及接口协议见 [后端说明](../Backend/README.md)。
 
-`core/resources.py` 统一定位 `Frontend/resources`，支持 `AINIEE_FRONTEND_RESOURCE_DIR` 覆盖路径和 PyInstaller 包内路径。Windows/macOS 打包仍以根目录 `AiNiee.py` 为入口，只收集前端资源并排除 `Backend`，不收集业务配置或模型依赖。桌面依赖通过 `requirements-frontend.txt` 安装；打包额外安装 PyInstaller。
+`core/resources.py` 统一定位 `Frontend/resources`，支持 `AINIEE_FRONTEND_RESOURCE_DIR` 覆盖路径和 PyInstaller 包内路径。Windows/macOS 桌面仍以根目录 `AiNiee.py` 为入口，只收集前端模块和资源并排除 `Backend`。打包脚本另行构建 `AiNieeBackend`，后端业务模块、配置模板和模型依赖只进入后端程序目录，两端使用各自的 Python 运行环境。
+
+构建完整发布包时，先安装 `requirements-frontend.txt`、`requirements-backend.txt`、PyInstaller 6.21+，再以 `--no-deps` 安装 `requirements_no_deps.txt`。Windows 执行 `python Tools/pyinstall.py`；macOS 执行 `python Tools/pyinstall_macos.py`。Windows 发布目录包含 `AiNiee.exe`、前端 `_internal` 和 `backend` 子目录，必须整体解压。macOS 后端位于应用包的 `Contents/Helpers/AiNieeBackend`。

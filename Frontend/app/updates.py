@@ -981,6 +981,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             import subprocess
             if is_macos():
                 if os.path.exists(update_file):
+                    self.config_backend().shutdown()
                     subprocess.Popen(["open", update_file])
                     _, _, download_info_file = self._download_paths()
                     try:
@@ -997,6 +998,9 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             updater_path = str(frontend_resource_path("updater", "updater.exe"))
 
             if os.path.exists(updater_path):
+                # Stop the service before replacing its executable and DLLs.
+                # If shutdown fails, leave the UI and downloaded update intact.
+                self.config_backend().shutdown()
                 if is_windows():
                     subprocess.Popen(
                         [updater_path, update_file, current_dir],

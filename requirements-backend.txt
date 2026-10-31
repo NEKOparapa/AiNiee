@@ -20,6 +20,7 @@ curl_cffi>=0.15.0
 
 # Tools
 python-pptx>=1.0.2
+pywin32; sys_platform == "win32"
 polib>=1.2.0
 pandas>=3.0.3
 rich>=15.0.0

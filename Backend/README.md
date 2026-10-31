@@ -23,7 +23,11 @@ python -m Frontend --backend-url http://127.0.0.1:3389
 # 等价入口：python AiNiee.py --backend-url http://127.0.0.1:3389
 ```
 
-后端只需部署 `Backend` 目录及其依赖；前端只需部署 `Frontend`、`AiNiee.py` 及前端依赖。前端默认连接 `http://127.0.0.1:3389`，也可以设置 `AINIEE_BACKEND_URL`。前端不导入后端代码；本机自动启动通过独立进程完成，远程部署仅连接已有服务。后端使用不同环境或目录时，可设置 `AINIEE_BACKEND_PYTHON`（Python 解释器）与 `AINIEE_BACKEND_DIR`（包含 `Backend` 包的目录）；打包前端自动启动后端必须指定后端解释器。用户确认退出界面后，通过 `POST /api/shutdown` 通知后端停止任务、保存缓存并退出。取消退出不会关闭任何一端；关闭请求失败会提示错误并保留窗口。仅断线或客户端异常退出不会关闭后端，重连时重新读取项目和状态。
+源码部署时，后端需要 `Backend` 目录及其依赖；前端需要 `Frontend`、`AiNiee.py` 及前端依赖。前端默认连接 `http://127.0.0.1:3389`，也可以设置 `AINIEE_BACKEND_URL`。前端不导入后端代码；本机自动启动通过独立进程完成，远程部署仅连接已有服务。
+
+发布包同时携带前端和后端可执行程序及各自运行环境，无需安装 Python。Windows 后端位于 `backend/AiNieeBackend.exe`；macOS 后端位于应用包的 `Contents/Helpers/AiNieeBackend/AiNieeBackend`。桌面优先连接已有服务，必要时自动启动随包后端。可用 `AINIEE_BACKEND_EXECUTABLE` 指定其他后端程序，或设置 `AINIEE_BACKEND_PYTHON`（Python 解释器）与 `AINIEE_BACKEND_DIR`（包含 `Backend` 包的目录）使用源码后端。自动启动时，`AINIEE_APP_ROOT` 将后端的便携数据位置设为桌面发布目录。
+
+用户确认退出界面后，通过 `POST /api/shutdown` 通知后端停止任务、保存缓存并退出。取消退出不会关闭任何一端；关闭请求失败会提示错误并保留窗口。仅断线或客户端异常退出不会关闭后端，重连时重新读取项目和状态。
 
 原单进程模式、临时 HTTP 监听服务及其完成回调已经删除。旧的 `/api/translate`、`/api/stop` 不再提供；历史配置中的监听开关、监听地址和回调 URL 会由配置存储自动清理。
 
@@ -42,7 +46,7 @@ Backend/
   resources/         默认配置、模型、提示词、正则、接口预设
 ```
 
-新增文件格式在 `infrastructure/files/readers`、`infrastructure/files/writers` 实现并登记延迟加载注册表。前端结构见 [Frontend 说明](../Frontend/README.md)。桌面打包脚本仅收集前端资源，明确排除 `Backend` 包；后端单独部署。
+新增文件格式在 `infrastructure/files/readers`、`infrastructure/files/writers` 实现并登记延迟加载注册表。前端结构见 [Frontend 说明](../Frontend/README.md)。桌面可执行程序只收集前端模块与资源，明确排除 `Backend` 包；`Tools/pyinstall_backend.py` 独立打包后端模块、模型和依赖，再将两个程序放入同一个发布包。
 
 BabelDOC 的 `skimage` 导入兼容模块位于 `infrastructure/compat/skimage`，由 PDF 访问器在缺少正式 `scikit-image` 时注册，不需要根目录的同名文件夹。当前 PDF 流程关闭扫描件检测，兼容模块仅满足导入需求，不提供图像相似度计算；已安装的正式库保持优先使用。
 
@@ -89,7 +93,7 @@ HTTP 和 WebSocket 均使用 `Authorization: Bearer ...`。跨网络部署时通
 | `POST /api/check/{kind}` | language / rule / terminology 校对 |
 | `POST /api/editor/{operation}` | 编辑规则、表格/角色/正则校验、模型选项、请求头与路径处理 |
 | `POST /api/commands` | 开始、停止、提取、表格任务、导出和 API 测试 |
-| `POST /api/shutdown` | 确认退出后关闭服务，需通过 `python -m Backend` 启动 |
+| `POST /api/shutdown` | 确认退出后关闭服务，需通过后端正式入口启动（源码或随包程序） |
 | `POST /api/models` / `POST /api/names` | 模型列表和目录人名提取 |
 | `WS /ws/events` | 实时状态、日志、任务结果 |
 
