@@ -192,24 +192,6 @@
       "English": "Open the folder containing application logs for troubleshooting or feedback.",
       "日本語": "問題の調査やフィードバック送信のためのログフォルダを開きます。"
     },
-    "文件/目录排除规则": {
-      "简中": "文件/目录排除规则",
-      "繁中": "檔案/目錄排除規則",
-      "English": "File/Folder Exclusion Rules",
-      "日本語": "ファイル/フォルダ除外ルール"
-    },
-    "*.log 表示排除所有结尾为 .log 的文件,aaa/* 表示排除输入文件夹下整个 aaa 目录,多个规则用英文逗号分隔": {
-      "简中": "*.log 表示排除所有结尾为 .log 的文件,aaa/* 表示排除输入文件夹下整个 aaa 目录,多个规则用英文逗号分隔",
-      "繁中": "*.log 表示排除所有結尾為 .log 的檔案,aaa/* 表示排除輸入資料夾下整個 aaa 目錄,多個規則請用英文逗號分隔",
-      "English": "Use exclusion rules for files or folders.\nExample: *.log excludes all .log files.\naaa/* excludes the whole aaa folder.\nSeparate rules with commas.",
-      "日本語": "ファイルまたはフォルダの除外ルールを設定します。\n例: *.log はすべての .log ファイルを除外します。\naaa/* は aaa フォルダ全体を除外します。\n複数ルールはカンマで区切ってください。"
-    },
-    "*.log,aaa/*": {
-      "简中": "*.log,aaa/*",
-      "繁中": "*.log,aaa/*",
-      "English": "*.log,aaa/*",
-      "日本語": "*.log,aaa/*"
-    },
     "应用配置切换": {
       "简中": "应用配置切换",
       "繁中": "應用設定切換",
