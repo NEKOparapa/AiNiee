@@ -12,6 +12,25 @@
             "proofread": null
         }
     },
+    "TranscriptionPage": {
+        "transcription_platforms": {
+            "bailian_asr": {
+                "name": "阿里云百炼",
+                "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+                "api_key": "",
+                "model": "qwen-audio-3.1-asr-flash",
+                "api_format": "DashScope",
+                "request_timeout": 300,
+                "language_hints": [],
+                "speaker_diarization_enabled": false,
+                "chunk_duration_seconds": 240,
+                "chunk_overlap_seconds": 2,
+                "chunk_concurrency": 3,
+                "vad_threshold": 0.35
+            }
+        },
+        "active_transcription_platform": "bailian_asr"
+    },
     "AppSettingsPage": {
         "proxy_url": "",
         "proxy_enable": false,

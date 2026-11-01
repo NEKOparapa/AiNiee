@@ -18,6 +18,7 @@ from qfluentwidgets import (
 
 from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
+from Frontend.core.events import EventManager
 from Frontend.core.resources import frontend_resource_path
 from Frontend.services.editor import PromptBuilderExtraction
 from Frontend.services.backend_client import BackendError
@@ -27,6 +28,7 @@ from Frontend.app.navigation import BaseNavigationItem
 from Frontend.pages.workspace.edit_view_page import EditViewPage
 from Frontend.platform.macos import about_message, app_menu_title, command_shortcut
 from Frontend.pages.providers.platform_page import PlatformPage
+from Frontend.pages.providers.transcription_page import TranscriptionPage
 from Frontend.pages.prompts.extraction.extraction_prompt_page import ExtractionPromptPage
 from Frontend.pages.logs.log_view_page import LogViewPage
 from Frontend.pages.settings.advanced_settings_page import AdvancedSettingsPage
@@ -54,6 +56,8 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def __init__(self, version: str, cache_manager, file_reader) -> None:
         super().__init__()
+        self._close_in_progress = False
+        self._shutdown_complete = False
 
         # 启动后台线程发送日活统计，不阻塞 UI
         def report_activity():
@@ -124,12 +128,22 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 窗口关闭函数
     def closeEvent(self, event) -> None:
-        info_cont = self.tra("确定退出程序并关闭后端服务？\n后端将停止正在执行的任务并保存缓存。")
-        message_box = MessageBox("Warning", info_cont, self)
-        message_box.yesButton.setText(self.tra("确认"))
-        message_box.cancelButton.setText(self.tra("取消"))
+        if self._shutdown_complete:
+            event.accept()
+            return
+        if self._close_in_progress:
+            event.ignore()
+            return
+        self._close_in_progress = True
+        try:
+            info_cont = self.tra("确定退出程序并关闭后端服务？\n后端将停止正在执行的任务并保存缓存。")
+            message_box = MessageBox("Warning", info_cont, self)
+            message_box.yesButton.setText(self.tra("确认"))
+            message_box.cancelButton.setText(self.tra("取消"))
 
-        if message_box.exec():
+            if not message_box.exec():
+                event.ignore()
+                return
             current = self.stackedWidget.currentWidget()
             prepare_to_leave = getattr(current, "prepare_to_leave", None)
             if callable(prepare_to_leave) and not prepare_to_leave():
@@ -142,14 +156,48 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.error_toast(self.tra("关闭后端失败"), str(error))
                 event.ignore()
                 return
-            self.emit(Base.EVENT.APP_SHUT_DOWN, {})
+
+            # A native Alt+F4 may send a QCloseEvent without calling QWidget.close.
+            # Commit shutdown once, including when another close event is queued.
+            self._shutdown_complete = True
+            try:
+                # Local cleanup must run before quitting the Qt event loop.
+                EventManager.get_singleton().process_event(Base.EVENT.APP_SHUT_DOWN, {})
+            except Exception as error:
+                self.error("关闭前端组件时发生错误", error=error)
+            try:
+                self._stop_theme_listener()
+            except Exception as error:
+                self.error("停止系统主题监听时发生错误", error=error)
             self.info(self.tra("主窗口已关闭，稍后应用将自动退出") + " ... ")
-            if hasattr(self, "systemThemeListener"):
-                self.systemThemeListener.terminate()
-                self.systemThemeListener.deleteLater()
             event.accept()
-        else:
-            event.ignore()
+            self.hide()
+            application = QApplication.instance()
+            if application is not None:
+                QTimer.singleShot(0, application.quit)
+        finally:
+            self._close_in_progress = False
+
+    def _stop_theme_listener(self) -> None:
+        # deleteLater destroys the C++ object, not its Python attribute. Remove
+        # our reference first so repeated cleanup never touches a stale wrapper.
+        listener = self.__dict__.pop("systemThemeListener", None)
+        if listener is None:
+            return
+        try:
+            listener.requestInterruption()
+            listener.quit()
+            if not listener.wait(100):
+                # On Windows darkdetect blocks in the registry notification API
+                # and does not observe QThread's cooperative interruption flag.
+                listener.terminate()
+                if not listener.wait(2000):
+                    self.warning("系统主题监听线程未及时结束")
+                    return
+            listener.deleteLater()
+        except RuntimeError as error:
+            if not EventManager._is_deleted_qobject_error(error):
+                raise
 
     def _on_system_theme_changed(self) -> None:
         if self._theme_mode == "auto":
@@ -292,11 +340,32 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 添加快速开始
     def add_project_pages(self, cache_manager, file_reader) -> None:
+        self.interface_management_navigation = "interface_management_navigation"
+        self.interface_management_item = self.navigationInterface.addItem(
+            routeKey=self.interface_management_navigation,
+            icon=FluentIcon.IOT,
+            text=self.tra("接口管理"),
+            onClick=self._open_interface_management,
+            position=NavigationItemPosition.SCROLL,
+        )
         self.platform_page = PlatformPage("platform_page", self)
-        self.addSubInterface(self.platform_page, FluentIcon.IOT, self.tra("接口管理"), NavigationItemPosition.SCROLL)
+        self.platform_page.header_card.titleLabel.setText(self.tra("翻译接口"))
+        self.addSubInterface(
+            self.platform_page, FluentIcon.LANGUAGE, self.tra("翻译接口"),
+            parent=self.interface_management_navigation,
+        )
+        self.transcription_page = TranscriptionPage("transcription_page", self)
+        self.addSubInterface(
+            self.transcription_page, FluentIcon.MICROPHONE, self.tra("转录接口"),
+            parent=self.interface_management_navigation,
+        )
 
         self.edit_view_page = EditViewPage("edit_view_page", self, cache_manager, file_reader)
         self.addSubInterface(self.edit_view_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)
+
+    def _open_interface_management(self) -> None:
+        self.interface_management_item.setExpanded(True)
+        self.switchTo(self.platform_page)
 
     # 添加任务设置
     def add_task_setting_pages(self) -> None:

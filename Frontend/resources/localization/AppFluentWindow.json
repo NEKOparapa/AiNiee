@@ -60,6 +60,18 @@
       "English": "API Management",
       "日本語": "API管理"
     },
+    "翻译接口": {
+      "简中": "翻译接口",
+      "繁中": "翻譯介面",
+      "English": "Translation Providers",
+      "日本語": "翻訳 API"
+    },
+    "转录接口": {
+      "简中": "转录接口",
+      "繁中": "轉錄介面",
+      "English": "Transcription Providers",
+      "日本語": "文字起こし API"
+    },
     "开始翻译": {
       "简中": "开始翻译",
       "繁中": "開始翻譯",

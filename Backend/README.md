@@ -2,7 +2,9 @@
 
 后端独立管理配置、项目、缓存、翻译、表格条目润色、提取、校对和导出。PyQt 桌面仅通过 HTTP 与 WebSocket 访问后端，两端不导入对方的 Python 模块。
 
-后端提供统一中间模型及六个 `/api/v2` 接口，同一时刻执行一个顶层操作，单次翻译内部保留多线程批量处理。PDF 仅使用 BabelDOC；Office 自动化转换链及旧 `.doc` 入口已移除，DOCX、PPTX、XLSX 的原生读写保留。图片和音频读取接口暂返回 501。设计与迁移范围见 [后端改造计划](docs/backend_refactoring_plan.md)。
+后端提供统一中间模型及 `/api/v2` 接口，同一时刻执行一个顶层操作，单次翻译内部保留多线程批量处理。PDF 仅使用 BabelDOC；Office 自动化转换链及旧 `.doc` 入口已移除，DOCX、PPTX、XLSX 的原生读写保留。音频支持本地读取、在线转录、翻译与字幕导出，图片读取暂返回 501。设计与迁移范围见 [后端改造计划](docs/backend_refactoring_plan.md)，音频用法见 [音频接口](docs/audio_pipeline.md)。
+
+超过 5 分钟的音频自动通过 Silero VAD 选择切点，并发提交带上下文重叠的切片，合并回原始时间轴。失败切片可通过返回的中间模型恢复，已完成片不会重复提交；长音频处理需要 FFmpeg。
 
 业务通过明确的应用服务方法调用，后端不再使用全局事件总线或全局停止状态。结果提交、缓存保存和生命周期由 Runtime 显式管理，保存完成后才发送具名通知。桌面连接协议为 2，前后端需要配套升级；旧 `/api/commands` 数字事件入口已删除。
 
@@ -132,9 +134,12 @@ WebSocket 消息类型为 `connected`、`status`、`notification`、`log`、`set
 | `POST /api/v2/read/document` | `path`、`options.format/exclude_rule` → 文档模型与读取报告；PDF 使用专用接口 |
 | `POST /api/v2/read/pdf` | `path`、可选 `options.pages/exclude_rule` → BabelDOC 模型与报告 |
 | `POST /api/v2/read/image` | 保留 `path` 与空 `options`，返回 `501 IMAGE_READ_NOT_IMPLEMENTED` |
-| `POST /api/v2/read/audio` | 保留 `path` 与空 `options`，返回 `501 AUDIO_READ_NOT_IMPLEMENTED` |
+| `POST /api/v2/read/audio` | `path`、可选 `options.exclude_rule` → 音频引用、媒体元信息及空条目的中间模型 |
+| `POST /api/v2/transcribe` | `model`、可选 `config` → 在线识别后带原文及时间轴的中间模型 |
 | `POST /api/v2/translate` | `model`、`config` → 更新后的模型、用量及逐条失败报告 |
 | `POST /api/v2/write` | `model`、可选 `options` → 实际生成文件清单与写出报告 |
+| `POST /api/v2/write/subtitles` | `model`、`options.output_dir/format/mode` → SRT、VTT、LRC 或 ASS 字幕 |
+| `POST /api/v2/audio/translate` | `path/read_options/transcription/translation/output` → 串行完成音频翻译，返回模型、字幕文件及分阶段报告 |
 
 读取和翻译响应包含 `status`、`model`、`report`；写出响应包含 `status`、`files`、`report`。执行结果的 `status` 为 `success`、`partial`、`failed`，取消的翻译返回 `cancelled`。执行前错误使用非 2xx HTTP 响应，并提供 `error.code` 和 `error.message`；HTTP 200 时仍需检查业务状态及报告。
 

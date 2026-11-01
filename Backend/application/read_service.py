@@ -177,4 +177,5 @@ def read_image(path, options=None):
 
 
 def read_audio(path, options=None):
-    raise PipelineError("AUDIO_READ_NOT_IMPLEMENTED", "音频读取尚未实现", 501)
+    from Backend.application.audio_read_service import read_audio as read
+    return read(path, options)

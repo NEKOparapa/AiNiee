@@ -66,11 +66,33 @@ class ConfigStore:
     def _validate_profile(profile):
         if not isinstance(profile, dict):
             raise ValueError("配置文件的根节点必须是 JSON 对象")
-        for key in ("platforms", "api_settings", "response_check_switch"):
+        for key in ("platforms", "api_settings", "response_check_switch", "transcription_platforms"):
             if key in profile and not isinstance(profile[key], dict):
                 raise ValueError(f"配置字段 {key} 必须是 JSON 对象")
         if any(not isinstance(value, dict) for value in profile.get("platforms", {}).values()):
             raise ValueError("接口配置必须是 JSON 对象")
+        if "active_transcription_platform" in profile and not isinstance(profile["active_transcription_platform"], str):
+            raise ValueError("配置字段 active_transcription_platform 必须是字符串")
+        for identifier, platform in profile.get("transcription_platforms", {}).items():
+            if not isinstance(identifier, str) or not isinstance(platform, dict):
+                raise ValueError("转录接口配置必须使用字符串 ID 和 JSON 对象")
+            for field in ("name", "api_url", "api_key", "model", "api_format"):
+                if field in platform and not isinstance(platform[field], str):
+                    raise ValueError(f"转录接口字段 {field} 必须是字符串")
+            if "request_timeout" in platform and (isinstance(platform["request_timeout"], bool)
+                    or not isinstance(platform["request_timeout"], (int, float))):
+                raise ValueError("转录接口字段 request_timeout 必须是数字")
+            if "language_hints" in platform and (not isinstance(platform["language_hints"], list)
+                    or any(not isinstance(value, str) for value in platform["language_hints"])):
+                raise ValueError("转录接口字段 language_hints 必须是字符串列表")
+            if "speaker_diarization_enabled" in platform and not isinstance(platform["speaker_diarization_enabled"], bool):
+                raise ValueError("转录接口字段 speaker_diarization_enabled 必须是布尔值")
+            for field in ("chunk_duration_seconds", "chunk_concurrency"):
+                if field in platform and type(platform[field]) is not int:
+                    raise ValueError(f"转录接口字段 {field} 必须是整数")
+            for field in ("chunk_overlap_seconds", "vad_threshold"):
+                if field in platform and (isinstance(platform[field], bool) or not isinstance(platform[field], (int, float))):
+                    raise ValueError(f"转录接口字段 {field} 必须是数字")
         for kind in TableConfigHelper.KINDS:
             key = f"{kind}_tables"
             if key not in profile:
@@ -241,6 +263,10 @@ class ConfigStore:
 
     def fill_config(self, old: dict, new: dict) -> dict:
         for key, value in new.items():
+            # Provider IDs form a user-owned collection. Once initialized, an
+            # intentionally deleted default provider must not return at startup.
+            if key == "transcription_platforms" and key in old:
+                continue
             if isinstance(value, dict) and isinstance(old.get(key), dict):
                 old[key] = self.fill_config(old[key], value)
             elif key not in old:
