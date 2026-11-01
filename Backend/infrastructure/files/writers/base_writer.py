@@ -7,7 +7,6 @@ from typing import TypedDict
 import rich
 
 from Backend.domain.models.cache_file import CacheFile
-from Backend.infrastructure.files.writers import writer_util as WriterUtil
 
 
 def can_encode_text(text: str, encoding: str) -> bool:
@@ -46,6 +45,7 @@ class OutputConfig:
     input_root: Path = None
     bilingual_order: BilingualOrder = field(default=BilingualOrder.TRANSLATION_FIRST)  # 双语排序配置
     language_config: OutputLanguageConfig = None  # 翻译语言配置
+    keep_original_encoding: bool = False
 
     def __post_init__(self):
         if self.translated_config is None:
@@ -137,19 +137,15 @@ class BaseTranslatedWriter(BaseTranslationWriter):
 
         # 决定使用的编码
         # 获取配置文件是否保持原有编码
-        keep_original_encoding_config = WriterUtil.get_ainiee_config().keep_original_encoding
+        keep_original_encoding_config = self.output_config.keep_original_encoding
         if keep_original_encoding_config in (None, False):
             actual_encoding = 'utf-8'
         else:
             actual_encoding = original_encoding if use_original_encoding else 'utf-8'
 
-        # 除了直接输出的译文之外的文件统一使用utf-8
-        if "_translated" not in translation_file_path.name:
-            actual_encoding = "utf-8"
-        else:
-            rich.print(
-                f"[[green]INFO[/]] 正在写入文件 {translation_file_path}, 使用编码: {original_encoding} -> {actual_encoding}"
-            )
+        rich.print(
+            f"[[green]INFO[/]] 正在写入文件 {translation_file_path}, 使用编码: {original_encoding} -> {actual_encoding}"
+        )
 
         return PreWriteMetadata(encoding=actual_encoding)
 

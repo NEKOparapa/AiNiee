@@ -31,6 +31,7 @@ class RuleCheckResultPage(ConfigMixin, Base, QWidget):
                 self,
                 update_event=Base.EVENT.TABLE_RULE_CHECK_UPDATE,
                 done_event=Base.EVENT.TABLE_RULE_CHECK_DONE,
+                view="rule_check",
             )
 
         if not enabled_rules:

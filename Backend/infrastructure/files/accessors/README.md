@@ -18,7 +18,7 @@
     - [Writer示例代码](#writer示例代码)
   - [缓存介绍](#缓存介绍)
   - [Accessor介绍（可选）](#accessor介绍可选)
-  - [FileConverter介绍（可选）](#fileconverter介绍可选)
+  - [PDF 读写](#pdf-读写)
   - [贡献指南](#贡献指南)
 
 ## 读写器编写步骤
@@ -31,7 +31,7 @@
    在项目的 `Backend/infrastructure/files/readers` 和 `Backend/infrastructure/files/writers` 目录下创建新的 `.py` 文件，例如 `xxx_reader.py`、`xxx_writer.py`；类名仍使用 `XXXReader`、`XXXWriter`。
 3. **编写读写器代码** 按照以下模板编写您的读写器代码，并确保继承自对应的基类。
 4. **复杂文件访问（可选）** 部分文件的读写逻辑比较复杂，可以把文件本身的读写逻辑抽取出来，参考 `DocxAccessor` 。
-5. **复杂文件转换（可选）** 部分文件可能无法直接翻译，可以把转换成中间格式做翻译，再转换回来，参考 `OfficeFileConverter` 。
+5. **PDF 读写** PDF 统一使用 `BabeldocPdfAccessor` 提取和回填文字，保存源文件引用、解析参数和顺序摘要；DOCX、PPTX、XLSX 使用各自原生读写器。
 
 ## Reader介绍
 
@@ -449,10 +449,11 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
 2. Reader/Writer 只用关心如何读取/修改 `content`，而具体怎么从文件中读取 `content` 还是把 `content` 写入到文件则由Accessor负责
 3. 参考`DocxReader` 和 `DocxWriter` 读取和写入都用到了 `DocxAccessor` 的 `read_content` 方法
 
-## FileConverter介绍（可选）
+## PDF 读写
 
-1. Converter主要是把难以直接读写的文件格式转换成易读写中间格式。
-2. 参考 `OfficeConversionReader` 和 `OfficeConversionWriter` 通过 `OfficeFileConverter` 把 pdf 文件转换成 docx 文件实现翻译。
+PDF 仅使用 `BabeldocPdfReader`、`BabeldocPdfWriter` 和 `BabeldocPdfAccessor`。读取记录 BabelDOC 版本、解析选项与原文顺序摘要；写出使用相同源文件、解析选项和已有译文。写出过程不请求翻译模型，重复原文按原始位置匹配。
+
+Microsoft Office 自动化转换链及旧 `.doc` 入口已移除。旧 `.doc` 需要先转换为 `.docx` 后再导入；直接 DOCX、PPTX、XLSX 读写无需安装 Microsoft Office。
 
 ## 贡献指南
 

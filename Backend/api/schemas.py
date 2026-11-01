@@ -26,11 +26,6 @@ class CacheCall(RequestModel):
     project_id: str | None = None
 
 
-class Command(RequestModel):
-    event: int
-    data: dict[str, Any] = Field(default_factory=dict)
-
-
 class ModelQuery(RequestModel):
     url: str = ""
     headers: dict[str, str] = Field(default_factory=dict)

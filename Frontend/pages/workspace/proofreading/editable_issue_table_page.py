@@ -28,12 +28,14 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         parent=None,
         update_event: int = Base.EVENT.TABLE_UPDATE,
         done_event: int | None = None,
+        view: str = "basic",
     ):
         super().__init__(parent)
         self.results = results
         self.cache_manager = cache_manager
         self.update_event = update_event
         self.done_event = done_event
+        self.view = view
         self.setObjectName("EditableIssueTablePage")
 
         self.layout = QVBoxLayout(self)
@@ -303,12 +305,10 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             count += len(items_to_proofread)
 
         if count > 0:
-            self.emit(
-                Base.EVENT.TABLE_PROOFREAD_START,
+            self.config_backend().proofread_table(
                 {
                     "proofread_jobs": proofread_jobs,
-                    "update_event": self.update_event,
-                    "done_event": self.done_event,
+                    "view": self.view,
                 },
             )
             self.info_toast(self.tra("提示"), self.tra("AI 自动校对任务已开始，共处理 {} 个条目。").format(count))
@@ -344,6 +344,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             return
 
         Base.work_status = Base.STATUS.TABLE_TASK
+        translate_jobs = []
         count = 0
         for file_path, items_to_translate in tasks_by_file.items():
             if not items_to_translate:
@@ -351,19 +352,17 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
             file_obj = self.cache_manager.project.get_file(file_path)
             language_stats = file_obj.language_stats if file_obj else None
-            self.emit(
-                Base.EVENT.TABLE_TRANSLATE_START,
+            translate_jobs.append(
                 {
                     "file_path": file_path,
                     "items_to_translate": items_to_translate,
                     "language_stats": language_stats,
-                    "update_event": self.update_event,
-                    "done_event": self.done_event,
-                },
+                }
             )
             count += len(items_to_translate)
 
         if count > 0:
+            self.config_backend().translate_table({"translate_jobs": translate_jobs, "view": self.view})
             self.info_toast(self.tra("提示"), self.tra("已提交 {} 个条目的翻译任务。").format(count))
 
     def _on_task_done(self, event, data: dict):
@@ -374,17 +373,30 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         status = data.get("status")
         updated_item_count = data.get("updated_item_count", 0)
         updated_file_count = data.get("updated_file_count", 0)
+        message = str(data.get("message", "")).strip()
 
         if operation == "proofread":
             if status == "success":
                 self.success_toast(self.tra("完成"), self.tra("AI 自动校对完成，已更新 {} 个文件中的 {} 条内容。").format(updated_file_count, updated_item_count))
             elif status == "empty":
                 self.warning_toast(self.tra("提示"), self.tra("AI 自动校对结束，但没有可回写的结果。"))
+            elif status == "partial":
+                self.warning_toast(self.tra("部分完成"), message or self.tra("AI 自动校对部分完成，已更新 {} 条内容。").format(updated_item_count))
+            elif status in ("cancelled", "stopped"):
+                self.info_toast(self.tra("已取消"), message or self.tra("AI 自动校对已取消，已保留 {} 条结果。").format(updated_item_count))
+            elif status == "error":
+                self.error_toast(self.tra("失败"), message or self.tra("AI 自动校对失败。"))
         elif operation == "translate":
             if status == "success":
                 self.success_toast(self.tra("完成"), self.tra("检查结果翻译完成，已更新 {} 条内容。").format(updated_item_count))
             elif status == "empty":
                 self.warning_toast(self.tra("提示"), self.tra("检查结果翻译结束，但没有可回写的结果。"))
+            elif status == "partial":
+                self.warning_toast(self.tra("部分完成"), message or self.tra("检查结果翻译部分完成，已更新 {} 条内容。").format(updated_item_count))
+            elif status in ("cancelled", "stopped"):
+                self.info_toast(self.tra("已取消"), message or self.tra("检查结果翻译已取消，已保留 {} 条结果。").format(updated_item_count))
+            elif status == "error":
+                self.error_toast(self.tra("失败"), message or self.tra("检查结果翻译失败。"))
 
     def _delete_selected_rows(self):
         current_sorting = self.table.isSortingEnabled()

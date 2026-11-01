@@ -14,8 +14,6 @@ class ProjectType:
     LRC = "Lrc"
     MD = "Md"
     MTOOL = "Mtool"
-    OFFICE_CONVERSION_PDF = "OfficeConversionPdf"
-    OFFICE_CONVERSION_DOC = "OfficeConversionDoc"
     PARATRANZ = "Paratranz"
     RENPY = "Renpy"
     SRT = "Srt"
@@ -47,6 +45,8 @@ class CacheProjectStatistics(ThreadSafeCache):
 
 @dataclass(repr=False)
 class CacheProject(ThreadSafeCache, ExtraMixin):
+    schema_version: int = 2
+    translation_context: dict[str, Any] = field(default_factory=dict)
     project_id: str = ''
     project_type: str = ''
     project_name: str = ''

@@ -30,6 +30,7 @@ class TerminologyCheckResultPage(ConfigMixin, Base, QWidget):
                 self,
                 update_event=Base.EVENT.TABLE_TERMINOLOGY_CHECK_UPDATE,
                 done_event=Base.EVENT.TABLE_TERMINOLOGY_CHECK_DONE,
+                view="terminology_check",
             )
 
         return CheckStatusPage(

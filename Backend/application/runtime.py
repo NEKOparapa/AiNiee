@@ -1,16 +1,17 @@
 """Own all mutable project state and task execution in the service process."""
+import copy
 import logging
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 
-from Backend.application.status import build_status_response
-from Backend.core.protocol import COMMANDS, NOTIFICATIONS, TABLE_UPDATES, TERMINAL_EVENTS, command_failure, to_wire
-from Backend.core.base import Base
-from Backend.core.events import EventManager
+from Backend.application.status import WorkStatus, build_status_response
+from Backend.application.execution_context import ExecutionContext
+from Backend.application.pipeline_common import PipelineError
+from Backend.core.protocol import to_wire
 from Backend.infrastructure.config.store import ConfigStore
-from Backend.domain.config.task_type import TaskType
 from Backend.infrastructure.network import ProxySettings
 
 
@@ -34,10 +35,15 @@ class Runtime(ConfigStore):
         self.closing = False
         self.last_error = None
         self._running = False
-        self._terminal_events = []
-        self._command_data = {}
+        self.last_operation = None
         self.network = ProxySettings()
         self._started = False
+        self._operation_source = None
+        self._operation_name = None
+        self._operation_context = None
+        self._operation_done = threading.Event()
+        self._operation_done.set()
+        self._pipeline_progress = {}
 
     def save_config(self, new, *, _table_update=False):
         config = super().save_config(new, _table_update=_table_update)
@@ -63,54 +69,76 @@ class Runtime(ConfigStore):
             initialize_tiktoken()
         except Exception:
             logging.getLogger("AiNiee.backend").warning("Token 编码器初始化失败，可切换到行数限制模式", exc_info=True)
-        self.cache = CacheManager()
+        self.cache = CacheManager(on_saved=lambda data: self.notify("project.saved", data))
         self.reader = FileReader()
         self.executor = TaskExecutor(self.cache, self.reader, FileOutputer())
         self.simple = SimpleExecutor()
-        # Commands are admitted and serialized here, rather than starting untracked threads.
-        self.executor._cleanup_event_subscriptions()
-        self.simple._cleanup_event_subscriptions()
-        self.events = EventManager.get_singleton()
-        for event in NOTIFICATIONS:
-            self.events.subscribe(event, self.on_event)
         self.logs = get_gui_handler()
         self.logs.subscribe(self.on_log)
-        Base.work_status = Base.STATUS.IDLE
         self._started = True
 
     def on_log(self, line, level, style="", rows=None):
-        self.publish({"type": "log", "line": line, "level": level, "style": style, "rows": rows})
+        self._publish({"type": "log", "line": line, "level": level, "style": style, "rows": rows})
 
-    def on_event(self, event, data):
-        if event in TABLE_UPDATES:
-            # Results must survive even when no desktop client is connected.
-            for index, text in data.get("updated_items", {}).items():
-                self.cache.update_generated_translation(
-                    data["file_path"], int(index), text, data.get("translation_status", 1),
-                )
-            self.cache.save_to_file()
-        if event == Base.EVENT.GLOSS_TASK_DONE and self._running and data.get("status") in ("success", "partial"):
-            original_rows = {row["src"]: row for row in self._command_data.get("prompt_dictionary_data", []) if row.get("src") and not row.get("dst")}
-            translations = {row["src"]: row["dst"] for row in data.get("updated_data", []) or [] if row.get("src") and row.get("dst")}
-            def update(config):
-                table = next((table for table in config.get("prompt_dictionary_tables", []) if table["id"] == data.get("table_id")), None)
-                if table is not None:
-                    for row in table["rows"]:
-                        source = row.get("src")
-                        if source in translations and row == original_rows.get(source):
-                            row["dst"] = translations[source]
-            self.update_config(update)
-        if event in TERMINAL_EVENTS and self._running:
-            self._terminal_events.append((event, to_wire(data)))
+    def _publish(self, message):
+        # Disconnected or failing observers cannot change a business outcome.
+        try:
+            self.publish(to_wire(message))
+        except Exception:
+            pass
+
+    def notify(self, name, data):
+        self._publish({"type": "notification", "name": name, "data": data})
+
+    def _commit_table_result(self, data, view):
+        for index, text in data.get("updated_items", {}).items():
+            self.cache.update_generated_translation(
+                data["file_path"], int(index), text, data.get("translation_status", 1),
+            )
+        self.cache.save_to_file()
+        self.notify("table.updated", {**data, "view": view})
+
+    def _commit_glossary_result(self, request, result):
+        if result.get("status") not in ("success", "partial", "cancelled", "stopped"):
             return
-        self.publish({"type": "event", "event": event, "data": to_wire(data)})
+        original_rows = {row["src"]: row for row in request.get("prompt_dictionary_data", []) if row.get("src") and not row.get("dst")}
+        translations = {row["src"]: row["dst"] for row in result.get("updated_data", []) or [] if row.get("src") and row.get("dst")}
+        if not translations:
+            return
+        def update(config):
+            table = next((table for table in config.get("prompt_dictionary_tables", []) if table["id"] == request.get("table_id")), None)
+            if table is not None:
+                for row in table["rows"]:
+                    source = row.get("src")
+                    if source in translations and row == original_rows.get(source):
+                        row["dst"] = translations[source]
+        self.update_config(update)
 
     def status(self):
-        result = build_status_response(self.cache)
-        # The desktop historically turns TASKSTOPPED into IDLE in its event handler.
-        # That transition is now owned by the backend, too.
+        work_status = WorkStatus.IDLE
+        if self.busy:
+            work_status = {
+                "analysis": WorkStatus.ANALYSIS, "api_test": WorkStatus.API_TEST,
+                "glossary.translate": WorkStatus.GLOSSARY,
+                "table.translate": WorkStatus.TABLE, "table.polish": WorkStatus.TABLE,
+                "table.proofread": WorkStatus.TABLE,
+            }.get(self._operation_name, WorkStatus.TASKING)
+            if self._operation_context is not None and self._operation_context.is_cancelled():
+                work_status = WorkStatus.STOPPING
+        result = build_status_response(
+            self.cache, work_status,
+            advance_elapsed=self._operation_name == "translation"
+            and getattr(getattr(self, "executor", None), "translation_clock_running", False),
+        )
         result["busy"] = self.busy
         result["last_error"] = self.last_error
+        result["last_operation"] = self.last_operation
+        result["operation"] = (
+            {"source": self._operation_source, "name": self._operation_name}
+            if self.busy else None
+        )
+        if self._operation_source == "api":
+            result["pipeline_progress"] = dict(self._pipeline_progress)
         result["active_workers"] = sum(
             thread.name.startswith(("translator", "polisher", "proofreader", "analysis_stage"))
             for thread in threading.enumerate()
@@ -129,19 +157,51 @@ class Runtime(ConfigStore):
         if self.closing or self.busy:
             raise BusyError("后端正在执行任务，请先停止或等待任务完成")
 
+    @contextmanager
+    def operation(self, name, *, source="api", context=None):
+        """Reserve one top-level operation; its batches may use many threads.
+
+        The lock protects admission only. Never hold it while doing model or
+        file I/O: health/status and competing calls must remain responsive.
+        """
+        if not self.lock.acquire(blocking=False):
+            raise BusyError("后端正在执行操作，请稍后重试")
+        try:
+            self.ensure_idle()
+            self._running = True
+            self._operation_source = source
+            self._operation_name = name
+            self._operation_context = context
+            self._pipeline_progress = {}
+            self._operation_done.clear()
+        finally:
+            self.lock.release()
+        try:
+            yield
+        finally:
+            with self.lock:
+                self._running = False
+                self._operation_source = None
+                self._operation_name = None
+                self._operation_context = None
+                self._operation_done.set()
+
+    def pipeline_progress(self, statistics):
+        self._pipeline_progress = dict(statistics)
+
     def snapshot(self):
         with self.cache.file_lock:
             return to_wire(self.cache.project) if self.cache.project else None
 
     def load_project(self, project_type, input_path, exclude_rule=""):
-        with self.lock:
-            self.ensure_idle()
+        with self.operation("read", source="desktop"):
             path = Path(input_path).expanduser().resolve()
-            if not path.is_dir():
-                raise ValueError("输入目录不存在（路径必须在后端所在机器上可访问）")
+            if not path.exists():
+                raise ValueError("输入路径不存在（路径必须在后端所在机器上可访问）")
             if project_type not in self.reader.get_support_project_types():
                 raise ValueError("不支持的项目类型")
-            project = self.reader.read_files(project_type, str(path), exclude_rule)
+            from Backend.application.read_service import read_legacy_project
+            project = read_legacy_project(project_type, str(path), exclude_rule)["model"]
             if project is None or project.count_items() == 0:
                 raise ValueError("项目为空，请检查输入目录和项目类型")
             self.cache.load_from_project(project)
@@ -190,112 +250,241 @@ class Runtime(ConfigStore):
         checkers = {"language": LanguageChecker, "rule": RuleChecker, "terminology": TerminologyChecker}
         if kind not in checkers:
             raise ValueError("未知检查类型")
-        with self.lock:
-            self.ensure_idle()
+        with self.operation("check", source="desktop"):
             result = checkers[kind](self.cache).run_check(params)
             self.cache.save_to_file()
             return {"result": to_wire(result), "project": self.snapshot()}
 
-    def command(self, event, data):
-        if event not in COMMANDS:
-            raise ValueError("不支持的任务指令")
+    def save_project(self):
         with self.lock:
-            if event == Base.EVENT.TASK_STOP:
-                if self.busy:
-                    Base.work_status = Base.STATUS.STOPING
-                    self.executor._cancel_active_executor()
-                    from Backend.infrastructure.llm.llm_client_factory import LLMClientFactory
-                    LLMClientFactory().close_all_clients()
-                self.publish({"type": "status", "status": self.status()})
-                return self.status()
             self.ensure_idle()
-            if event not in (Base.EVENT.API_TEST_START, Base.EVENT.GLOSS_TASK_START) and not self.cache.project:
+            if not self.cache.project:
                 raise ValueError("请先加载项目")
-            if event == Base.EVENT.TASK_MANUAL_SAVE_CACHE:
-                self.cache.save_to_file()
-                return self.status()
-            # Do not accept arbitrary event numbers to broadcast as task results.
-            if "update_event" in data and data["update_event"] not in TABLE_UPDATES:
-                raise ValueError("无效的表格更新事件")
-            from Backend.core.protocol import TABLE_DONE
-            if data.get("done_event") is not None and data["done_event"] not in TABLE_DONE:
-                raise ValueError("无效的表格完成事件")
-            if event == Base.EVENT.TASK_START:
-                mode = data.get("current_mode")
-                if mode != TaskType.TRANSLATION:
-                    raise ValueError("整项目任务仅支持翻译，请使用表格条目润色")
-                if data.get("continue_status") and self.cache.project.stats_data is None:
-                    raise ValueError("当前项目没有可继续的任务")
-            self.last_error = None
-            self._terminal_events = []
-            self._command_data = data
-            self._running = True
-            Base.work_status = {
-                Base.EVENT.ANALYSIS_TASK_START: Base.STATUS.ANALYSIS_TASK,
-                Base.EVENT.API_TEST_START: Base.STATUS.API_TEST,
-                Base.EVENT.GLOSS_TASK_START: Base.STATUS.GLOSS_TASK,
-            }.get(event, Base.STATUS.TASKING if event == Base.EVENT.TASK_START else Base.STATUS.TABLE_TASK)
-            self.publish({"type": "status", "status": self.status()})
-            self.future = self.pool.submit(self._run, event, data)
+            self.cache.save_to_file()
             return self.status()
 
-    def _run(self, event, data):
+    def stop(self):
+        with self.lock:
+            if not self.busy:
+                return self.status()
+            if self._operation_source != "desktop":
+                raise PipelineError("OPERATION_OWNERSHIP", "工作区停止接口不能中断模型接口的操作", 409)
+            if self._operation_context is None or self._operation_name == "project.export":
+                raise PipelineError("OPERATION_NOT_CANCELLABLE", "当前读取、检查或文件写出操作需等待完成", 409)
+            self._operation_context.cancel()
+            self._publish({"type": "status", "status": self.status()})
+            return self.status()
+
+    def start_translation(self, continue_status=False):
+        def action(context):
+            self.cache.start_saving()
+            return self.executor.translate(continue_status, context=context)
+        return self._submit("translation", action, {"continue_status": continue_status})
+
+    def start_analysis(self):
+        def action(context):
+            result = self.executor.analyze(context=context)
+            if result.get("analysis_data") is not None:
+                self.cache.set_analysis_data(result["analysis_data"])
+                self.cache.save_to_file()
+            return result
+        return self._submit("analysis", action)
+
+    def start_table_translation(self, data):
+        data = copy.deepcopy(data)
+        return self._submit("table.translate", lambda context: self.simple.process_table_translation(data, context=context), data)
+
+    def start_table_polishing(self, data):
+        data = copy.deepcopy(data)
+        return self._submit("table.polish", lambda context: self.simple.process_table_polish(data, context=context), data)
+
+    def start_table_proofreading(self, data):
+        data = copy.deepcopy(data)
+        return self._submit("table.proofread", lambda context: self.executor.proofread(data, context=context), data)
+
+    def start_glossary_translation(self, data):
+        data = copy.deepcopy(data)
+        def action(context):
+            result = self.simple.glossary_translation(data, context=context)
+            self._commit_glossary_result(data, result)
+            return result
+        return self._submit("glossary.translate", action, data, needs_project=False)
+
+    def start_api_test(self, data):
+        data = copy.deepcopy(data)
+        return self._submit("api_test", lambda context: self.simple.api_test(data, context=context), data, needs_project=False)
+
+    def start_export(self, data):
+        data = copy.deepcopy(data)
+        return self._submit("project.export", lambda context: self.executor.export(data), data)
+
+    def _submit(self, name, action, data=None, *, needs_project=True):
+        with self.lock:
+            self.ensure_idle()
+            if needs_project and not self.cache.project:
+                raise ValueError("请先加载项目")
+            request = copy.deepcopy(data or {})
+            if name == "translation" and request.get("continue_status") and self.cache.project.stats_data is None:
+                raise ValueError("当前项目没有可继续的任务")
+            context = ExecutionContext(source="desktop")
+            progress_name = {"translation": "translation.progress", "analysis": "analysis.progress"}.get(name)
+            if progress_name:
+                context.on_progress = lambda data: self.notify(progress_name, data)
+            committed = {}
+            if name.startswith("table."):
+                view = request.get("view", "basic")
+                def commit(result):
+                    self._commit_table_result(result, view)
+                    committed.setdefault(result["file_path"], {}).update(result.get("updated_items", {}))
+                context.on_result = commit
+            self.last_error = None
+            self.last_operation = None
+            self._running = True
+            self._operation_source = "desktop"
+            self._operation_name = name
+            self._operation_context = context
+            self._operation_done.clear()
+            self._publish({"type": "status", "status": self.status()})
+            try:
+                self.future = self.pool.submit(self._run_operation, name, action, request, context, committed)
+            except Exception:
+                self._release_operation()
+                raise
+            return self.status()
+
+    def _release_operation(self):
+        self._running = False
+        self._operation_source = self._operation_name = None
+        self._operation_context = None
+        self._operation_done.set()
+
+    def _run_operation(self, name, action, request, context, committed):
+        result = {"status": "cancelled"}
         try:
-            if Base.work_status == Base.STATUS.STOPING:
-                return
-            E = Base.EVENT
-            if event == E.TASK_START:
-                self.cache.start_interval_saving(event, data)
-                self.executor.translation_start_target(bool(data.get("continue_status")))
-            elif event == E.ANALYSIS_TASK_START:
-                self.executor.analysis_start_target()
-            elif event == E.TABLE_PROOFREAD_START:
-                self.executor.table_proofread_start_target(data)
-            elif event == E.TABLE_TRANSLATE_START:
-                self.simple.process_table_translation(data)
-            elif event == E.TABLE_POLISH_START:
-                self.simple.process_table_polish(data)
-            elif event == E.API_TEST_START:
-                self.simple.api_test(event, data)
-            elif event == E.GLOSS_TASK_START:
-                self.simple.glossary_translation(event, data)
-            elif event == E.TASK_MANUAL_EXPORT:
-                if self.executor.task_manual_export(event, data) is False:
-                    raise ValueError("导出失败，详情请查看后端日志")
+            if not context.is_cancelled():
+                result = action(context) or {"status": "success"}
+            if name.startswith("table."):
+                updates = dict(result.get("updates_by_file", {}))
+                if result.get("updated_items") and result.get("file_path"):
+                    updates.setdefault(result["file_path"], {}).update(result["updated_items"])
+                for file_path, items in updates.items():
+                    missing = {index: text for index, text in items.items()
+                               if committed.get(file_path, {}).get(index) != text}
+                    if missing:
+                        context.on_result({
+                            "file_path": file_path, "updated_items": missing, "target_column_index": 2,
+                            "translation_status": result.get("translation_status", 1),
+                        })
+            if name == "api_test" and "status" not in result:
+                result["status"] = "partial" if result.get("failure") else "success"
+            if context.is_cancelled() and result.get("status") == "success":
+                result["status"] = "cancelled"
+            report = result.get("report") or {}
+            output = result.get("output") or {}
+            output_report = output.get("report") or {}
+            errors = (result.get("operation_errors") or report.get("operation_errors") or report.get("errors")
+                      or output_report.get("operation_errors") or output_report.get("errors"))
+            if errors:
+                from Backend.core.log_system import redact
+                first = errors[0]
+                detail = (first.get("message") or first.get("code")) if isinstance(first, dict) else first
+                self.last_error = redact(str(detail))
         except Exception as error:
-            from Backend.core.log_system import redact
-            self.last_error = redact(str(error))
-            logging.getLogger("AiNiee.backend").exception("任务执行失败")
-            self.publish({"type": "error", "event": event, "message": self.last_error})
-            failure = command_failure(event, data, self.last_error)
-            if failure is not None:
-                self.on_event(*failure)
+            result = self._operation_failure(name, error)
         finally:
             try:
-                self.cache.save_to_file()
-            finally:
-                with self.lock:
-                    Base.work_status = Base.STATUS.IDLE
-                    self._running = False
-                    pending = self._terminal_events
-                    self._terminal_events = []
-                    self.publish({"type": "settled", "event": event, "status": self.status()})
-                    for completed_event, completed_data in pending:
-                        self.on_event(completed_event, completed_data)
+                self.cache.stop_saving()
+                if self.cache.project:
+                    self.cache.save_to_file()
+            except Exception as error:
+                failure = self._operation_failure(name, error)
+                if name == "project.export" and ("files" in result or "report" in result):
+                    # Exported files remain real even if the subsequent cache save
+                    # fails. Keep every per-file outcome and append this failure.
+                    report = copy.deepcopy(result.get("report", {}))
+                    report.setdefault("operation_errors", []).append({
+                        "code": "CACHE_SAVE_FAILED", "message": failure["message"],
+                    })
+                    result = {**result, "status": "partial" if result.get("files") else "failed",
+                              "message": failure["message"], "report": report}
+                elif name == "translation" and isinstance(result.get("output"), dict):
+                    # The model save can fail after automatic export. Its actual
+                    # output report still needs to reach the desktop unchanged.
+                    result = {**result, **failure}
+                else:
+                    result = failure
+            with self.lock:
+                status = result.get("status", "success")
+                if status in ("error", "failed") and not self.last_error:
+                    from Backend.core.log_system import redact
+                    self.last_error = redact(result.get("message") or "操作未成功完成，请查看日志和结果报告")
+                self.last_operation = {"name": name, "status": status}
+                self._release_operation()
+                self._publish({"type": "settled", "operation": name, "status": self.status()})
+                self._notify_completion(name, request, result)
+        return result
+
+    def _operation_failure(self, name, error):
+        from Backend.core.log_system import redact
+        self.last_error = redact(str(error))
+        logging.getLogger("AiNiee.backend").exception("操作执行失败：%s", name)
+        self._publish({"type": "error", "operation": name, "message": self.last_error})
+        if name == "project.export":
+            detail = {"code": getattr(error, "code", "EXPORT_FAILED"), "message": self.last_error}
+            if isinstance(error, PipelineError) and error.details is not None:
+                detail["details"] = error.details
+            return {"status": "error", "message": self.last_error, "files": [], "report": {"errors": [detail]}}
+        return {"status": "error", "message": self.last_error}
+
+    def _notify_completion(self, name, request, result):
+        # Persistence has finished before any completion reaches the desktop.
+        payload = {key: value for key, value in result.items() if key != "model"}
+        if name == "translation":
+            self.notify("translation.stopped", payload)
+            output = result.get("output")
+            output_succeeded = not isinstance(output, dict) or output.get("status") == "success"
+            if result.get("status") in ("success", "partial") and not self.last_error and output_succeeded:
+                self.notify("translation.completed", payload)
+            if isinstance(output, dict):
+                self.notify("project.export.completed", {"files": [], "report": {}, **output})
+        elif name == "analysis":
+            self.notify("analysis.completed", {"analysis_data": None, **payload})
+        elif name.startswith("table."):
+            self.notify("table.completed", {
+                "file_path": request.get("file_path"), "updated_item_count": 0,
+                "operation": name.split(".", 1)[1],
+                **payload, "view": request.get("view", "basic"),
+            })
+        elif name == "glossary.translate":
+            self.notify("glossary.completed", {
+                "updated_data": None, **payload, "table_id": request.get("table_id"),
+                "request_id": request.get("request_id"),
+            })
+        elif name == "api_test":
+            failure = [result.get("message") or "接口测试未完成"] if result.get("status") in ("error", "failed", "cancelled") else []
+            self.notify("api_test.completed", {"success": [], "failure": failure, **payload})
+        elif name == "project.export":
+            self.notify("project.export.completed", {"files": [], "report": {}, **payload})
 
     def close(self):
-        self.closing = True
-        if self.busy:
-            Base.work_status = Base.STATUS.STOPING
-            self.executor._cancel_active_executor()
+        with self.lock:
+            self.closing = True
+            if self._operation_context is not None and self._operation_name != "project.export":
+                self._operation_context.cancel()
+        # Both the HTTP worker and the desktop worker must finish before shared
+        # clients or caches are disposed. Queued operations are never admitted.
+        self._operation_done.wait()
         self.pool.shutdown(wait=True, cancel_futures=True)
-        self.cache.app_shut_down(Base.EVENT.APP_SHUT_DOWN, {})
-        self.cache.save_to_file()
-        self.executor.app_shut_down(Base.EVENT.APP_SHUT_DOWN, {})
-        for event in NOTIFICATIONS:
-            self.events.unsubscribe(event, self.on_event)
-        self.cache._cleanup_event_subscriptions()
-        self.logs.unsubscribe(self.on_log)
-        self.network.close()
-        self._started = False
-        Base.work_status = Base.STATUS.IDLE
+        try:
+            try:
+                if self.cache.project:
+                    self.cache.save_to_file()
+            finally:
+                self.cache.close()
+        finally:
+            self.executor.close()
+            from Backend.infrastructure.llm.llm_client_factory import LLMClientFactory
+            LLMClientFactory().close_all_clients()
+            self.logs.unsubscribe(self.on_log)
+            self.network.close()
+            self._started = False

@@ -1,4 +1,4 @@
-"""Thread-safe events independent of Qt; desktop dispatch is injected at startup."""
+"""Desktop-local events; Qt dispatch is injected at startup."""
 import threading
 
 class EventManager:
@@ -12,7 +12,6 @@ class EventManager:
         self.event_callbacks = {}
         self._lock = threading.RLock()
         self._dispatcher = None
-        self._command_sender = None
 
     # 获取单例
     @classmethod
@@ -22,12 +21,11 @@ class EventManager:
                 cls._singleton = cls()
             return cls._singleton
 
-    def configure(self, dispatcher=None, command_sender=None):
+    def configure(self, dispatcher=None):
         self._dispatcher = dispatcher
-        self._command_sender = command_sender
 
     def deliver(self, event: int, data: dict):
-        """Deliver a received event without forwarding it back to the server."""
+        """Deliver a local UI event on the configured dispatcher."""
         if self._dispatcher is None:
             self.process_event(event, data)
         else:
@@ -49,8 +47,6 @@ class EventManager:
 
     # 触发事件
     def emit(self, event: int, data: dict):
-        if self._command_sender is not None and self._command_sender(event, data):
-            return
         self.deliver(event, data)
 
     # 订阅事件

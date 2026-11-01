@@ -117,7 +117,7 @@ class AutoTypeReader(BaseSourceReader):
         if not project_type or project_type not in self._readers:
             return CacheFile()
         reader = self._readers[project_type]
-        if reader not in self._active_readers:
+        if project_type not in self._active_readers:
             reader.__enter__()  # 实际使用时才申请资源
             self._active_readers.add(reader.get_project_type())
         return reader.read_source_file(file_path)

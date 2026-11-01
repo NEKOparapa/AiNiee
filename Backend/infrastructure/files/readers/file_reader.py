@@ -1,6 +1,5 @@
 import importlib
 import os
-import platform
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Type
@@ -59,14 +58,9 @@ def _module_loader(module_path: str, class_name: str) -> Callable[[], type]:
     return _load
 
 
-def _is_windows() -> bool:
-    return platform.system() == "Windows"
-
-
 # 内置 Reader 的惰性注册表：(project_type, module_path, class_name, supported_predicate)
 # supported_predicate 为 None 表示始终支持。这里没有调用 is_environ_supported()，
-# 因为那需要先 import 模块，违背懒加载的初衷。仅有的平台相关 Reader（Office）
-# 用 _is_windows 显式声明。
+# 因为那需要先 import 模块，违背懒加载的初衷。
 _BUILTIN_READERS: list[tuple] = [
     (ProjectType.TXT, "Backend.infrastructure.files.readers.txt_reader", "TxtReader", None),
     (ProjectType.EPUB, "Backend.infrastructure.files.readers.epub_reader", "EpubReader", None),
@@ -85,9 +79,6 @@ _BUILTIN_READERS: list[tuple] = [
     (ProjectType.I18NEXT, "Backend.infrastructure.files.readers.i18next_reader", "I18nextReader", None),
     (ProjectType.PO, "Backend.infrastructure.files.readers.po_reader", "PoReader", None),
     (ProjectType.PARATRANZ, "Backend.infrastructure.files.readers.paratranz_reader", "ParatranzReader", None),
-    (ProjectType.OFFICE_CONVERSION_DOC,
-     "Backend.infrastructure.files.readers.office_conversion_reader", "OfficeConversionDocReader",
-     _is_windows),
     (ProjectType.BABELDOC_PDF, "Backend.infrastructure.files.readers.babeldoc_pdf_reader", "BabeldocPdfReader", None),
     (ProjectType.CSV, "Backend.infrastructure.files.readers.csv_reader", "CsvReader", None),
     (ProjectType.PPTX, "Backend.infrastructure.files.readers.pptx_reader", "PptxReader", None),

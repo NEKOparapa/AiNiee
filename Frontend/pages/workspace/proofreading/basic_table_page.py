@@ -329,17 +329,30 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         operation = data.get("operation")
         status = data.get("status")
         updated_item_count = data.get("updated_item_count", 0)
+        message = str(data.get("message", "")).strip()
 
         if operation == "translate":
             if status == "success":
                 self.success_toast(self.tra("完成"), self.tra("表格翻译任务完成，已更新 {} 行。").format(updated_item_count))
             elif status == "empty":
                 self.warning_toast(self.tra("提示"), self.tra("表格翻译任务结束，但没有可回写的结果。"))
+            elif status == "partial":
+                self.warning_toast(self.tra("部分完成"), message or self.tra("表格翻译任务部分完成，已更新 {} 行。").format(updated_item_count))
+            elif status in ("cancelled", "stopped"):
+                self.info_toast(self.tra("已取消"), message or self.tra("表格翻译任务已取消，已保留 {} 行结果。").format(updated_item_count))
+            elif status == "error":
+                self.error_toast(self.tra("失败"), message or self.tra("表格翻译任务失败。"))
         elif operation == "polish":
             if status == "success":
                 self.success_toast(self.tra("完成"), self.tra("表格润色任务完成，已更新 {} 行。").format(updated_item_count))
             elif status == "empty":
                 self.warning_toast(self.tra("提示"), self.tra("表格润色任务结束，但没有可回写的结果。"))
+            elif status == "partial":
+                self.warning_toast(self.tra("部分完成"), message or self.tra("表格润色任务部分完成，已更新 {} 行。").format(updated_item_count))
+            elif status in ("cancelled", "stopped"):
+                self.info_toast(self.tra("已取消"), message or self.tra("表格润色任务已取消，已保留 {} 行结果。").format(updated_item_count))
+            elif status == "error":
+                self.error_toast(self.tra("失败"), message or self.tra("表格润色任务失败。"))
 
     def _get_selected_rows_indices(self):
         return sorted(list(set(index.row() for index in self.table.selectedIndexes())))
@@ -372,14 +385,12 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             return
 
         language_stats = self.cache_manager.project.get_file(self.file_path).language_stats
-        self.emit(
-            Base.EVENT.TABLE_TRANSLATE_START,
+        self.config_backend().translate_table(
             {
                 "file_path": self.file_path,
                 "items_to_translate": items_to_translate,
                 "language_stats": language_stats,
-                "update_event": self.UPDATE_EVENT,
-                "done_event": self.DONE_EVENT,
+                "view": "basic",
             },
         )
         self.info_toast(self.tra("提示"), self.tra("已提交 {} 行文本的翻译任务。").format(len(items_to_translate)))
@@ -415,13 +426,11 @@ class BasicTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             self.warning_toast(self.tra("提示"), self.tra("正在执行其他任务中！"))
             return
 
-        self.emit(
-            Base.EVENT.TABLE_POLISH_START,
+        self.config_backend().polish_table(
             {
                 "file_path": self.file_path,
                 "items_to_polish": items_to_polish,
-                "update_event": self.UPDATE_EVENT,
-                "done_event": self.DONE_EVENT,
+                "view": "basic",
             },
         )
         self.info_toast(self.tra("提示"), self.tra("已提交 {} 行文本的润色任务。").format(len(items_to_polish)))

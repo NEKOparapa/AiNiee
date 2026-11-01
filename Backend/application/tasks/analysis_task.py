@@ -4,8 +4,7 @@ from datetime import datetime
 
 import rapidjson as json
 
-from Backend.core.base import Base
-from Backend.core.config import ConfigMixin
+from Backend.application.execution_context import ExecutionContext
 from Backend.domain.prompts.prompt_builder_extraction import PromptBuilderExtraction
 from Backend.core.log import LogMixin
 from Backend.infrastructure.llm.llm_requester import LLMRequester
@@ -15,13 +14,13 @@ from Backend.infrastructure.tokenizers.tokener import Tokener
 from Backend.domain import languages as TranslatorUtil
 
 
-class AnalysisTask(ConfigMixin, LogMixin, Base):
+class AnalysisTask(LogMixin):
     """
     数据流概览 (总-分-分 结构)：
     [总] run(): 统筹调度整个分析任务。
     [分] 第一阶段 (Stage 1): 按 token 切分原文，独立请求 AI 抽取 candidates。
     [分] 第二阶段 (Stage 2): 按 source 聚合第一阶段的结果，交由 AI 裁决合并。
-    [分] 最终阶段 (Finalize): 主线程收口结果，程序兜底遗漏项，清洗禁翻项并落盘。
+    [分] 最终阶段 (Finalize): 主线程收口结果，程序兜底遗漏项，清洗禁翻项并返回结果。
     """
     
     REDUCE_BATCH_TOKEN_LIMIT = 10000
@@ -30,11 +29,14 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         ".,!?;:'\"-_=+~`^…—、，。！？；：‘’“”()（）[]【】{}《》<>「」『』〈〉〔〕﹝﹞·•/\\|"
     )
     
-    def __init__(self, cache_manager, set_active_executor, clear_active_executor) -> None:
+    def __init__(self, cache_manager, set_active_executor=None, clear_active_executor=None, context=None) -> None:
         super().__init__()
         self.cache_manager = cache_manager
-        self._set_active_executor = set_active_executor
-        self._clear_active_executor = clear_active_executor
+        self._set_active_executor = set_active_executor or (lambda executor: None)
+        self._clear_active_executor = clear_active_executor or (lambda executor: None)
+        self.context = context or ExecutionContext()
+        self._operation_errors = []
+        self._failed_requests = 0
         self.config = TaskConfig()
         self.request_limiter = RequestLimiter()
         self.grouped_stage_two_inputs = {} # 第二阶段的输入结构：{主source: {source, merged_sources, candidates}}
@@ -45,193 +47,136 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
     # 1. 总流程控制 (总)
     # ========================================================================
 
-    def run(self) -> None:
-        """主入口统筹：准备 -> 第一阶段并发 -> 第二阶段聚合与并发 -> 最终兜底合并 -> 落盘"""
+    def run(self) -> dict:
+        """Return the complete or partial analysis; persistence belongs to the caller."""
+        first_stage_results, second_stage_results = [], []
+        self._operation_errors = []
+        self._failed_requests = 0
+        self.grouped_stage_two_inputs = {}
+        self.grouped_stage_two_source_aliases = {}
+        prepared = False
         try:
-            # --- [准备阶段] ---
-            Base.work_status = Base.STATUS.ANALYSIS_TASK
-            self.info("开始执行文本分析任务 ...")
-            self._emit_progress_update(
-                "prepare",
-                "准备中",
-                0,
-                0,
-                "正在初始化分析任务...",
-                "加载配置与限流设置。",
-            )
-            self.config.initialize("extract")
-            self.config.prepare_for_active_platform("extract")
-            self.request_limiter.set_limit(self.config.rpm_limit)
-            self.info(
-                "分析配置: 模型 - {0}, 并发线程 - {1}, RPM - {2}".format(
-                    self.config.model,
-                    self.config.actual_thread_counts,
-                    self.config.rpm_limit,
-                )
-            )
-
-            # 生成分析用文本片段：按 token 切分，确保每个分块都在模型处理能力范围内，同时保持文本的完整性和上下文连贯。
-            self._emit_progress_update(
-                "prepare",
-                "准备中",
-                0,
-                0,
-                "正在生成分析用文本片段...",
-                "按 token 切分项目原文。",
-            )
-            extract_task_token_limit = max(1, int(getattr(self.config, "extract_task_token_limit", 10000)))
-            chunks = self.cache_manager.generate_analysis_source_chunks("token", extract_task_token_limit)
-            self.info(f"分析文本切分完成，共生成 {len(chunks)} 个分块。")
-
-            # --- [第一阶段] ---
-            self._emit_progress_update(
-                "stage1",
-                "第一阶段",
-                0,
-                len(chunks),
-                "开始执行第一阶段分析任务...",
-                "共 {0} 个分块。".format(len(chunks)),
-            )
-            self.info(f"开始执行第一阶段提取，共 {len(chunks)} 个分块。")
-            first_stage_results = []
-            executor_stage1 = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.actual_thread_counts, thread_name_prefix="analysis_stage1")
-            self._set_active_executor(executor_stage1)
-            try:
-                futures_stage1 = [executor_stage1.submit(self._run_first_stage, chunk) for chunk in chunks]
-                for i, future in enumerate(concurrent.futures.as_completed(futures_stage1), 1):
-                    if Base.work_status == Base.STATUS.STOPING: break
-                    if result := future.result(): first_stage_results.append(result)
-                    self._emit_progress_update(
-                        "stage1",
-                        "第一阶段",
-                        i,
-                        len(chunks),
-                        "第一阶段提取中...",
-                        "已完成 {0} / {1} 个分块。".format(i, len(chunks)),
-                    )
-            finally:
-                executor_stage1.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
-                self._clear_active_executor(executor_stage1)
-
-            if Base.work_status == Base.STATUS.STOPING: return self._handle_stop()
-            self.info(f"第一阶段提取完成，成功收集 {len(first_stage_results)} 个分块结果。")
-
-            # --- [第二阶段] ---
-            reduction_batches = self._prepare_reduction_batches(first_stage_results) # 准备第二阶段的批次：将第一阶段的结果按 source 聚合，短词挂靠长词，形成待裁决的候选组。
-            self._emit_progress_update(
-                "stage2",
-                "第二阶段",
-                0,
-                len(reduction_batches),
-                "开始执行第二阶段分析任务...",
-                "共 {0} 个合并批次。".format(len(reduction_batches)),
-            )
-            self.info(f"开始执行第二阶段合并，共 {len(reduction_batches)} 个批次。")
-            second_stage_results = []
-            if reduction_batches:
-                executor_stage2 = concurrent.futures.ThreadPoolExecutor(max_workers=self.config.actual_thread_counts, thread_name_prefix="analysis_stage2")
-                self._set_active_executor(executor_stage2)
-                try:
-                    futures_stage2 = [executor_stage2.submit(self._run_second_stage, batch) for batch in reduction_batches]
-                    for i, future in enumerate(concurrent.futures.as_completed(futures_stage2), 1):
-                        if Base.work_status == Base.STATUS.STOPING: break
-                        if result := future.result(): second_stage_results.append(result)
-                        self._emit_progress_update(
-                            "stage2",
-                            "第二阶段",
-                            i,
-                            len(reduction_batches),
-                            "第二阶段合并中...",
-                            "已完成 {0} / {1} 个合并批次。".format(i, len(reduction_batches)),
-                        )
-                finally:
-                    executor_stage2.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
-                    self._clear_active_executor(executor_stage2)
-                self.info(f"第二阶段合并完成，成功收集 {len(second_stage_results)} 个批次结果。")
-            else:
-                self.info("第二阶段没有可合并候选，已跳过 AI 裁决。")
-
-            if Base.work_status == Base.STATUS.STOPING: return self._handle_stop()
-
-            # --- [最终阶段] ---
-            self._emit_progress_update(
-                "finalize",
-                "结果整合",
-                0,
-                1,
-                "正在整合最终分析结果...",
-                "执行本地兜底与禁翻清洗。",
-            )
-            self.info("开始汇总最终分析结果并写回缓存 ...")
-            final_data = self._finalize_results(first_stage_results, second_stage_results)
-            if not getattr(self.config, "auto_extract_non_translate_switch", False):
-                final_data["non_translate"] = []
-            self._emit_progress_update(
-                "finalize",
-                "结果整合",
-                1,
-                1,
-                "分析结果已生成...",
-                "正在写回项目缓存。",
-            )
-
-            analysis_data = {
-                "status": "success",
-                "last_run_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "characters": final_data.get("characters", []),
-                "terms": final_data.get("terms", []),
-                "non_translate": final_data.get("non_translate", []),
-                "stats": {
-                    "character_count": len(final_data.get("characters", [])),
-                    "term_count": len(final_data.get("terms", [])),
-                    "non_translate_count": len(final_data.get("non_translate", [])),
-                },
-            }
-            analysis_data["stats"]["total_hits"] = sum(analysis_data["stats"].values())
-            
-            self.cache_manager.set_analysis_data(analysis_data)
-            self.cache_manager.require_save_to_file()
-            self.info(
-                "文本分析完成。角色 {0} 个，术语 {1} 个，非翻译项 {2} 个，总计 {3} 个。".format(
-                    analysis_data["stats"]["character_count"],
-                    analysis_data["stats"]["term_count"],
-                    analysis_data["stats"]["non_translate_count"],
-                    analysis_data["stats"]["total_hits"],
-                )
-            )
-            Base.work_status = Base.STATUS.IDLE
-            self.emit(
-                Base.EVENT.ANALYSIS_TASK_DONE,
-                {
-                    "status": "success",
-                    "analysis_data": analysis_data,
-                    "message": "全文分析完成。",
-                },
-            )
-
+            self._report_progress_update("prepare", "准备中", 0, 0, "正在初始化分析任务...", "加载配置。")
+            if not self.context.is_cancelled():
+                self.config = TaskConfig.from_snapshot(TaskConfig.read_snapshot(), interface_role="extract")
+                self.request_limiter.set_limit(self.config.rpm_limit)
+                token_limit = max(1, int(getattr(self.config, "extract_task_token_limit", 10000)))
+                chunks = self.cache_manager.generate_analysis_source_chunks("token", token_limit)
+                self._run_stage(chunks, self._run_first_stage, "stage1", "第一阶段", first_stage_results)
+                # Even on cancellation, group completed extraction results for the local fallback.
+                reduction_batches = self._prepare_reduction_batches(first_stage_results)
+                prepared = True
+                if not self.context.is_cancelled():
+                    self._run_stage(reduction_batches, self._run_second_stage, "stage2", "第二阶段", second_stage_results)
         except Exception as error:
+            self._operation_errors.append(str(error))
+            self.context.cancel()
             self.error(f"分析任务执行失败: {error}", error)
-            Base.work_status = Base.STATUS.IDLE
-            self.emit(Base.EVENT.ANALYSIS_TASK_DONE, {"status": "error", "analysis_data": None, "message": str(error)})
 
-    def _handle_stop(self) -> None:
-        Base.work_status = Base.STATUS.TASKSTOPPED
-        self.info("文本分析任务已停止。")
-        self.emit(
-            Base.EVENT.ANALYSIS_TASK_DONE,
-            {
-                "status": "stopped",
-                "analysis_data": None,
-                "message": "分析任务已停止。",
-            },
-        )
+        analysis_data = None
+        try:
+            if first_stage_results or second_stage_results or (not self.context.is_cancelled() and not self._operation_errors and not self._failed_requests):
+                if not prepared:
+                    self._prepare_reduction_batches(first_stage_results)
+                self._report_progress_update("finalize", "结果整合", 0, 1, "正在整合分析结果...", "执行本地兜底与禁翻清洗。")
+                final_data = self._finalize_results(first_stage_results, second_stage_results)
+                if not getattr(self.config, "auto_extract_non_translate_switch", False):
+                    final_data["non_translate"] = []
+                analysis_data = {
+                    "last_run_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "characters": final_data.get("characters", []),
+                    "terms": final_data.get("terms", []),
+                    "non_translate": final_data.get("non_translate", []),
+                }
+                analysis_data["stats"] = {
+                    "character_count": len(analysis_data["characters"]),
+                    "term_count": len(analysis_data["terms"]),
+                    "non_translate_count": len(analysis_data["non_translate"]),
+                }
+                analysis_data["stats"]["total_hits"] = sum(analysis_data["stats"].values())
+                self._report_progress_update("finalize", "结果整合", 1, 1, "分析结果已生成。", "")
+        except Exception as error:
+            self._operation_errors.append(str(error))
+            self.error(f"分析结果整合失败: {error}", error)
+        if self._operation_errors:
+            status = "partial" if analysis_data else "error"
+        elif self.context.is_cancelled():
+            status = "cancelled"
+        elif self._failed_requests:
+            status = "partial" if first_stage_results or second_stage_results else "error"
+        else:
+            status = "success"
+        if analysis_data is not None:
+            analysis_data["status"] = status
+        return {
+            "status": status, "analysis_data": analysis_data,
+            "message": "; ".join(self._operation_errors) or (
+                "分析任务已停止。" if status == "cancelled" else
+                "部分分析请求失败。" if self._failed_requests else "全文分析完成。"
+            ),
+            "operation_errors": list(self._operation_errors), "failed_requests": self._failed_requests,
+        }
 
+    def _run_stage(self, chunks, worker, phase, phase_label, results):
+        """Bound queued requests and collect every in-flight result before releasing the task."""
+        executor = None
+        futures, handled = set(), set()
+        processed = 0
+
+        def collect(future):
+            nonlocal processed
+            if future in handled or future.cancelled():
+                return
+            handled.add(future)
+            processed += 1
+            try:
+                result = future.result()
+            except Exception as error:
+                self.error(f"{phase_label}请求失败: {error}")
+                result = None
+            if result is not None:
+                results.append(result)
+            elif not self.context.is_cancelled():
+                self._failed_requests += 1
+            self._report_progress_update(phase, phase_label, processed, len(chunks),
+                                         f"{phase_label}处理中...", f"已完成 {processed} / {len(chunks)} 个分块。")
+
+        self._report_progress_update(phase, phase_label, 0, len(chunks), f"开始{phase_label}...", "")
+        try:
+            if not chunks or self.context.is_cancelled():
+                return
+            workers = max(1, int(self.config.actual_thread_counts))
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers, thread_name_prefix=f"analysis_{phase}")
+            self._set_active_executor(executor)
+            next_index, pending = 0, set()
+            while pending or (next_index < len(chunks) and not self.context.is_cancelled()):
+                while next_index < len(chunks) and len(pending) < workers and not self.context.is_cancelled():
+                    future = executor.submit(worker, chunks[next_index])
+                    pending.add(future)
+                    futures.add(future)
+                    next_index += 1
+                if not pending:
+                    break
+                done, pending = concurrent.futures.wait(pending, return_when=concurrent.futures.FIRST_COMPLETED)
+                for future in done:
+                    collect(future)
+        except Exception:
+            self.context.cancel()
+            raise
+        finally:
+            if executor:
+                try:
+                    executor.shutdown(wait=True, cancel_futures=self.context.is_cancelled())
+                    for future in futures:
+                        collect(future)
+                finally:
+                    self._clear_active_executor(executor)
 
     # ========================================================================
     # 2. 第一阶段：独立文本提取 (分)
     # ========================================================================
 
-    def _run_first_stage(self, chunk: list) -> dict:
+    def _run_first_stage(self, chunk: list) -> dict | None:
         """执行单分块的角色/术语/禁翻提取"""
         try:
             # 将 chunk 中的 source_text 合并为一个字符串
@@ -240,18 +185,18 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
             # 构建该chunk的系统提示和消息列表
             system_prompt, messages = self._build_first_stage_prompt(source_text)
             
-            # 执行请求并返回结果，若失败则返回空结构
+            # 执行请求并返回结果，失败与成功的空提取结果分开统计
             result = self._execute_analysis_request(
                 stage_label="第一阶段提取",
                 system_prompt=system_prompt,
                 messages=messages,
                 required_fields=("characters", "terms", "non_translate")
             )
-            return result or {"characters": [], "terms": [], "non_translate": []}
+            return result
             
         except Exception as error:
             self.error(f"第一阶段提取失败: {error}")
-            return {"characters": [], "terms": [], "non_translate": []}
+            return None
 
     def _get_recommended_translation_language_requirement(self) -> str:
         """构建 recommended_translation 的目标语言约束说明。"""
@@ -316,7 +261,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
     # 3. 第二阶段：候选归并与 AI 裁决 (分)
     # ========================================================================
 
-    def _run_second_stage(self, batch: list) -> dict:
+    def _run_second_stage(self, batch: list) -> dict | None:
         """对聚合后的长短变体候选组，让 AI 裁决去留和分类"""
         try:
             system_prompt, messages = self._build_second_stage_prompt(batch)
@@ -335,11 +280,11 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 required_fields=("characters", "terms"),
                 custom_validator=stage_two_validator
             )
-            return result or {"characters": [], "terms": []}
+            return result
             
         except Exception as error:
             self.error(f"第二阶段合并失败: {error}")
-            return {"characters": [], "terms": []}
+            return None
 
     def _prepare_reduction_batches(self, first_stage_results: list) -> list:
         """组装第二阶段所需的候选组批次：短词挂靠长词"""
@@ -601,17 +546,19 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         if phase == "finalize": return 90 + int((current / total) * 10) if total > 0 else 90
         return 0
 
-    def _emit_progress_update(self, phase: str, phase_label: str, current: int, total: int, message: str, detail: str) -> None:
-        """统一的进度更新接口"""
-        self.emit(
-            Base.EVENT.ANALYSIS_TASK_UPDATE,
-            {
+    def _report_progress_update(self, phase: str, phase_label: str, current: int, total: int, message: str, detail: str) -> None:
+        if self._operation_errors or not self.context.on_progress:
+            return
+        try:
+            self.context.on_progress({
                 "status": "running", "phase": phase, "phase_label": phase_label,
                 "current": max(0, int(current or 0)), "total": max(0, int(total or 0)),
                 "percent": self._calculate_progress_percent(phase, current, total),
                 "message": message, "detail": detail,
-            },
-        )
+            })
+        except Exception as error:
+            self._operation_errors.append(str(error))
+            self.context.cancel()
 
     # ---------------------------------------------------------
     # ★ 完整的请求发送与回复检查器 (一、二阶段共用流水线)
@@ -632,20 +579,22 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
         last_error = "未知错误"
 
         for attempt in range(1, self.MAX_REQUEST_ATTEMPTS + 1):
-            if Base.work_status == Base.STATUS.STOPING:
+            if self.context.is_cancelled():
                 return None
 
             try:
                 # 1. 发送请求
                 requester = LLMRequester()
+                platform_config = self.config.get_active_platform_configuration()
+                platform_config["is_cancelled"] = self.context.is_cancelled
                 skip, _, response_content, _, _ = requester.sent_request(
                     [dict(msg) for msg in messages],
                     system_prompt,
-                    self.config.get_active_platform_configuration(),
+                    platform_config,
                 )
 
                 if skip:
-                    if Base.work_status == Base.STATUS.STOPING: return None
+                    if self.context.is_cancelled(): return None
                     last_error = "请求被跳过或接口返回错误"
                     continue
 
@@ -677,7 +626,7 @@ class AnalysisTask(ConfigMixin, LogMixin, Base):
                 return {field: list(parsed_json.get(field) or []) for field in required_fields}
 
             except Exception as error:
-                if Base.work_status == Base.STATUS.STOPING: return None
+                if self.context.is_cancelled(): return None
                 last_error = str(error)
 
             # 记录重试日志

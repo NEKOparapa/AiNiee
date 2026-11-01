@@ -170,6 +170,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
         self.subscribe(Base.EVENT.ANALYSIS_TASK_UPDATE, self.on_analysis_task_update)
         self.subscribe(Base.EVENT.ANALYSIS_TASK_DONE, self.on_analysis_task_done)
+        self.subscribe(Base.EVENT.BACKEND_REQUEST_REJECTED, self.on_backend_request_rejected)
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
@@ -1212,7 +1213,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         )
         self._render_header()
         self._update_action_buttons(running=True)
-        self.emit(Base.EVENT.ANALYSIS_TASK_START, {})
+        self.config_backend().start_analysis()
 
     def stop_analysis(self) -> None:
         if not self._is_analysis_running():
@@ -1235,7 +1236,21 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._render_header()
         self._update_action_buttons(running=True)
         self.stop_button.setEnabled(False)
-        self.emit(Base.EVENT.TASK_STOP, {})
+        self.config_backend().stop_task()
+
+    def on_backend_request_rejected(self, event: int, data: dict) -> None:
+        if data.get("operation") != "stop" or self.analysis_runtime_state.get("status_key") != "stopping":
+            return
+
+        message = str(data.get("message", "")).strip() or self.tra("停止请求失败，请重试。")
+        status = data.get("status")
+        if isinstance(status, dict) and status.get("busy") is False:
+            self.on_analysis_task_done(event, {"status": "error", "message": message})
+            return
+
+        self._apply_runtime_state(status_key="running", info_text=message)
+        self._render_header()
+        self._update_action_buttons(running=True)
 
     def on_analysis_task_update(self, event: int, data: dict) -> None:
         if self.analysis_runtime_state.get("status_key") == "stopping":
@@ -1290,7 +1305,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             )
             self._render_header()
             self.warning_toast(self.tra("完成"), message or self.tra("分析已完成，但存在失败的分块。"))
-        elif status == "stopped":
+        elif status in ("cancelled", "stopped"):
             self._apply_runtime_state(
                 status_key="stopped",
             )
@@ -2053,7 +2068,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _request_cache_save(self) -> None:
         if self.cache_manager and self.cache_manager.project:
-            self.emit(Base.EVENT.TASK_MANUAL_SAVE_CACHE, {})
+            self.config_backend().save_project()
 
     def _sync_stats(self) -> None:
         if not self.analysis_data:

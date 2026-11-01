@@ -1,4 +1,5 @@
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from Backend.domain.models.cache_file import CacheFile
 from Backend.domain.models.cache_item import CacheItem
@@ -12,19 +13,26 @@ from Backend.infrastructure.files.readers.base_reader import (
 
 
 class BabeldocPdfReader(BaseSourceReader):
-    def __init__(self, input_config: InputConfig, tmp_directory='babeldoc_cache'):
+    def __init__(self, input_config: InputConfig, tmp_directory=None, parse_options=None):
         super().__init__(input_config)
-        self.tmp_directory = tmp_directory
-        
-        # 获取输入路径
-        root_path = input_config.input_root
-        # 如果输入路径是文件（例如用户直接选择了 .pdf 文件），则使用该文件所在的文件夹作为缓存根目录
-        if root_path.is_file():
-            root_path = root_path.parent
-            
-        abs_tmp_directory = root_path / self.tmp_directory
+        self._temporary = None
+        self.file_accessor = None
+        self.parse_options = dict(parse_options or {})
 
-        self.file_accessor = BabeldocPdfAccessor(abs_tmp_directory, None)
+    def __enter__(self):
+        self._ensure_accessor()
+        return self
+
+    def _ensure_accessor(self):
+        if self.file_accessor is None:
+            self._temporary = TemporaryDirectory(prefix="ainiee-pdf-read-")
+            self.file_accessor = BabeldocPdfAccessor(Path(self._temporary.name), None, self.parse_options)
+
+    def __exit__(self, exc_type, exc, exc_tb):
+        if self._temporary is not None:
+            self._temporary.cleanup()
+            self._temporary = None
+            self.file_accessor = None
 
     @classmethod
     def get_project_type(self):
@@ -35,11 +43,12 @@ class BabeldocPdfReader(BaseSourceReader):
         return 'pdf'
 
     def on_read_source(self, file_path: Path, pre_read_metadata: PreReadMetadata) -> CacheFile:
+        self._ensure_accessor()
         source_texts = self.file_accessor.read_content(file_path)
-        return CacheFile(items=[
+        return CacheFile(extra={"pdf": self.file_accessor.parse_metadata(source_texts)}, items=[
             CacheItem(source_text=line) for line in source_texts
         ])
 
     @property
     def exclude_rules(self):
-        return [f"{self.tmp_directory}/*"]
+        return []

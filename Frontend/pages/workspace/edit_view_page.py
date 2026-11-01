@@ -8,7 +8,6 @@ from qfluentwidgets import CardWidget, FluentIcon as FIF, SegmentedWidget, Trans
 from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
 from Frontend.core.log import LogMixin
-from Frontend.services.backend_client import BackendError
 from Frontend.pages.workspace.analysis.analysis_page import AnalysisPage
 from Frontend.pages.workspace.proofreading.proofreading_page import ProofreadingPage
 from Frontend.pages.workspace.startup.startup_page import StartupPage
@@ -204,16 +203,11 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
             ".",
         )
         if selected_path:
-            self.emit(Base.EVENT.TASK_MANUAL_EXPORT, {"export_path": selected_path})
+            self.config_backend().export_project(export_path=selected_path)
 
     def command_save_cache(self) -> None:
         if not self.cache_manager.project:
             self.error_toast(self.tra("错误"), self.tra("当前没有可保存的项目缓存。"))
             return
 
-        try:
-            self.cache_manager.save_to_file()
-        except BackendError as error:
-            self.error_toast(self.tra("保存失败"), str(error))
-            return
-        self.success_toast(self.tra("成功"), self.tra("项目缓存文件已保存到项目缓存目录"))
+        self.config_backend().save_project()

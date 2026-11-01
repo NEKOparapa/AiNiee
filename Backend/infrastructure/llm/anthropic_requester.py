@@ -1,4 +1,5 @@
 from Backend.core.base import Base
+from Backend.infrastructure.llm.request_control import request_cancelled
 from Backend.core.log import LogMixin
 from Backend.infrastructure.llm.llm_client_factory import LLMClientFactory
 from Backend.infrastructure.llm.model_config_helper import ModelConfigHelper
@@ -70,7 +71,7 @@ class AnthropicRequester(LogMixin, Base):
             response_content = "".join(content_parts)
 
         except Exception as e:
-            if Base.work_status == Base.STATUS.STOPING:
+            if request_cancelled(platform_config):
                 return True, None, None, None, None
             self.error(f"请求任务错误 ... {e}", e)
             return True, None, None, None, None

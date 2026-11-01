@@ -154,9 +154,15 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
 
     # 监控页面更新事件
     def data_update(self, event: int, data: dict) -> None:
+        data = dict(data or {})
+        statistics = data.get("report", {}).get("statistics")
+        if isinstance(statistics, dict):
+            data.update(statistics)
+        if "project_id" in data and data["project_id"] != self.data.get("project_id"):
+            self.data = {"project_id": data["project_id"]}
         if data or Base.work_status in (Base.STATUS.STOPING, Base.STATUS.TASKING):
-            self.update_time(event, data)
             self.update_line(event, data)
+            self.update_time(event, data)
             self.update_token(event, data)
             self.update_stability(event, data)
 
@@ -167,13 +173,20 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
     def update_time(self, event: int, data: dict) -> None:
         if data.get("start_time", None) is not None:
             self.data["start_time"] = data.get("start_time")
+        if "elapsed_running" in data:
+            self.data["elapsed_running"] = data["elapsed_running"]
 
         if "elapsed_seconds" in data:
             self.data["elapsed_seconds"] = data["elapsed_seconds"]
             self.data["elapsed_at"] = time.monotonic()
+        elif "time" in data:
+            # Batch and completion notifications carry cumulative work time.
+            # Replace the previous clock anchor instead of keeping a stale one.
+            self.data["elapsed_seconds"] = data["time"]
+            self.data["elapsed_at"] = time.monotonic()
         if "elapsed_seconds" in self.data:
             elapsed = self.data["elapsed_seconds"]
-            if Base.work_status in (Base.STATUS.STOPING, Base.STATUS.TASKING):
+            if self.data.get("elapsed_running", Base.work_status in (Base.STATUS.STOPING, Base.STATUS.TASKING)):
                 elapsed += time.monotonic() - self.data["elapsed_at"]
             total_time = int(elapsed)
         elif Base.work_status not in (Base.STATUS.STOPING, Base.STATUS.TASKING):
@@ -194,7 +207,7 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
             self.time.set_unit("H")
             self.time.set_value(f"{(total_time / 60 / 60):.2f}")
 
-        remaining_time = int(total_time / max(1, self.data.get("line", 0)) * (self.data.get("total_line", 0) - self.data.get("line", 0)))
+        remaining_time = int(total_time / max(1, self.data.get("line", 0)) * max(0, self.data.get("total_line", 0) - self.data.get("line", 0)))
         if remaining_time < 60:
             self.remaining_time.set_unit("S")
             self.remaining_time.set_value(f"{remaining_time}")
@@ -306,18 +319,21 @@ class MonitoringPage(ConfigMixin, Base, QWidget):
 
     # 更新进度环
     def update_status(self, event: int, data: dict) -> None:
+        total_line = self.data.get("total_line", 0)
+        line = self.data.get("line", 0)
+        percent = min(1, max(0, line / max(1, total_line)))
         if Base.work_status == Base.STATUS.STOPING:
-            percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
-            self.ring.set_value(int(percent * 10000))
-            info_cont = self.tra("停止中") + "\n" + f"{percent * 100:.2f}%"
-            self.ring.set_format(info_cont)
+            label = self.tra("停止中")
         elif Base.work_status == Base.STATUS.TASKING:
-            percent = self.data.get("line", 0) / max(1, self.data.get("total_line", 0))
-            self.ring.set_value(int(percent * 10000))
-            info_cont = self.tra("任务中") + "\n" + f"{percent * 100:.2f}%"
-            self.ring.set_format(info_cont)
+            label = self.tra("任务中")
+        elif total_line > 0 and line >= total_line:
+            label = self.tra("已完成")
+        elif total_line > 0:
+            label = self.tra("已停止") if line or self.data.get("total_requests", 0) else self.tra("待开始")
         else:
             self.ring.set_value(0)
-            info_cont = self.tra("无任务")
-            self.ring.set_format(info_cont)
+            self.ring.set_format(self.tra("无任务"))
+            return
+        self.ring.set_value(int(percent * 10000))
+        self.ring.set_format(label + "\n" + f"{percent * 100:.2f}%")
 

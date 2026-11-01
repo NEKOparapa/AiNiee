@@ -155,8 +155,6 @@ def pyinstaller_command(icon_path: Path, arch: str | None = None) -> list[str]:
         "--collect-all=AppKit",
         "--hidden-import=websockets.sync.client",
         "--exclude-module=Backend",
-        "--exclude-module=win32com",
-        "--exclude-module=pythoncom",
     ]
 
 

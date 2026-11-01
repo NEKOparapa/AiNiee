@@ -468,7 +468,7 @@ class PromptDictionaryPage(MultiTablePageMixin, QFrame, ConfigMixin, LogMixin, T
             "rows": {row["src"]: copy.deepcopy(row) for row in untranslated},
         }
         Base.work_status = Base.STATUS.GLOSS_TASK
-        self.emit(Base.EVENT.GLOSS_TASK_START, {
+        self.config_backend().translate_glossary({
             "table_id": self._active_table_id,
             "request_id": request_id,
             "prompt_dictionary_data": rows,
@@ -482,12 +482,18 @@ class PromptDictionaryPage(MultiTablePageMixin, QFrame, ConfigMixin, LogMixin, T
             return
         Base.work_status = Base.STATUS.IDLE
         status = data.get("status")
-        if status not in ("success", "partial"):
+        cancelled = status in ("cancelled", "stopped")
+        message = str(data.get("message", "")).strip()
+        if status not in ("success", "partial", "cancelled", "stopped"):
             self._pending_glossary_requests.pop(request_id, None)
-            if status == "error":
-                self.error_toast(self.tra("术语表翻译失败"), data.get("message", self.tra("未知错误")))
+            if status in ("error", "failed"):
+                self.error_toast(self.tra("术语表翻译失败"), message or self.tra("未知错误"))
             else:
                 self.info_toast(self.tra("提示"), self.tra("没有需要翻译的术语"))
+            return
+        if cancelled and not data.get("updated_data"):
+            self._pending_glossary_requests.pop(request_id, None)
+            self.info_toast(self.tra("已停止"), message or self.tra("术语表翻译任务已停止。"))
             return
         if self._active_table_id == pending["table_id"] and not self._save_current_table():
             # Keep the result in memory when disk persistence fails.
@@ -507,7 +513,11 @@ class PromptDictionaryPage(MultiTablePageMixin, QFrame, ConfigMixin, LogMixin, T
         if self._active_table_id == pending["table_id"]:
             self._display_current_table(force=True)
         self._refresh_tabs()
-        if data.get("updated_data"):
+        if cancelled:
+            self.info_toast(self.tra("已停止"), message or self.tra("术语表翻译任务已停止，已保留完成的结果。"))
+        elif status == "partial":
+            self.warning_toast(self.tra("部分完成"), message or self.tra("术语表翻译部分完成，已保留完成的结果。"))
+        elif data.get("updated_data"):
             self.success_toast("", self.tra("术语表翻译成功并已更新"))
 
     def refresh_after_reconnect(self):

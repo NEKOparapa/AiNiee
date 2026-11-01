@@ -87,7 +87,7 @@ class RemoteCacheManager:
         return self._call("delete_project_cache", project_id)
 
     def save_to_file(self):
-        return self._call("save_to_file")
+        return self.client.save_project_sync()
 
     def require_save_to_file(self, output_path=None):
         return self.save_to_file()

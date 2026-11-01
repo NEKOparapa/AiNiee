@@ -43,7 +43,7 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
         # 处理所有项目
         lines = list(map(item_to_line, cache_file.items))
 
-        translation_file_path.write_text("".join(lines), encoding=pre_write_metadata.encoding)
+        translation_file_path.write_text("".join(lines), encoding=pre_write_metadata.encoding, newline=cache_file.line_ending)
 
     # 双语版构建
     def _item_to_bilingual_line(self, item: CacheItem):

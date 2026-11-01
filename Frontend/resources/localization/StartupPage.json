@@ -202,12 +202,6 @@
       "English": "ParaTranz Export",
       "日本語": "ParaTranzエクスポート"
     },
-    "OfficeConversionDoc": {
-      "简中": "Doc文档 (需要Microsoft Office)",
-      "繁中": "Doc文件 (需要Microsoft Office)",
-      "English": "Doc Document (requires Microsoft Office)",
-      "日本語": "Docドキュメント (Microsoft Officeが必要)"
-    },
     "BabeldocPdf": {
       "简中": "Pdf文档 (pdf2zh/BabelDOC)",
       "繁中": "Pdf文件 (pdf2zh/BabelDOC)",

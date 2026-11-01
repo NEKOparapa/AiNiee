@@ -2,6 +2,12 @@
 
 保留现有界面和操作流程，通过 HTTP 提交配置与任务，通过 WebSocket 接收进度、日志和结果。用户配置、内置提示词和业务文件读写由后端负责。
 
+前后端使用协议版本 2。页面通过 `BackendClient` 的明确方法调用对应 HTTP 接口，例如翻译使用 `POST /api/tasks/translation`，表格翻译使用 `POST /api/tasks/table/translate`，保存使用 `POST /api/project/save`。WebSocket 业务通知使用 `{type: "notification", name: "translation.progress", data: {...}}` 等命名消息；表格通知通过 `view` 定位页面。数字事件编号仅用于前端本地 UI 通知，不跨进程发送，也不提供通用 `/api/commands` 命令入口。
+
+更新时需要同时替换前端与后端并重启。首次连接和每次 WebSocket 重连都会通过 `/health` 校验协议版本；不兼容时显示桌面要求版本和后端实际版本，不接收旧协议的业务消息。重连仍会重试，后端更新到兼容版本后可恢复连接。
+
+手动导出和翻译完成后的自动导出通过 `project.export.completed` 返回完整的文件清单和报告。桌面分别提示成功、部分失败或失败，并将完整报告和逐文件错误写入前端日志，保留错误码、源文件路径等诊断信息。停止任务且未执行导出时不发送导出完成通知。
+
 ## 目录结构
 
 ```text

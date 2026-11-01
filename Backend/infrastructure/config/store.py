@@ -6,7 +6,7 @@ import rapidjson as json
 from rich import print
 
 from Backend.core.paths import config_path
-from Backend.infrastructure.config.migration import migrate_config_if_needed
+from Backend.infrastructure.config.migration import migrate_config_if_needed, migrate_retired_project_type
 from Backend.domain.text.regex import RegexSwitchHelper
 from Backend.domain.config.tables import TableConfigHelper
 from Backend.domain.config.prompt_selection import TranslationPromptConfigHelper
@@ -141,6 +141,7 @@ class ConfigStore:
                 needs_write = any(key in config for key in self.RETIRED_SETTINGS)
                 for key in self.RETIRED_SETTINGS:
                     config.pop(key, None)
+                needs_write = migrate_retired_project_type(config) or needs_write
                 needs_write = RegexSwitchHelper.normalize_config(config) or needs_write
                 needs_write = TableConfigHelper.normalize_config(config) or needs_write
                 needs_write = TranslationPromptConfigHelper.normalize_config(config) or needs_write
@@ -217,7 +218,8 @@ class ConfigStore:
                 old[key] = value
 
             prompt_changed = TranslationPromptConfigHelper.normalize_config(old)
-            if unchanged and not prompt_changed and not retired:
+            project_type_changed = migrate_retired_project_type(old)
+            if unchanged and not prompt_changed and not project_type_changed and not retired:
                 return old
 
             os.makedirs(os.path.dirname(ConfigStore.CONFIG_PATH), exist_ok=True)

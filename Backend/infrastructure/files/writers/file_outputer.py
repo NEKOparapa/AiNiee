@@ -1,5 +1,4 @@
 import importlib
-import platform
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Type
@@ -57,10 +56,6 @@ def _module_loader(module_path: str, class_name: str) -> Callable[[], type]:
     return _load
 
 
-def _is_windows() -> bool:
-    return platform.system() == "Windows"
-
-
 # 内置 Writer 的惰性注册表：(project_type, module_path, class_name, supported_predicate)
 # supported_predicate 为 None 表示始终支持。
 _BUILTIN_WRITERS: list[tuple] = [
@@ -81,9 +76,6 @@ _BUILTIN_WRITERS: list[tuple] = [
     (ProjectType.PARATRANZ, "Backend.infrastructure.files.writers.paratranz_writer", "ParatranzWriter", None),
     (ProjectType.TPP, "Backend.infrastructure.files.writers.tpp_writer", "TPPWriter", None),
     (ProjectType.WOLF_XLSX, "Backend.infrastructure.files.writers.wolf_xlsx_writer", "WolfXlsxWriter", None),
-    (ProjectType.OFFICE_CONVERSION_DOC,
-     "Backend.infrastructure.files.writers.office_conversion_writer", "OfficeConversionDocWriter",
-     _is_windows),
     (ProjectType.BABELDOC_PDF, "Backend.infrastructure.files.writers.babeldoc_pdf_writer", "BabeldocPdfWriter", None),
     (ProjectType.CSV, "Backend.infrastructure.files.writers.csv_writer", "CsvWriter", None),
     (ProjectType.PPTX, "Backend.infrastructure.files.writers.pptx_writer", "PptxWriter", None),
@@ -205,6 +197,7 @@ class FileOutputer:
                     source_lang_code=config.get("source_lang_code"),
                     target_lang_code=config.get("target_lang_code"),
                 ),
+                "keep_original_encoding": bool(config.get("keep_original_encoding", False)),
             }
             base_args.update(kwargs)
             return OutputConfig(**base_args)

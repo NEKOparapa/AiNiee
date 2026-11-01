@@ -188,7 +188,7 @@ def main(argv=None):
     # 创建全局应用对象
     app = QApplication(sys.argv)
     from Frontend.app.event_bridge import QtEventBridge
-    event_bridge = QtEventBridge(app, backend_client.send_event if backend_client else None)
+    event_bridge = QtEventBridge(app)
     configure_application_metadata(app, app_version)
 
     _log.info(f"Application Version: {app_version}")

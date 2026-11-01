@@ -2,18 +2,17 @@ from collections import defaultdict
 from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar, Dict, List, Tuple
+from typing import Callable, ClassVar, Dict, List, Tuple
+import copy
 import os
 import re
 import shutil
 import threading
-import time
 import uuid
 
 import msgspec
 import rapidjson as json
 
-from Backend.core.base import Base
 from Backend.core.config import ConfigMixin
 from Backend.core.paths import project_cache_root
 from Backend.domain.config.task_type import TaskType
@@ -21,9 +20,40 @@ from Backend.core.log import LogMixin
 from Backend.domain.models.cache_file import CacheFile
 from Backend.domain.models.cache_item import CacheItem, TranslationStatus
 from Backend.domain.models.cache_project import CacheProject, CacheProjectStatistics
+from Backend.domain.models.intermediate import (
+    SCHEMA_VERSION, generate_item_chunks, generate_previous_chunks, normalize_project,
+    parse_model,
+)
 
 
-class CacheManager(ConfigMixin, LogMixin, Base):
+def copy_legacy_extras(content: dict) -> dict:
+    """Keep old extension fields when upgrading an unversioned JSON cache."""
+    result = copy.deepcopy(content)
+
+    def preserve_unknown(node, model):
+        known = {field.name for field in fields(model)}
+        extra = node.setdefault("extra", {})
+        if not isinstance(extra, dict):
+            raise ValueError("缓存 extra 必须为对象")
+        for key in list(node):
+            if key not in known:
+                value = node.pop(key)
+                if key in extra and extra[key] != value:
+                    extra.setdefault("legacy_fields", {})[key] = value
+                else:
+                    extra[key] = value
+
+    preserve_unknown(result, CacheProject)
+    for file in result.get("files", {}).values():
+        preserve_unknown(file, CacheFile)
+        for item in file.get("items", []):
+            preserve_unknown(item, CacheItem)
+            # Early Trans/TPP caches can contain numeric spreadsheet cells.
+            item.update(CacheItem.from_dict(item).to_dict())
+    return result
+
+
+class CacheManager(ConfigMixin, LogMixin):
     """缓存管理器，负责项目缓存的读写、历史扫描与内存态更新。"""
 
     ANALYSIS_EXTRA_KEY = "analysis_v1"
@@ -33,51 +63,48 @@ class CacheManager(ConfigMixin, LogMixin, Base):
     HISTORY_LIMIT = 3
     CACHE_WRITE_LOCK: ClassVar[threading.Lock] = threading.Lock()
 
-    def __init__(self) -> None:
-        super().__init__()
-
+    def __init__(self, on_saved: Callable[[dict], None] | None = None) -> None:
         # 线程锁：保护 project 的读写以及缓存落盘过程
         self.file_lock = threading.Lock()
         self.project = None
-        self.save_to_file_stop_flag = False
-        self.save_to_file_require_flag = False
+        self.on_saved = on_saved
         self._save_thread = None
         self._save_stop_event = threading.Event()
+        self._save_requested = threading.Event()
+        self._save_lifecycle_lock = threading.RLock()
+        self._closed = False
 
-        # 注册事件：启动任务时开启定时保存，关闭应用时停止保存线程
-        self.subscribe(Base.EVENT.TASK_START, self.start_interval_saving)
-        self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
-        self.subscribe(Base.EVENT.TASK_MANUAL_SAVE_CACHE, self.on_manual_save_cache_requested)
-
-    def start_interval_saving(self, event: int, data: dict):
-        """启动定时保存；继续任务前先把当前项目状态保存并重新载入。"""
-        if data.get("continue_status") is True and self.project:
-            current_project_id = self.project.project_id
-            self.save_to_file()
-            if current_project_id:
-                self.load_from_project_id(current_project_id)
-
-        self.save_to_file_stop_flag = False
-        self._save_stop_event.clear()
-        if self._save_thread is None or not self._save_thread.is_alive():
-            self._save_thread = threading.Thread(target=self.save_to_file_tick, daemon=True)
+    def start_saving(self) -> None:
+        """显式启动周期保存；重复启动不会创建额外线程。"""
+        with self._save_lifecycle_lock:
+            if self._closed:
+                raise RuntimeError("缓存管理器已关闭")
+            if self._save_thread is not None and self._save_thread.is_alive():
+                return
+            self._save_stop_event.clear()
+            self._save_thread = threading.Thread(
+                target=self.save_to_file_tick, name="cache-saving", daemon=True,
+            )
             self._save_thread.start()
 
-    def app_shut_down(self, event: int, data: dict) -> None:
-        """应用关闭时通知保存线程停止。"""
-        self.save_to_file_stop_flag = True
-        self._save_stop_event.set()
-        if self._save_thread is not None and self._save_thread is not threading.current_thread():
-            self._save_thread.join(timeout=2)
+    def stop_saving(self) -> None:
+        """停止周期保存并等待正在进行的写盘完成；之后可以重新启动。"""
+        with self._save_lifecycle_lock:
+            self._save_stop_event.set()
+            thread = self._save_thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join()
+        with self._save_lifecycle_lock:
+            if self._save_thread is thread and (thread is None or not thread.is_alive()):
+                self._save_thread = None
 
-    def on_manual_save_cache_requested(self, event: int, data: dict) -> None:
-        """处理手动保存缓存请求。"""
-        if self.project is None:
-            self.warning("手动保存项目缓存失败：项目数据尚未加载。")
-            return
-
-        self.save_to_file()
-        self.info("项目缓存文件已通过手动请求保存。")
+    def close(self) -> None:
+        """结束保存生命周期并冲刷尚未写盘的数据。"""
+        with self._save_lifecycle_lock:
+            self._closed = True
+        self.stop_saving()
+        if self._save_requested.is_set():
+            self.save_to_file()
 
     # 获取缓存目录相关路径
     @classmethod
@@ -216,6 +243,7 @@ class CacheManager(ConfigMixin, LogMixin, Base):
     def _write_project_cache_files(cls, project: CacheProject) -> None:
         """将项目缓存和统计信息原子写入 ProjectCache/<project_id>/ 目录。"""
         cls._ensure_project_metadata(project)
+        normalize_project(project)
 
         cache_dir = cls.get_project_cache_dir(project.project_id)
         cache_path = os.path.join(cache_dir, cls.CACHE_FILENAME)
@@ -227,8 +255,10 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             try:
                 os.makedirs(cache_dir, exist_ok=True)
 
+                cls._backup_legacy_cache(cache_path)
+
                 # 先写临时文件，再 replace，避免读到半截文件
-                content_bytes = msgspec.json.encode(project)
+                content_bytes = msgspec.json.encode(project.to_dict())
                 with open(cache_tmp_path, "wb") as writer:
                     writer.write(content_bytes)
                 os.replace(cache_tmp_path, cache_path)
@@ -391,32 +421,51 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             return False
 
     # 保存与加载
-    def save_to_file(self) -> None:
-        """保存当前项目缓存。"""
-        if self.project is None:
-            return
+    def save_to_file(self) -> dict | None:
+        """同步保存当前项目；失败抛出异常，通知回调不影响写盘结果。"""
+        # Clear before writing so a concurrent mutation can request another
+        # snapshot without its dirty flag being erased after this write.
+        self._save_requested.clear()
+        try:
+            with self.file_lock:
+                if self.project is None:
+                    return None
+                self._ensure_project_metadata(self.project)
+                self._write_project_cache_files(self.project)
+                saved = {
+                    "project_id": self.project.project_id,
+                    "cache_path": self.get_default_cache_path(project_id=self.project.project_id),
+                }
+        except Exception:
+            self._save_requested.set()
+            raise
+        if self.on_saved:
+            try:
+                self.on_saved(saved)
+            except Exception as error:
+                self.warning(f"项目缓存已保存，但保存通知失败：{error}")
+        return saved
 
-        with self.file_lock:
-            self._ensure_project_metadata(self.project)
-            self._write_project_cache_files(self.project)
+    def save(self) -> dict | None:
+        return self.save_to_file()
 
     def save_to_file_tick(self) -> None:
         """定时保存任务。"""
-        while not self.save_to_file_stop_flag:
-            if self._save_stop_event.wait(self.SAVE_INTERVAL):
-                break
-            if getattr(self, "save_to_file_require_flag", False):
-                self.save_to_file()
-                self.save_to_file_require_flag = False
+        while not self._save_stop_event.wait(self.SAVE_INTERVAL):
+            if self._save_requested.is_set():
+                try:
+                    self.save_to_file()
+                except Exception as error:
+                    self.error(f"定时保存项目缓存失败，将在下一周期重试：{error}", error)
 
     def require_save_to_file(self, output_path: str | None = None) -> None:
         """请求保存缓存。output_path 参数仅保留兼容。"""
-        self.save_to_file_require_flag = True
+        self._save_requested.set()
 
     def load_from_project(self, data: CacheProject):
         """直接从内存中的 CacheProject 对象加载项目。"""
         self._ensure_project_metadata(data)
-        self.project = data
+        self.project = normalize_project(data)
 
     def load_from_project_id(self, project_id: str) -> None:
         """根据 project_id 从新的 ProjectCache 目录加载项目。"""
@@ -438,23 +487,52 @@ class CacheManager(ConfigMixin, LogMixin, Base):
 
     @classmethod
     def read_from_file(cls, cache_path) -> CacheProject:
-        """从缓存文件反序列化为 CacheProject。"""
-        with open(cache_path, "rb") as reader:
-            content_bytes = reader.read()
+        """Load v2 or migrate an old cache in place with an untouched backup."""
+        cache_path = Path(cache_path)
+        with cls.CACHE_WRITE_LOCK:
+            content_bytes = cache_path.read_bytes()
+            content = json.loads(content_bytes.decode("utf-8-sig"))
+            if isinstance(content, list):
+                project = cls._read_from_old_content(content)
+                payload = normalize_project(project).to_dict()
+            elif isinstance(content, dict):
+                payload = copy_legacy_extras(content) if "schema_version" not in content else content
+            else:
+                raise ValueError("缓存根节点必须为对象或旧版列表")
+            project = parse_model(payload)
+            normalized = project.to_dict()
+            if normalized != content:
+                cls._backup_legacy_cache(cache_path, content_bytes)
+                temporary = cache_path.with_name(cache_path.name + f".{os.getpid()}.tmp")
+                try:
+                    temporary.write_bytes(msgspec.json.encode(normalized))
+                    os.replace(temporary, cache_path)
+                finally:
+                    temporary.unlink(missing_ok=True)
+            return project
 
+    @classmethod
+    def _backup_legacy_cache(cls, cache_path, content_bytes=None):
+        """Preserve the pre-v2 bytes once; caller holds CACHE_WRITE_LOCK."""
+        cache_path = Path(cache_path)
+        if not cache_path.exists():
+            return
+        original = cache_path.read_bytes() if content_bytes is None else content_bytes
+        content = json.loads(original.decode("utf-8-sig"))
+        if isinstance(content, dict) and content.get("schema_version") == SCHEMA_VERSION:
+            return
+        backup = cache_path.with_name(cache_path.name + ".pre-v2.bak")
         try:
-            # 优先按新 dataclass 结构解析
-            return msgspec.json.decode(content_bytes, type=CacheProject)
-        except msgspec.ValidationError:
-            # 新结构失败后兼容旧结构和旧列表格式
-            content = json.loads(content_bytes.decode("utf-8"))
-            if isinstance(content, dict):
-                return CacheProject.from_dict(content)
-            return cls._read_from_old_content(content)
+            with backup.open("xb") as writer:
+                writer.write(original)
+        except FileExistsError:
+            pass
 
     @classmethod
     def _read_from_old_content(cls, content: list) -> CacheProject:
         """兼容旧版列表结构缓存。"""
+        if not content or not isinstance(content[0], dict):
+            raise ValueError("旧版缓存缺少项目元数据")
         data_iter = iter(content)
         project_data = next(data_iter)
         init_data = {
@@ -463,6 +541,7 @@ class CacheManager(ConfigMixin, LogMixin, Base):
             "project_name": project_data.get("project_name", ""),
             "project_create_time": project_data.get("project_create_time", ""),
             "input_path": project_data.get("input_path", ""),
+            "extra": copy.deepcopy(project_data.get("extra", {})),
         }
         CacheProject().detected_line_ending
 
@@ -537,15 +616,9 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         return has_translated and has_untranslated
 
     def reset_project_status(self, task_mode: int) -> int:
-        """批量回退项目的已翻译状态（包括已润色条目），并保存缓存。"""
+        """回退已译状态并解除目标语言绑定，允许新任务改用其他目标语言。"""
         if task_mode != TaskType.TRANSLATION:
             raise ValueError("仅支持重置项目的已翻译状态")
-        changed_count = self._reset_project_status_in_memory()
-        if changed_count > 0:
-            self.save_to_file()
-        return changed_count
-
-    def _reset_project_status_in_memory(self) -> int:
         if not self.project:
             return 0
 
@@ -560,9 +633,15 @@ class CacheManager(ConfigMixin, LogMixin, Base):
 
                         changed_count += 1
 
-            if changed_count > 0:
+            # A cancelled/failed first batch can bind a target without producing
+            # any translated items. Explicit reset must also release that binding.
+            previous_target = self.project.translation_context.pop("target_language", None)
+            reset = changed_count > 0 or bool(previous_target)
+            if reset:
                 self.project.stats_data = CacheProjectStatistics()
 
+        if reset:
+            self.save_to_file()
         return changed_count
 
     # 任务分片生成
@@ -573,15 +652,7 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         start_idx: int,
     ) -> List[CacheItem]:
         """根据当前片段起点生成上文片段。"""
-        if not all_items or previous_item_count <= 0 or start_idx <= 0:
-            return []
-
-        from_idx = max(0, start_idx - previous_item_count)
-        to_idx = min(start_idx, len(all_items))
-        if from_idx >= to_idx:
-            return []
-
-        return all_items[from_idx:to_idx]
+        return generate_previous_chunks(all_items, previous_item_count, start_idx)
 
     def generate_item_chunks(
         self,
@@ -590,44 +661,7 @@ class CacheManager(ConfigMixin, LogMixin, Base):
         previous_line_count: int,
     ) -> Tuple[List[List[CacheItem]], List[List[CacheItem]], List[str]]:
         """按限制条件生成待翻译片段。"""
-        chunks, previous_chunks, file_paths = [], [], []
-
-        for file in self.project.files.values():
-            items = [item for item in file.items if item.translation_status == TranslationStatus.UNTRANSLATED]
-
-            if not items:
-                continue
-
-            current_chunk, current_length = [], 0
-            chunk_start_idx_in_filtered_list = 0
-
-            for i, item in enumerate(items):
-                item_length = item.get_token_count(item.source_text) if limit_type == "token" else 1
-
-                # 新 chunk 开始时，记录它在筛选后列表中的起始索引
-                if not current_chunk:
-                    chunk_start_idx_in_filtered_list = i
-
-                if current_chunk and (current_length + item_length > limit_count):
-                    chunks.append(current_chunk)
-                    previous_chunks.append(
-                        self.generate_previous_chunks(items, previous_line_count, chunk_start_idx_in_filtered_list)
-                    )
-                    file_paths.append(file.storage_path)
-                    current_chunk, current_length = [], 0
-                    chunk_start_idx_in_filtered_list = i
-
-                current_chunk.append(item)
-                current_length += item_length
-
-            if current_chunk:
-                chunks.append(current_chunk)
-                previous_chunks.append(
-                    self.generate_previous_chunks(items, previous_line_count, chunk_start_idx_in_filtered_list)
-                )
-                file_paths.append(file.storage_path)
-
-        return chunks, previous_chunks, file_paths
+        return generate_item_chunks(self.project, limit_type, limit_count, previous_line_count)
 
     # 缓存内容访问与更新
     def get_file_hierarchy(self) -> Dict[str, List[str]]:

@@ -124,13 +124,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.update_task_action_button(self.ACTION_STOP)
         self.reset_btn.setEnabled(False)
 
-        self.emit(
-            Base.EVENT.TASK_START,
-            {
-                "continue_status": False,
-                "current_mode": TaskType.TRANSLATION,
-            },
-        )
+        self.config_backend().start_translation(continue_status=False)
 
         self.ui_update_timer.start()
 
@@ -142,7 +136,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
 
         if message_box.exec():
             self.info("正在停止任务 ... ")
-            self.emit(Base.EVENT.TASK_STOP, {})
+            self.config_backend().stop_task()
 
     def command_task_action(self) -> None:
         if self.task_action_mode == self.ACTION_CONTINUE:
@@ -155,13 +149,7 @@ class BottomCommandBar(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.update_task_action_button(self.ACTION_STOP)
         self.reset_btn.setEnabled(False)
 
-        self.emit(
-            Base.EVENT.TASK_START,
-            {
-                "continue_status": True,
-                "current_mode": TaskType.TRANSLATION,
-            },
-        )
+        self.config_backend().start_translation(continue_status=True)
 
         self.ui_update_timer.start()
 

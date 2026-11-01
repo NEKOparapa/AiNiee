@@ -11,6 +11,11 @@ from Backend.domain.models.cache_item import CacheItem
 class CacheFile(ThreadSafeCache, ExtraMixin):
     """文件元数据"""
 
+    file_id: str = ""
+    media_type: str = ""
+    source_ref: dict[str, Any] = field(default_factory=dict)
+    media_metadata: dict[str, Any] = field(default_factory=dict)
+
     storage_path: str = ""
     """文件相对路径"""
 

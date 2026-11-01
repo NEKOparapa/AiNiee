@@ -1,29 +1,26 @@
-"""The explicit command/event contract shared by the server and desktop client."""
+"""Named backend notifications adapted to desktop-only UI events."""
 from Frontend.core.base import Base
 
+PROTOCOL_VERSION = 2
 E = Base.EVENT
-COMMANDS = frozenset((
-    E.TASK_START, E.TASK_STOP, E.TASK_MANUAL_EXPORT, E.TASK_MANUAL_SAVE_CACHE,
-    E.ANALYSIS_TASK_START, E.API_TEST_START, E.GLOSS_TASK_START,
-    E.TABLE_TRANSLATE_START, E.TABLE_POLISH_START, E.TABLE_PROOFREAD_START,
-))
-TABLE_UPDATES = frozenset((
-    E.TABLE_BASIC_UPDATE, E.TABLE_SEARCH_UPDATE, E.TABLE_LANGUAGE_CHECK_UPDATE,
-    E.TABLE_RULE_CHECK_UPDATE, E.TABLE_TERMINOLOGY_CHECK_UPDATE, E.TABLE_UPDATE,
-))
-TABLE_DONE = frozenset((
-    E.TABLE_BASIC_DONE, E.TABLE_SEARCH_DONE, E.TABLE_LANGUAGE_CHECK_DONE,
-    E.TABLE_RULE_CHECK_DONE, E.TABLE_TERMINOLOGY_CHECK_DONE,
-))
-NOTIFICATIONS = frozenset((
-    E.API_TEST_DONE, E.TASK_UPDATE, E.TASK_STOP_DONE, E.TASK_COMPLETED,
-    E.CACHE_FILE_AUTO_SAVE, E.GLOSS_TASK_DONE, E.ANALYSIS_TASK_UPDATE,
-    E.ANALYSIS_TASK_DONE,
-)) | TABLE_UPDATES | TABLE_DONE
-TERMINAL_EVENTS = TABLE_DONE | frozenset((
-    E.API_TEST_DONE, E.GLOSS_TASK_DONE, E.ANALYSIS_TASK_DONE,
-    E.TASK_STOP_DONE, E.TASK_COMPLETED,
-))
+TABLE_VIEW_EVENTS = {
+    "basic": (E.TABLE_BASIC_UPDATE, E.TABLE_BASIC_DONE),
+    "search": (E.TABLE_SEARCH_UPDATE, E.TABLE_SEARCH_DONE),
+    "language_check": (E.TABLE_LANGUAGE_CHECK_UPDATE, E.TABLE_LANGUAGE_CHECK_DONE),
+    "rule_check": (E.TABLE_RULE_CHECK_UPDATE, E.TABLE_RULE_CHECK_DONE),
+    "terminology_check": (E.TABLE_TERMINOLOGY_CHECK_UPDATE, E.TABLE_TERMINOLOGY_CHECK_DONE),
+}
+NOTIFICATION_EVENTS = {
+    "translation.progress": E.TASK_UPDATE,
+    "translation.stopped": E.TASK_STOP_DONE,
+    "translation.completed": E.TASK_COMPLETED,
+    "analysis.progress": E.ANALYSIS_TASK_UPDATE,
+    "analysis.completed": E.ANALYSIS_TASK_DONE,
+    "api_test.completed": E.API_TEST_DONE,
+    "glossary.completed": E.GLOSS_TASK_DONE,
+    "project.saved": E.CACHE_FILE_AUTO_SAVE,
+    "project.export.completed": E.PROJECT_EXPORT_DONE,
+}
 
 
 def to_wire(value):
@@ -36,27 +33,41 @@ def to_wire(value):
     return value
 
 
-def event_data_from_wire(data):
+def notification_event(name, data):
+    """Resolve a known notification; numeric IDs never cross the API boundary."""
+    if name in ("table.updated", "table.completed"):
+        events = TABLE_VIEW_EVENTS.get(data.get("view"))
+        if events is None:
+            return None
+        event = events[0 if name == "table.updated" else 1]
+    else:
+        event = NOTIFICATION_EVENTS.get(name)
+        if event is None:
+            return None
     # JSON object keys are strings. Table widgets index their rows with integers.
     if "updated_items" in data:
         data = {**data, "updated_items": {int(k): v for k, v in data["updated_items"].items()}}
-    return data
+    return event, data
 
-def command_failure(event, data, message):
-    """Terminal notification used when a command cannot finish normally."""
+def request_failure(operation, data, message):
+    """Local terminal callback when an explicit HTTP operation is rejected."""
     payload = {"status": "error", "message": message}
-    if event == E.ANALYSIS_TASK_START:
+    if operation == "analysis":
         return E.ANALYSIS_TASK_DONE, {**payload, "analysis_data": None}
-    if event == E.GLOSS_TASK_START:
+    if operation == "glossary.translate":
         return E.GLOSS_TASK_DONE, {**payload, "table_id": data.get("table_id"), "request_id": data.get("request_id"), "updated_data": None}
-    if event == E.API_TEST_START:
+    if operation == "api_test":
         return E.API_TEST_DONE, {**payload, "success": [], "failure": [message]}
-    if event == E.TASK_START:
+    if operation == "translation":
         return E.TASK_STOP_DONE, payload
-    if event in (E.TABLE_TRANSLATE_START, E.TABLE_POLISH_START, E.TABLE_PROOFREAD_START):
-        done = data.get("done_event")
-        if done in TABLE_DONE:
-            return done, {**payload, "file_path": data.get("file_path"), "updated_item_count": 0}
+    if operation in ("table.translate", "table.polish", "table.proofread"):
+        events = TABLE_VIEW_EVENTS.get(data.get("view"))
+        if events:
+            return events[1], {
+                **payload, "operation": operation.split(".", 1)[1],
+                "file_path": data.get("file_path"), "updated_item_count": 0,
+                "updated_file_count": 0,
+            }
     return None
 
 

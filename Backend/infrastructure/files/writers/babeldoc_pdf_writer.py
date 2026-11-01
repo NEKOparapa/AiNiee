@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from Backend.domain.models.cache_file import CacheFile
 from Backend.domain.models.cache_project import ProjectType
@@ -13,23 +14,14 @@ from Backend.infrastructure.files.writers.base_writer import (
 
 
 class BabeldocPdfWriter(BaseBilingualWriter, BaseTranslatedWriter):
-    def __init__(self, output_config: OutputConfig, tmp_directory='babeldoc_cache'):
+    def __init__(self, output_config: OutputConfig, tmp_directory=None):
         super().__init__(output_config)
-        self.tmp_directory = tmp_directory
-        
-        # 获取输入根路径
-        root_path = output_config.input_root
-        # 如果输入路径存在且是文件（即用户选择了单文件进行处理），则使用其父目录
-        if root_path and root_path.is_file():
-            root_path = root_path.parent
-            
-        self.abs_tmp_directory = root_path / self.tmp_directory
-        
-        self.file_accessor = BabeldocPdfAccessor(self.abs_tmp_directory, output_config)
+        self._temporary = TemporaryDirectory(prefix="ainiee-pdf-write-")
+        self.abs_tmp_directory = Path(self._temporary.name)
+        self.file_accessor = None
 
     def __exit__(self, exc_type, exc, exc_tb):
-        if self.abs_tmp_directory.exists():
-            shutil.rmtree(self.abs_tmp_directory)
+        self._temporary.cleanup()
 
     def on_write_translated(
         self, translation_file_path: Path, cache_file: CacheFile,
@@ -57,16 +49,19 @@ class BabeldocPdfWriter(BaseBilingualWriter, BaseTranslatedWriter):
         source_file_path: Path,
         babeldoc_output_attr: str,
     ):
-        result = self.file_accessor.write_content(source_file_path, cache_file.items)
+        metadata = cache_file.extra.get("pdf", {})
+        if self.file_accessor is None or self.file_accessor.parse_options != metadata.get("parse_options", {}):
+            self.file_accessor = BabeldocPdfAccessor(self.abs_tmp_directory, self.output_config, metadata.get("parse_options", {}))
+        result = self.file_accessor.write_content(source_file_path, cache_file.items, metadata)
         babeldoc_path_str = getattr(result, babeldoc_output_attr)
         if babeldoc_path_str and (babeldoc_path := Path(babeldoc_path_str)).exists():
             # 确保目标文件夹存在
             if not translation_file_path.parent.exists():
                 translation_file_path.parent.mkdir(parents=True, exist_ok=True)
                 
-            if translation_file_path.exists():
-                translation_file_path.unlink()
-            babeldoc_path.rename(translation_file_path)
+            shutil.copyfile(babeldoc_path, translation_file_path)
+        else:
+            raise RuntimeError("BabelDOC 没有生成所需输出文件")
 
     @classmethod
     def get_project_type(self):

@@ -12,8 +12,10 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from Backend.api.events import EventHub
-from Backend.api.schemas import CacheCall, Command, ConfigPatch, EditorCall, FolderQuery, ModelQuery, ProjectLoad
+from Backend.api.schemas import CacheCall, ConfigPatch, EditorCall, FolderQuery, ModelQuery, ProjectLoad
 from Backend.application.runtime import BusyError, Runtime
+from Backend.application.pipeline_common import PipelineError
+from Backend.core.protocol import PROTOCOL_VERSION
 
 
 def config_document(config):
@@ -37,7 +39,7 @@ def create_app(runtime=None, token=None):
             await run_in_threadpool(runtime.close)
             hub.loop = None
 
-    app = FastAPI(title="AiNiee Backend", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="AiNiee Backend", version="2.0.0", lifespan=lifespan)
     app.state.runtime = runtime
     app.state.hub = hub
     app.state.shutdown = None
@@ -48,7 +50,15 @@ def create_app(runtime=None, token=None):
 
     @app.exception_handler(BusyError)
     async def busy_error(request, error):
-        return JSONResponse(status_code=409, content={"detail": str(error)})
+        return JSONResponse(status_code=409, content={
+            "detail": str(error), "error": {"code": "BACKEND_BUSY", "message": str(error)},
+        })
+
+    @app.exception_handler(PipelineError)
+    async def pipeline_error(request, error):
+        return JSONResponse(status_code=error.status_code, content={
+            "detail": error.message, "error": error.to_dict(),
+        })
 
     @app.exception_handler(ValueError)
     async def value_error(request, error):
@@ -56,7 +66,7 @@ def create_app(runtime=None, token=None):
 
     @app.get("/health", dependencies=[Depends(authorized)])
     def health():
-        return {"service": "AiNiee", "protocol": 1}
+        return {"service": "AiNiee", "protocol": PROTOCOL_VERSION}
 
     @app.post("/api/editor/{operation}", dependencies=[Depends(authorized)])
     def editor(operation: str, body: EditorCall):
@@ -142,15 +152,20 @@ def create_app(runtime=None, token=None):
     def check(kind: str, params: dict[str, Any]):
         return runtime.check(kind, params)
 
-    @app.post("/api/commands", dependencies=[Depends(authorized)], status_code=202)
-    def command(body: Command):
-        return runtime.command(body.event, body.data)
-
     @app.post("/api/shutdown", dependencies=[Depends(authorized)])
     def shutdown():
-        if app.state.shutdown is None:
-            raise HTTPException(409, "此启动方式不支持远程关闭")
-        app.state.shutdown()
+        with runtime.lock:
+            if runtime.busy and runtime._operation_source == "api":
+                raise PipelineError("BACKEND_BUSY", "外部接口仍在执行，请等待完成后关闭后端", 409)
+            if app.state.shutdown is None:
+                raise HTTPException(409, "此启动方式不支持远程关闭")
+            was_closing = runtime.closing
+            runtime.closing = True
+            try:
+                app.state.shutdown()
+            except Exception:
+                runtime.closing = was_closing
+                raise
         return {"status": "stopping"}
 
     @app.post("/api/models", dependencies=[Depends(authorized)])
@@ -193,6 +208,10 @@ def create_app(runtime=None, token=None):
         finally:
             hub.clients.discard(queue)
 
+    from Backend.api.pipeline import create_pipeline_router
+    app.include_router(create_pipeline_router(runtime, authorized))
+    from Backend.api.tasks import create_task_router
+    app.include_router(create_task_router(runtime, authorized))
     return app
 
 

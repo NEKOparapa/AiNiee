@@ -1,61 +1,48 @@
-import os
-import time
-import threading
+"""Synchronous desktop workflows; Runtime owns admission and background work."""
 import concurrent.futures
+import threading
+from contextlib import contextmanager
+from dataclasses import replace
 
-from tqdm import tqdm
-
-from Backend.core.base import Base
+from Backend.application.execution_context import ExecutionContext
+from Backend.application.pipeline_common import PipelineError
+from Backend.application.tasks.analysis_task import AnalysisTask
+from Backend.application.tasks.proofread_task import ProofreadTask
 from Backend.core.config import ConfigMixin
 from Backend.core.log import LogMixin
-from Backend.domain.models.cache_item import TranslationStatus
-from Backend.infrastructure.cache import CacheManager
-from Backend.domain.models.cache_project import CacheProjectStatistics
-from Backend.domain.config.task_type import TaskType
-from Backend.application.tasks.analysis_task import AnalysisTask
-from Backend.application.tasks.translator_task import TranslatorTask
-from Backend.application.tasks.proofread_task import ProofreadTask
 from Backend.domain.config.task_config import TaskConfig
-from Backend.domain.prompts.prompt_builder import PromptBuilder
-from Backend.domain.prompts.prompt_builder_enum import PromptBuilderEnum
-from Backend.domain.prompts.prompt_builder_local import PromptBuilderLocal
-from Backend.domain.prompts.prompt_builder_sakura import PromptBuilderSakura
-from Backend.domain.prompts.glossary_helper import GlossaryHelper
-from Backend.domain.text.filters.text_filter import TextFilter
+from Backend.domain.models.cache_project import CacheProject, CacheProjectStatistics
 from Backend.domain.text.translation_result_check import TranslationResultCheck
-from Backend.infrastructure.llm.llm_client_factory import LLMClientFactory
-from Backend.infrastructure.llm.request_limiter import RequestLimiter
-from Backend.domain.languages import (
-    get_most_common_language,
-    get_source_language_for_file,
-    map_language_name_to_code,
-)
 
 
-# 翻译器
-class TaskExecutor(ConfigMixin, LogMixin, Base):
-
-    def __init__(self, cache_manager, file_reader, file_writer) -> None:
-        super().__init__()
-
-        # 初始化
+class TaskExecutor(ConfigMixin, LogMixin):
+    def __init__(self, cache_manager, file_reader=None, file_writer=None) -> None:
         self.cache_manager = cache_manager
         self.file_reader = file_reader
         self.file_writer = file_writer
         self.config = TaskConfig()
-        self.text_filter = TextFilter()
         self.translation_result_check = TranslationResultCheck()
-        self.request_limiter = RequestLimiter()
         self._executor_lock = threading.RLock()
         self._active_executor = None
+        self._active_context = None
+        self.translation_clock_running = False
+        self._closed = False
 
-        # 注册事件
-        self.subscribe(Base.EVENT.ANALYSIS_TASK_START, self.analysis_task_start)
-        self.subscribe(Base.EVENT.TABLE_PROOFREAD_START, self.table_proofread_start)
-        self.subscribe(Base.EVENT.TASK_STOP, self.task_stop)
-        self.subscribe(Base.EVENT.TASK_START, self.task_start)
-        self.subscribe(Base.EVENT.TASK_MANUAL_EXPORT, self.task_manual_export)
-        self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
+    @contextmanager
+    def _using_context(self, context):
+        with self._executor_lock:
+            if self._closed:
+                raise PipelineError("EXECUTOR_CLOSED", "任务执行器已关闭", 503)
+            if self._active_context is not None:
+                raise PipelineError("BUSY", "已有任务正在执行", 409)
+            self._active_context = context
+        try:
+            yield context
+        finally:
+            with self._executor_lock:
+                if self._active_context is context:
+                    self._active_context = None
+                    self.translation_clock_running = False
 
     def _set_active_executor(self, executor: concurrent.futures.ThreadPoolExecutor) -> None:
         with self._executor_lock:
@@ -66,411 +53,155 @@ class TaskExecutor(ConfigMixin, LogMixin, Base):
             if self._active_executor is executor:
                 self._active_executor = None
 
-    def _cancel_active_executor(self) -> None:
+    def close(self) -> None:
+        """Cancel active work; the owner waits for it before closing shared clients."""
         with self._executor_lock:
+            self._closed = True
+            context = self._active_context
             executor = self._active_executor
-
-        if executor is None:
-            return
-
-        try:
+        if context is not None:
+            context.cancel()
+        if executor is not None:
             executor.shutdown(wait=False, cancel_futures=True)
-        except TypeError:
-            executor.shutdown(wait=False)
 
-    def _resolve_output_source_language(self, configured_source: str | None) -> str | None:
-        """解析输出文件使用的原文语言，保留翻译阶段的逐文件自动检测。"""
-        if configured_source != "auto":
-            return map_language_name_to_code(configured_source) if configured_source else None
+    def analyze(self, context=None) -> dict:
+        context = context or ExecutionContext(source="desktop")
+        with self._using_context(context):
+            return AnalysisTask(
+                self.cache_manager, self._set_active_executor,
+                self._clear_active_executor, context=context,
+            ).run()
 
-        detected_language = get_most_common_language(self.cache_manager.project)
-        if detected_language == "un":
-            return None
+    def proofread(self, data, context=None) -> dict:
+        context = context or ExecutionContext(source="desktop")
+        with self._using_context(context):
+            return ProofreadTask(
+                data, self._set_active_executor,
+                self._clear_active_executor, context=context,
+            ).run()
 
-        return map_language_name_to_code(detected_language)
+    def export(self, data=None) -> dict:
+        """Write the selected project's files and return its complete output report."""
+        from Backend.application.write_service import write_model
 
-    @staticmethod
-    def _resolve_output_target_language(configured_target: str | None) -> str | None:
-        """将输出文件使用的译文语言名称转换为 BCP 47 代码。"""
-        return map_language_name_to_code(configured_target) if configured_target else None
-
-    # 应用关闭事件
-    def app_shut_down(self, event: int, data: dict) -> None:
-        Base.work_status = Base.STATUS.STOPING
-        self._cancel_active_executor()
-        LLMClientFactory().close_all_clients()
-
-    def analysis_task_start(self, event: int, data: dict) -> None:
-        if Base.work_status != Base.STATUS.IDLE:
-            return
-        Base.work_status = Base.STATUS.ANALYSIS_TASK
-        threading.Thread(target=self.analysis_start_target, daemon=True).start()
-
-    def table_proofread_start(self, event: int, data: dict) -> None:
-        if Base.work_status not in (Base.STATUS.IDLE, Base.STATUS.TABLE_TASK):
-            return
-
-        with self._executor_lock:
-            if self._active_executor is not None:
-                return
-
-        Base.work_status = Base.STATUS.TABLE_TASK
-        threading.Thread(
-            target=self.table_proofread_start_target,
-            args=(data,),
-            daemon=True,
-        ).start()
-
-    def analysis_start_target(self) -> None:
-        try:
-            analysis_task = AnalysisTask(
-                self.cache_manager,
-                self._set_active_executor,
-                self._clear_active_executor,
-            )
-            analysis_task.run()
-        except Exception as error:
-            self.error(
-                f"分析任务执行失败: {error}",
-                error,
-            )
-            Base.work_status = Base.STATUS.IDLE
-            self.emit(
-                Base.EVENT.ANALYSIS_TASK_DONE,
-                {"status": "error", "analysis_data": None, "message": str(error)},
-            )
-
-    # Table proofreading task event
-    def table_proofread_start_target(self, data: dict) -> None:
-        try:
-            proofread_task = ProofreadTask(
-                data,
-                self._set_active_executor,
-                self._clear_active_executor,
-            )
-            proofread_task.run()
-        except Exception as error:
-            self.error(
-                f"AI 自动校对任务执行失败：{error}",
-                error,
-            )
-            if Base.work_status == Base.STATUS.STOPING:
-                Base.work_status = Base.STATUS.TASKSTOPPED
+        with self._using_context(ExecutionContext(source="desktop")):
+            if self.cache_manager.project is None:
+                raise PipelineError("NO_PROJECT", "项目数据尚未加载")
+            config = TaskConfig.read_snapshot()
+            output_path = (data or {}).get("export_path") or config.get("label_output_path")
+            languages = self.cache_manager.project.translation_context or {}
+            result = write_model(self.cache_manager.project, {
+                "output_dir": output_path, "mode": "both", "overwrite": True,
+                "translated_suffix": config.get("output_filename_suffix", "_translated"),
+                "bilingual_suffix": "_bilingual",
+                "bilingual_order": config.get("bilingual_text_order", "translation_first"),
+                "keep_original_encoding": config.get("keep_original_encoding", False),
+                "source_language": languages.get("source_language") or config.get("source_language", "auto"),
+                "target_language": languages.get("target_language") or config.get("target_language", "chinese_simplified"),
+            })
+            if result["status"] == "success":
+                self.info(f"翻译结果已成功保存至 {output_path} 目录。")
             else:
-                Base.work_status = Base.STATUS.IDLE
+                self.warning("部分或全部文件未能导出，请检查输出报告")
+            return result
 
-    # 手动导出事件
-    def task_manual_export(self, event: int, data: dict) -> None:
+    def translate(self, continue_status=False, context=None) -> dict:
+        """Translate with the existing batch workers, save progress, then export."""
+        from Backend.application.translation_service import resolve_translation_config, translate_model
+        from Backend.application.write_service import write_model
 
-        self.print("")
-        self.info(f"正在读取数据，准备输出中 ...")
-        self.print("")
+        caller_context = context or ExecutionContext(source="desktop")
+        baseline = {}
 
-        # 获取配置信息，此时 config 是一个字典，后面需要使用get
-        config = self.load_config()
-        
-        output_path = data.get("export_path")
-        inpput_path = config.get("label_input_path")
+        def cumulative_statistics(current):
+            merged = dict(current)
+            for key in ("total_requests", "error_requests", "token", "total_completion_tokens", "time"):
+                merged[key] = merged.get(key, 0) + baseline.get(key, 0)
+            # Desktop progress uses this origin for its live clock. Move it back
+            # by recorded work time, excluding the pause between separate calls.
+            if merged.get("start_time"):
+                merged["start_time"] -= max(0, baseline.get("time", 0))
+            # The service already counts retained translations in line/total_line.
+            return merged
 
-        # 输出配置包
-        output_config = {
-            "translated_suffix": config.get('output_filename_suffix'),
-            "bilingual_suffix": "_bilingual",
-            "bilingual_order": config.get('bilingual_text_order','translation_first'),
-            "source_lang_code": self._resolve_output_source_language(config.get('source_language')),
-            "target_lang_code": self._resolve_output_target_language(config.get('target_language')),
-        }
+        def prepared(model):
+            # Keep worker-owned data separate from cache snapshots and UI edits.
+            with self.cache_manager.file_lock:
+                self.cache_manager.project = CacheProject.from_dict(model.to_dict())
+                self.cache_manager.project.stats_data = CacheProjectStatistics.from_dict(
+                    cumulative_statistics(model.stats_data.to_dict())
+                )
+                self.project_status_data = self.cache_manager.project.stats_data
+                self.translation_clock_running = True
+            self.cache_manager.save_to_file()
+            if caller_context.on_model_prepared:
+                caller_context.on_model_prepared(model)
 
-        # 写入文件
-        try:
-            self.file_writer.output_translated_content(
-                self.cache_manager.project,
-                output_path,
-                inpput_path,
-                output_config,
-            )
-        except Exception as error:
-            self.print("")
-            self.error(f"导出失败：{error}", error)
-            self.print("")
-            return False
-
-        self.print("")
-        self.info(f"翻译结果已成功保存至 {output_path} 目录。")
-        self.print("")
-        return True
-
-    # 任务停止事件
-    def task_stop(self, event: int, data: dict) -> None:
-        # 设置运行状态为停止中
-        Base.work_status = Base.STATUS.STOPING
-        self._cancel_active_executor()
-        LLMClientFactory().close_all_clients()
-
-        def target() -> None:
-            while True:
-                time.sleep(0.5)
-                if Base.work_status in (Base.STATUS.TASKSTOPPED, Base.STATUS.IDLE):
-                    self.print("")
-                    self.info("任务已停止 ...")
-                    self.print("")
-                    self.emit(Base.EVENT.TASK_STOP_DONE, {})
-                    break
-
-        # 子线程循环检测停止状态
-        threading.Thread(target = target).start()
-
-    # 任务开始事件
-    def task_start(self, event: int, data: dict) -> None:
-        # 获取配置信息
-        continue_status = data.get("continue_status")
-        current_mode = data.get("current_mode")
-
-        def run_task_target(target_func, *args) -> None:
-            try:
-                target_func(*args)
-            except Exception as e:
-                self.print("")
-                self.error(f"任务启动失败或执行异常 ... {e}", e)
-                self.print("")
-
-                Base.work_status = Base.STATUS.TASKSTOPPED
-                self._cancel_active_executor()
-                LLMClientFactory().close_all_clients()
-                self.emit(Base.EVENT.TASK_STOP_DONE, {})
-
-        # 翻译任务
-        if current_mode == TaskType.TRANSLATION:
-            threading.Thread(
-                target = run_task_target,
-                args = (self.translation_start_target, continue_status,),
-            ).start()
-        
-        else:
-            self.print("")
-            self.error(f"非法的翻译模式：{current_mode}，请检查配置文件 ...")
-            self.print("")
-            return None
-
-    # 翻译主流程
-    def translation_start_target(self, continue_status: bool) -> None:
-
-        # 设置翻译状态为正在翻译状态
-        Base.work_status = Base.STATUS.TASKING
-
-        # 读取配置文件，并保存到该类中
-        self.config.initialize("translate")
-
-        # 配置当前激活接口信息
-        self.config.prepare_for_active_platform("translate")
-        self.config.load_project_table_data(self.cache_manager)
-
-        # 配置请求限制器
-        self.request_limiter.set_limit(self.config.rpm_limit)
-
-        # 初开始翻译时，生成监控数据
-        if continue_status == False:
-            self.project_status_data = CacheProjectStatistics()
-            self.cache_manager.project.stats_data = self.project_status_data
-        # 继续翻译时加载存储的监控数据
-        else:
-            self.project_status_data = self.cache_manager.project.stats_data
-            self.project_status_data.start_time = time.time() # 重置开始时间
-            self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
-
-        # 重新同步计数器以反映缓存的当前真实状态（未考虑到被过滤条目）    
-        
-        # 更新监控面板信息
-        self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
-
-        # 无效文本过滤
-        self.text_filter.filter_project(self.config, self.cache_manager.project)
-
-        # 根据最大轮次循环
-        for current_round in range(self.config.round_limit + 1):
-            # 检测是否需要停止任务
-            if Base.work_status == Base.STATUS.STOPING:
-                # 循环次数比实际最大轮次要多一轮，当触发停止翻译的事件时，最后都会从这里退出任务
-                # 执行到这里说明停止任意的任务已经执行完毕，可以重置内部状态了
-                Base.work_status = Base.STATUS.TASKSTOPPED
-                return None
-
-            # 获取 待翻译 状态的条目数量
-            item_count_status_untranslated = self.cache_manager.get_item_count_by_status(TranslationStatus.UNTRANSLATED)
-
-            # 判断是否需要继续翻译
-            if item_count_status_untranslated == 0:
-                self.print("")
-                self.info("所有文本均已翻译，翻译任务已结束 ...")
-                self.print("")
-                break
-
-            # 达到最大翻译轮次时
-            if item_count_status_untranslated > 0 and current_round == self.config.round_limit:
-                self.print("")
-                self.warning("已达到最大翻译轮次，仍有部分文本未翻译，请检查结果 ...")
-                self.print("")
-                break
-
-            # 第一轮时且不是继续翻译时，记录总行数
-            if current_round == 0 and continue_status == False:
-                self.project_status_data.total_line = item_count_status_untranslated
-
-            # 第二轮开始对半切分
-            if current_round > 0:
-                self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
-                self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
-
-            # 生成缓存数据条目片段的合集列表，原文列表与上文列表一一对应
-            chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
-                "line" if self.config.tokens_limit_switch == False else "token",
-                self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
-                self.config.pre_line_counts,
-            )
-
-            # 生成翻译任务合集列表
-            tasks_list = []
-            print("")
-            self.info(f"正在生成翻译任务 ...")
-            for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成翻译任务", total=len(chunks)):
-                if Base.work_status == Base.STATUS.STOPING:
-                    break
-
-                # 确定该任务的主语言
-                language_stats = self.cache_manager.project.get_file(file_path).language_stats # 获取该文件的语言检测数据
-                file_source_lang = get_source_language_for_file(self.config.source_language,self.config.target_language,language_stats)
-
-                task = TranslatorTask(self.config, self.request_limiter, file_source_lang)  # 实例化
-                task.set_items(chunk)  # 传入该任务待翻译原文
-                task.set_previous_items(previous_chunk)  # 传入该任务待翻译原文的上文
-                task.prepare(self.config.target_platform)  # 预先构建消息列表
-                tasks_list.append(task)
-            GlossaryHelper.clear_cache()
-            if Base.work_status == Base.STATUS.STOPING:
-                Base.work_status = Base.STATUS.TASKSTOPPED
-                return None
-            self.info(f"已经生成全部翻译任务 ...")
-            self.print("")
-
-            # 输出开始翻译的日志
-            self.print("")
-            self.info(f"当前轮次 - {current_round + 1}")
-            self.info(f"最大轮次 - {self.config.round_limit}")
-            self.info(f"项目类型 - {self.config.translation_project}")
-            self.info(f"原文语言 - {self.config.source_language}")
-            self.info(f"译文语言 - {self.config.target_language}")
-            self.print("")
-            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get('name', '未知')}")
-            self.info(f"接口地址 - {self.config.base_url}")
-            self.info(f"模型名称 - {self.config.model}")
-            self.print("")
-            self.info(f"RPM 限额 - {self.config.rpm_limit}")
-
-            # 根据提示词规则打印基础指令
-            system = ""
-            s_lang = self.config.source_language
-            if self.config.target_platform.startswith("LocalLLM"):   # 需要放在前面，以免提示词预设的分支覆盖
-                system = PromptBuilderLocal.build_system(self.config, s_lang)
-            elif self.config.target_platform.startswith("sakura"):  # 需要放在前面，以免提示词预设的分支覆盖
-                system = PromptBuilderSakura.build_system(self.config, s_lang)
-            elif PromptBuilderEnum.normalize_translation_preset(self.config.translation_prompt_selection["last_selected_id"]) in (
-                PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.LOCAL,
-            ):
-                system = PromptBuilder.build_system(self.config, s_lang)
-            else:
-                system = self.config.translation_prompt_selection["prompt_content"]
-            self.print("")
-            if system:
-                self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
-
-            self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks_list)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
-            time.sleep(3)
-            self.print("")
-
-            # 开始执行翻译任务,构建异步线程池
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator")
-            self._set_active_executor(executor)
-            try:
-                for task in tasks_list:
-                    if Base.work_status == Base.STATUS.STOPING:
-                        break
-
-                    try:
-                        future = executor.submit(task.start)
-                    except RuntimeError:
-                        if Base.work_status == Base.STATUS.STOPING:
-                            break
-                        raise
-
-                    future.add_done_callback(self.task_done_callback)  # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
-            finally:
-                try:
-                    executor.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
-                finally:
-                    self._clear_active_executor(executor)
-
-        # 等待可能存在的缓存文件写入请求处理完毕
-        time.sleep(CacheManager.SAVE_INTERVAL)
-
-        # 输出配置包
-        output_config = {
-             "translated_suffix": self.config.output_filename_suffix,
-             "bilingual_suffix": "_bilingual",
-             "bilingual_order": self.config.bilingual_text_order,
-             "source_lang_code": self._resolve_output_source_language(self.config.source_language),
-             "target_lang_code": self._resolve_output_target_language(self.config.target_language),
-        }
-
-        # 写入文件
-        self.file_writer.output_translated_content(
-            self.cache_manager.project,
-            self.config.label_output_path,
-            self.config.label_input_path,
-            output_config,
-        )
-        self.print("")
-        self.info(f"翻译结果已保存至 {self.config.label_output_path} 目录 ...")
-        self.print("")
-
-        # 重置内部状态（正常完成翻译）
-        Base.work_status = Base.STATUS.TASKSTOPPED
-
-        # 触发翻译停止完成的事件
-        self.emit(Base.EVENT.TASK_STOP_DONE, {})
-
-        if self.translation_result_check.is_enabled(self.config):
-            self.translation_result_check.check_cache(self.config, self.cache_manager.project)
-
-
-        # 触发翻译完成事件
-        self.emit(Base.EVENT.TASK_COMPLETED, {})
-
-    # 单个翻译任务完成时,更新项目进度状态   
-    def task_done_callback(self, future: concurrent.futures.Future) -> None:
-        try:
-            # 获取结果
-            result = future.result()
-
-            # 结果为空则跳过后续的更新步骤
-            if result == None or len(result) == 0:
-                return
-
-            # 更新翻译进度到缓存数据
-            with self.project_status_data.atomic_scope():
-                self.project_status_data.total_requests += 1
-                self.project_status_data.error_requests += 0 if result.get("check_result") else 1
-                self.project_status_data.line += result.get("row_count", 0)
-                self.project_status_data.token += result.get("prompt_tokens", 0) + result.get("completion_tokens", 0)
-                self.project_status_data.total_completion_tokens += result.get("completion_tokens", 0)
-                self.project_status_data.time = time.time() - self.project_status_data.start_time
-                stats_dict = self.project_status_data.to_dict()
-
-            # 请求保存缓存文件
+        def completed(items, file_path, statistics):
+            with self.cache_manager.file_lock:
+                file = self.cache_manager.project.get_file(file_path)
+                for item in items:
+                    cached = file.get_item(item.text_index)
+                    with cached.atomic_scope():
+                        cached.translated_text = item.translated_text
+                        cached.translation_status = item.translation_status
+                        cached.model = item.model
+                self.project_status_data = CacheProjectStatistics.from_dict(cumulative_statistics(statistics))
+                self.cache_manager.project.stats_data = self.project_status_data
             self.cache_manager.require_save_to_file()
+            if caller_context.on_batch_complete:
+                caller_context.on_batch_complete(items, file_path, cumulative_statistics(statistics))
 
-            # 触发翻译进度更新事件
-            self.emit(Base.EVENT.TASK_UPDATE, stats_dict)
-        except concurrent.futures.CancelledError:
-            return
-        except Exception as e:
-            self.error(f"翻译任务错误 ... {e}", e)
+        def progress(statistics):
+            if caller_context.on_progress:
+                caller_context.on_progress({
+                    **cumulative_statistics(statistics),
+                    "elapsed_running": self.translation_clock_running,
+                })
+
+        # replace preserves cancellation and every other callback, without
+        # mutating the caller's context.
+        service_context = replace(
+            caller_context, on_model_prepared=prepared,
+            on_batch_complete=completed, on_progress=progress,
+        )
+        with self._using_context(service_context):
+            if self.cache_manager.project is None:
+                raise PipelineError("NO_PROJECT", "项目数据尚未加载")
+            # The desktop's Start action confirms a fresh translation; Continue
+            # retains completed rows and accumulates their statistics.
+            self.config = resolve_translation_config({"retranslate": not continue_status})
+            previous_statistics = self.cache_manager.project.stats_data
+            if continue_status and previous_statistics:
+                baseline = previous_statistics.to_dict()
+            result = translate_model(self.cache_manager.project, self.config, service_context)
+            self.translation_clock_running = False
+            statistics = cumulative_statistics(result["model"].stats_data.to_dict())
+            result["model"].stats_data = CacheProjectStatistics.from_dict(statistics)
+            result["report"]["statistics"] = statistics
+            with self.cache_manager.file_lock:
+                self.cache_manager.project = result["model"]
+                self.project_status_data = result["model"].stats_data
+            self.cache_manager.save_to_file()
+            if service_context.is_cancelled() or result["report"].get("operation_errors"):
+                return result
+
+            output = write_model(result["model"], {
+                "output_dir": self.config.label_output_path,
+                "mode": "both", "overwrite": True,
+                "translated_suffix": self.config.output_filename_suffix,
+                "bilingual_suffix": "_bilingual",
+                "bilingual_order": self.config.bilingual_text_order,
+                "keep_original_encoding": self.config.keep_original_encoding,
+            })
+            result["output"] = output
+            if output["status"] == "failed":
+                result["status"] = "failed"
+            else:
+                if output["status"] == "partial":
+                    if result["status"] == "success":
+                        result["status"] = "partial"
+                    self.warning("部分文件导出失败，请检查输出报告")
+                if self.translation_result_check.is_enabled(self.config):
+                    self.translation_result_check.check_cache(self.config, self.cache_manager.project)
+            return result

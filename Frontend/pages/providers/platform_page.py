@@ -405,12 +405,23 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         if Base.work_status == Base.STATUS.IDLE:
             Base.work_status = Base.STATUS.API_TEST
             data = copy.deepcopy(platform)
-            self.emit(Base.EVENT.API_TEST_START, data)
+            self.config_backend().test_api(data)
         else:
             self.warning_toast("", self.tra("接口测试正在执行中，请稍后再试"))
 
     def api_test_done(self, event: int, data: dict):
         Base.work_status = Base.STATUS.IDLE
+        status = data.get("status")
+        message = str(data.get("message", "")).strip()
+        if status in ("cancelled", "stopped"):
+            self.info_toast("", message or self.tra("接口测试已停止。"))
+            return
+        if status in ("error", "failed"):
+            self.error_toast("", message or self.tra("接口测试失败。"))
+            return
+        if status == "partial":
+            self.warning_toast("", message or self.tra("接口测试部分完成。"))
+            return
         if len(data.get("failure", [])) > 0:
             info_cont = (
                 self.tra("测试完成：成功")

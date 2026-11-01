@@ -27,14 +27,7 @@ def _local_endpoint(url):
 
 
 def _check_health(client, timeout):
-    try:
-        health = client.request("GET", "/health", timeout=timeout)
-    except ValueError as error:
-        raise BackendError("连接地址未返回有效的 AiNiee 后端信息") from error
-    if not isinstance(health, dict) or health.get("service") != "AiNiee":
-        raise BackendError("连接地址不是 AiNiee 后端服务")
-    if health.get("protocol") != 1:
-        raise BackendError("后端协议版本不兼容")
+    client.check_health(timeout=timeout)
 
 
 def _not_ready(error):

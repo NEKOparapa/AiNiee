@@ -21,6 +21,8 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
     _encoding_error_msg: ClassVar[str] = ""
 
     # 实例字段
+    item_id: str = ''
+    locator: dict[str, Any] = field(default_factory=dict)
     text_index: int = 0
     translation_status: int = 0
     model: str = ''
@@ -34,11 +36,19 @@ class CacheItem(ThreadSafeCache, ExtraMixin):
     """额外属性，用于存储特定reader产生的原文片段的额外属性，共用属性请加到CacheItem中"""
 
     def __post_init__(self):
-        """初始化后处理，确保字符串字段不为 None"""
+        """Keep spreadsheet/Trans scalar cells compatible with the text model."""
         if self.source_text is None:
             self.source_text = ""
-        if self.translated_text is None:
+        elif isinstance(self.source_text, (int, float)):
+            # GeneralTextFilter historically did this after reading. Perform it
+            # before JSON/schema validation as readers can return scalar cells.
+            # bool is also a numeric scalar in Python, and must stay excluded.
+            self.source_text = str(self.source_text)
+            self.translation_status = TranslationStatus.EXCLUDED
+        if self.translated_text is None or isinstance(self.translated_text, bool):
             self.translated_text = ""
+        elif isinstance(self.translated_text, (int, float)):
+            self.translated_text = str(self.translated_text)
 
     @property
     def final_text(self) -> str:

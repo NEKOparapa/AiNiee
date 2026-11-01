@@ -236,6 +236,7 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
             return
 
         Base.work_status = Base.STATUS.TABLE_TASK
+        translate_jobs = []
         total = 0
         for file_path, items in by_file.items():
             try:
@@ -243,18 +244,16 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
             except Exception:
                 language_stats = None
 
-            self.emit(
-                Base.EVENT.TABLE_TRANSLATE_START,
+            translate_jobs.append(
                 {
                     "file_path": file_path,
                     "items_to_translate": items,
                     "language_stats": language_stats,
-                    "update_event": self.UPDATE_EVENT,
-                    "done_event": self.DONE_EVENT,
-                },
+                }
             )
             total += len(items)
 
+        self.config_backend().translate_table({"translate_jobs": translate_jobs, "view": "search"})
         self.info_toast(self.tra("提示"), self.tra("已提交 {} 行文本的翻译任务。").format(total))
 
     def _delete_selected_items(self):
@@ -323,13 +322,27 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
         status = data.get("status")
         file_path = data.get("file_path", "")
         updated_item_count = data.get("updated_item_count", 0)
-        file_name = os.path.basename(file_path) if file_path else self.tra("当前文件")
+        updated_file_count = data.get("updated_file_count", 0)
+        file_name = os.path.basename(file_path) if file_path else ""
+        message = str(data.get("message", "")).strip()
 
         if operation == "translate":
             if status == "success":
-                self.success_toast(self.tra("完成"), self.tra("搜索结果翻译完成，文件 '{}' 已更新 {} 行。").format(file_name, updated_item_count))
+                if file_name:
+                    self.success_toast(self.tra("完成"), self.tra("搜索结果翻译完成，文件 '{}' 已更新 {} 行。").format(file_name, updated_item_count))
+                else:
+                    self.success_toast(self.tra("完成"), self.tra("搜索结果翻译完成，已更新 {} 个文件中的 {} 行。").format(updated_file_count, updated_item_count))
             elif status == "empty":
-                self.warning_toast(self.tra("提示"), self.tra("搜索结果翻译结束，但文件 '{}' 没有可回写的结果。").format(file_name))
+                if file_name:
+                    self.warning_toast(self.tra("提示"), self.tra("搜索结果翻译结束，但文件 '{}' 没有可回写的结果。").format(file_name))
+                else:
+                    self.warning_toast(self.tra("提示"), self.tra("搜索结果翻译结束，但没有可回写的结果。"))
+            elif status == "partial":
+                self.warning_toast(self.tra("部分完成"), message or self.tra("搜索结果翻译部分完成，已更新 {} 行。").format(updated_item_count))
+            elif status in ("cancelled", "stopped"):
+                self.info_toast(self.tra("已取消"), message or self.tra("搜索结果翻译已取消，已保留 {} 行结果。").format(updated_item_count))
+            elif status == "error":
+                self.error_toast(self.tra("失败"), message or self.tra("搜索结果翻译失败。"))
 
     def _on_replace_all_clicked(self):
         find_text = self.find_input.text()

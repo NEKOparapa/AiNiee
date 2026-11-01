@@ -1,4 +1,5 @@
 from Backend.core.base import Base
+from Backend.infrastructure.llm.request_control import request_cancelled
 from Backend.core.log import LogMixin
 from Backend.infrastructure.llm.llm_client_factory import LLMClientFactory
 
@@ -44,7 +45,7 @@ class SakuraRequester(LogMixin, Base):
             # 提取回复的文本内容
             response_content = response.choices[0].message.content
         except Exception as e:
-            if Base.work_status == Base.STATUS.STOPING:
+            if request_cancelled(platform_config):
                 return True, None, None, None, None
             self.error(f"请求任务错误 ... {e}", e)
             return True, None, None, None, None

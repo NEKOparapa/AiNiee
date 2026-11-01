@@ -30,10 +30,11 @@ from Backend.domain.text.epub_markup import (
 
 class TranslatorTask(LogMixin, Base):
 
-    def __init__(self, config: TaskConfig, request_limiter: RequestLimiter, source_lang) -> None:
+    def __init__(self, config: TaskConfig, request_limiter: RequestLimiter, source_lang, context=None) -> None:
         super().__init__()
 
         self.config = config
+        self.context = context
         self.request_limiter = request_limiter
         self.text_normalizer = TextNormalizer()
         self.text_processor = TextProcessor(self.config) # 文本处理器
@@ -130,22 +131,27 @@ class TranslatorTask(LogMixin, Base):
 
         while True:
             # 检测是否收到停止翻译事件
-            if Base.work_status == Base.STATUS.STOPING:
-                return {}
+            if self.context is not None and self.context.is_cancelled():
+                return {"check_result": False, "row_count": 0, "cancelled": True, "error": "操作已取消"}
 
             # 检查是否超时，超时则直接跳过当前任务，以避免死循环
             if time.time() - task_start_time >= self.config.request_timeout:
-                return {}
+                return {"check_result": False, "row_count": 0, "error": "等待请求限流超时"}
 
             # 检查 RPM 和单次 token 上限，如果符合条件，则继续
             if self.request_limiter.check_limiter(self.request_tokens_consume):
                 break
 
             # 如果以上条件都不符合，则间隔 1 秒再次检查
-            time.sleep(1)
+            if self.context is not None:
+                self.context.cancel_event.wait(0.1)
+            else:
+                time.sleep(1)
 
         # 获取接口配置信息包
         platform_config = self.config.get_active_platform_configuration()
+        if self.context is not None:
+            platform_config["is_cancelled"] = self.context.is_cancelled
 
         # 发起请求
         requester = LLMRequester()
@@ -162,6 +168,7 @@ class TranslatorTask(LogMixin, Base):
                 "row_count": 0,
                 "prompt_tokens": self.request_tokens_consume,
                 "completion_tokens": 0,
+                "error": "模型请求失败",
             }
 
         # 返空判断
@@ -185,6 +192,7 @@ class TranslatorTask(LogMixin, Base):
                 "row_count": 0,
                 "prompt_tokens": self.request_tokens_consume,
                 "completion_tokens": 0,
+                "error": "模型回复内容为空",
             }         
 
         # 提取回复内容
@@ -275,6 +283,7 @@ class TranslatorTask(LogMixin, Base):
                 "row_count": 0,
                 "prompt_tokens": self.request_tokens_consume,
                 "completion_tokens": 0,
+                "error": error_content,
             }
         else:
             return {

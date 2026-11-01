@@ -1,40 +1,32 @@
 from Frontend.core.events import EventManager
 
 
-# 事件列表
+# 前端本地 UI 通知；后端业务通过 BackendClient 的明确方法调用。
 class Event:
     API_TEST_DONE = 100                             # API 测试完成
-    API_TEST_START = 101                            # API 测试开始
 
-    TASK_START = 210                                # 翻译开始
     TASK_UPDATE = 220                               # 翻译状态更新
-    TASK_STOP = 230                                 # 翻译停止
     TASK_STOP_DONE = 231                            # 翻译停止完成
     TASK_COMPLETED = 232                            # 翻译完成
     TASK_CONTINUE_CHECK = 240                       # 继续翻译状态检查
     TASK_CONTINUE_CHECK_DONE = 241                  # 继续翻译状态检查完成
-    TASK_MANUAL_EXPORT = 250                        # 翻译结果手动导出
-    TASK_MANUAL_SAVE_CACHE = 251                    # 手动保存缓存文件
 
     CACHE_FILE_AUTO_SAVE = 300                      # 缓存文件自动保存
+    BACKEND_REQUEST_REJECTED = 301                  # 本地 UI 请求失败通知
+    PROJECT_EXPORT_DONE = 302                      # 本地 UI 导出结果通知
 
     APP_UPDATE_CHECK: int = 600                     # 检查更新
     APP_UPDATE_CHECK_DONE: int = 610                # 检查更新完成
     APP_UPDATE_DOWNLOAD: int = 620                  # 下载应用
     APP_UPDATE_DOWNLOAD_UPDATE: int = 630           # 下载应用更新
 
-    GLOSS_TASK_START = 700                          # 术语表翻译开始
     GLOSS_TASK_DONE = 701                           # 术语表翻译完成
 
-    ANALYSIS_TASK_START = 720                       # 分析任务开始
     ANALYSIS_TASK_UPDATE = 721                      # 分析任务更新
     ANALYSIS_TASK_DONE = 722                        # 分析任务完成
 
-    TABLE_TRANSLATE_START = 800                     # 表格翻译开始
     TABLE_TRANSLATE_DONE = 801                      # 表格翻译完成
-    TABLE_POLISH_START = 810                        # 表格润色开始
     TABLE_POLISH_DONE = 811                         # 表格润色完成
-    TABLE_PROOFREAD_START = 820                     # 表格校对开始
     TRANSLATION_CHECK_START = 840                   # 语言检查开始
 
     TABLE_BASIC_DONE = 885                          # 基础表格任务完成

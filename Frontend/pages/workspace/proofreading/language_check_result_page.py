@@ -95,6 +95,7 @@ class LanguageCheckResultPage(ConfigMixin, Base, QWidget):
                 self,
                 update_event=Base.EVENT.TABLE_LANGUAGE_CHECK_UPDATE,
                 done_event=Base.EVENT.TABLE_LANGUAGE_CHECK_DONE,
+                view="language_check",
             )
 
         return CheckStatusPage(

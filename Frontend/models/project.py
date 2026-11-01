@@ -27,6 +27,8 @@ class Snapshot:
 
 @dataclass
 class CacheItem(Snapshot):
+    item_id: str = ""
+    locator: dict = field(default_factory=dict)
     text_index: int = 0
     translation_status: int = 0
     model: str = ""
@@ -43,6 +45,10 @@ class CacheItem(Snapshot):
 
 @dataclass
 class CacheFile(Snapshot):
+    file_id: str = ""
+    media_type: str = ""
+    source_ref: dict = field(default_factory=dict)
+    media_metadata: dict = field(default_factory=dict)
     storage_path: str = ""
     encoding: str = "utf-8"
     file_project_type: str = ""
@@ -83,6 +89,8 @@ class CacheProjectStatistics(Snapshot):
 
 @dataclass
 class CacheProject(Snapshot):
+    schema_version: int = 2
+    translation_context: dict = field(default_factory=dict)
     project_id: str = ""
     project_type: str = ""
     project_name: str = ""

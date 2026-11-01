@@ -1,8 +1,7 @@
 import concurrent.futures
 from collections import defaultdict
 
-from Backend.core.base import Base
-from Backend.core.config import ConfigMixin
+from Backend.application.execution_context import ExecutionContext
 from Backend.core.log import LogMixin
 from Backend.infrastructure.llm.llm_requester import LLMRequester
 from Backend.infrastructure.llm.request_limiter import RequestLimiter
@@ -13,117 +12,113 @@ from Backend.domain.text.epub_markup import (
 )
 
 
-class ProofreadTask(ConfigMixin, LogMixin, Base):
+class ProofreadTask(LogMixin):
     MAX_REQUEST_ATTEMPTS = 2  # 单条数据最大重试次数
 
-    def __init__(self, task_data: dict, set_active_executor, clear_active_executor) -> None:
+    def __init__(self, task_data: dict, set_active_executor=None, clear_active_executor=None, context=None) -> None:
         super().__init__()
         self.task_data = task_data or {}
-        self._set_active_executor = set_active_executor
-        self._clear_active_executor = clear_active_executor
+        self._set_active_executor = set_active_executor or (lambda executor: None)
+        self._clear_active_executor = clear_active_executor or (lambda executor: None)
+        self.context = context or ExecutionContext()
         self.config = TaskConfig()
         self.request_limiter = RequestLimiter()
 
-    def run(self) -> None:
-        try:
-            # 1. 解析任务数据
-            proofread_jobs = self._normalize_jobs(self.task_data)
-            if not proofread_jobs:
-                self._finish()
+    def run(self) -> dict:
+        updates_by_file = defaultdict(dict)
+        success_count = failed_count = processed_count = total_items = 0
+        errors = []
+        callbacks_enabled = True
+        futures = set()
+        handled = set()
+        executor = None
+
+        def collect(future):
+            nonlocal success_count, failed_count, processed_count, callbacks_enabled
+            if future in handled or future.cancelled():
                 return
-
-            # 2. 初始化配置和限速器
-            self.config.initialize("proofread")
-            self.config.prepare_for_active_platform("proofread")
-            self.request_limiter.set_limit(self.config.rpm_limit)
-
-            # 3. 展平任务：将所有需要校对的行转为独立的单个任务 (1行 = 1请求)
-            single_tasks = self._flatten_jobs(proofread_jobs)
-            total_items = len(single_tasks)
-            if not total_items:
-                self._finish()
-                return
-
-            self.info("开始执行 AI 自动校对任务 ...")
-            self.info(
-                "校对配置：共 {0} 个文件，{1} 条内容，并发线程 {2}，单条最多重试 {3} 次。".format(
-                    len(proofread_jobs),
-                    total_items,
-                    self.config.actual_thread_counts,
-                    self.MAX_REQUEST_ATTEMPTS,
-                )
-            )
-
-            updates_by_file = defaultdict(dict)
-            success_count = 0
-            failed_count = 0
-            processed_count = 0
-            progress_interval = self._get_progress_interval(total_items)
-
-            # 4. 并发执行单行校对任务
-            executor = concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.config.actual_thread_counts,
-                thread_name_prefix="proofreader",
-            )
-            self._set_active_executor(executor)
-
+            handled.add(future)
+            processed_count += 1
             try:
-                futures = []
-                for idx, task_info in enumerate(single_tasks, start=1):
-                    if Base.work_status == Base.STATUS.STOPING:
-                        break
-                    # 注入当前任务的进度索引信息，方便打印日志
-                    task_info["task_idx"] = idx
-                    task_info["total_tasks"] = total_items
-                    futures.append(executor.submit(self._run_single_item, task_info))
-
-                for future in concurrent.futures.as_completed(futures):
-                    if Base.work_status == Base.STATUS.STOPING:
-                        break
-                        
-                    try:
-                        result = future.result()
-                    except concurrent.futures.CancelledError:
-                        continue
-                    except Exception as error:
-                        self.error(f"单条校对任务执行异常：{error}")
-                        failed_count += 1
-                        processed_count += 1
-                        self._log_progress(processed_count, total_items, success_count, failed_count, progress_interval)
-                        continue
-
-                    if not result:
-                        failed_count += 1
-                        processed_count += 1
-                        self._log_progress(processed_count, total_items, success_count, failed_count, progress_interval)
-                        continue
-
-                    success_count += 1
-                    processed_count += 1
-                    file_path = result["file_path"]
-                    text_index = result["text_index"]
-                    corrected_text = result["corrected_text"]
-                    
-                    updates_by_file[file_path][text_index] = corrected_text
-                    self._log_progress(processed_count, total_items, success_count, failed_count, progress_interval)
-
-            finally:
+                result = future.result()
+            except Exception as error:
+                self.error(f"单条校对任务执行异常：{error}")
+                result = None
+            if result:
+                success_count += 1
+                updates_by_file[result["file_path"]][result["text_index"]] = result["corrected_text"]
+            elif not self.context.is_cancelled():
+                failed_count += 1
+            if callbacks_enabled:
                 try:
-                    executor.shutdown(wait=True, cancel_futures=Base.work_status == Base.STATUS.STOPING)
-                finally:
-                    self._clear_active_executor(executor)
+                    if result and self.context.on_result:
+                        self.context.on_result({
+                            "file_path": result["file_path"], "target_column_index": 2,
+                            "translation_status": TranslationStatus.POLISHED,
+                            "updated_items": {result["text_index"]: result["corrected_text"]},
+                        })
+                    self._log_progress(processed_count, total_items, success_count, failed_count,
+                                       self._get_progress_interval(total_items))
+                except Exception as error:
+                    errors.append(str(error))
+                    self.context.cancel()
+                    callbacks_enabled = False
 
-            self.info("AI 自动校对处理完成：成功 {0} 条，失败 {1} 条。".format(success_count, failed_count))
-            
-            # 5. 触发更新事件落盘
-            self._emit_updates(updates_by_file)
-            self._emit_done_event(updates_by_file, success_count, failed_count)
-            self._finish()
-            
+        try:
+            jobs = self._normalize_jobs(self.task_data)
+            single_tasks = self._flatten_jobs(jobs)
+            total_items = len(single_tasks)
+            if single_tasks and not self.context.is_cancelled():
+                self.config = TaskConfig.from_snapshot(TaskConfig.read_snapshot(), interface_role="proofread")
+                self.request_limiter.set_limit(self.config.rpm_limit)
+                workers = max(1, int(self.config.actual_thread_counts))
+                executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers, thread_name_prefix="proofreader")
+                self._set_active_executor(executor)
+                next_index = 0
+                pending = set()
+                while pending or (next_index < total_items and not self.context.is_cancelled()):
+                    while next_index < total_items and len(pending) < workers and not self.context.is_cancelled():
+                        task = {**single_tasks[next_index], "task_idx": next_index + 1, "total_tasks": total_items}
+                        future = executor.submit(self._run_single_item, task)
+                        futures.add(future)
+                        pending.add(future)
+                        next_index += 1
+                    if not pending:
+                        break
+                    done, pending = concurrent.futures.wait(pending, return_when=concurrent.futures.FIRST_COMPLETED)
+                    for future in done:
+                        collect(future)
         except Exception as error:
+            errors.append(str(error))
+            self.context.cancel()
+            callbacks_enabled = False
             self.error(f"AI 自动校对任务执行失败：{error}", error)
-            Base.work_status = Base.STATUS.IDLE
-            raise
+        finally:
+            if executor:
+                try:
+                    executor.shutdown(wait=True, cancel_futures=self.context.is_cancelled())
+                    for future in futures:
+                        collect(future)
+                finally:
+                    try:
+                        self._clear_active_executor(executor)
+                    except Exception as error:
+                        errors.append(str(error))
+        count = sum(len(items) for items in updates_by_file.values())
+        if errors:
+            status = "partial" if count else "error"
+        elif self.context.is_cancelled():
+            status = "cancelled"
+        else:
+            status = "success" if count else "empty"
+        return {
+            "operation": "proofread", "status": status,
+            "updated_file_count": len(updates_by_file), "updated_item_count": count,
+            "success_count": success_count, "failed_count": failed_count, "total_items": total_items,
+            "file_paths": list(updates_by_file), "updates_by_file": dict(updates_by_file),
+            "translation_status": TranslationStatus.POLISHED,
+            "operation_errors": errors, "message": "; ".join(errors),
+        }
 
     def _normalize_jobs(self, data: dict) -> list[dict]:
         """标准化前端传来的数据结构"""
@@ -176,7 +171,7 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
 
     def _run_single_item(self, task_info: dict) -> dict | None:
         """执行单条校对任务，带重试机制"""
-        if Base.work_status == Base.STATUS.STOPING:
+        if self.context.is_cancelled():
             return None
 
         file_path = task_info["file_path"]
@@ -187,12 +182,13 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
         text_index = item["text_index"]
         
         current_platform_config = self.config.get_active_platform_configuration("proofread")
+        current_platform_config["is_cancelled"] = self.context.is_cancelled
         messages, system_prompt = self._build_single_proofread_prompt(item)
 
         last_error = ""
         # 重试流水线
         for attempt in range(1, self.MAX_REQUEST_ATTEMPTS + 1):
-            if Base.work_status == Base.STATUS.STOPING:
+            if self.context.is_cancelled():
                 return None
 
             try:
@@ -315,68 +311,6 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
 
             return messages, system_prompt
 
-    def _emit_updates(self, updates_by_file: dict) -> None:
-        """向主线程/UI发射更新事件"""
-        updated_file_count = 0
-        updated_item_count = 0
-        update_event = self.task_data.get("update_event", Base.EVENT.TABLE_UPDATE)
-        for file_path, updated_items in updates_by_file.items():
-            if not updated_items:
-                continue
-
-            updated_file_count += 1
-            updated_item_count += len(updated_items)
-            self.emit(
-                update_event,
-                {
-                    "file_path": file_path,
-                    "target_column_index": 2, # 通常2为翻译列
-                    "translation_status": TranslationStatus.POLISHED,
-                    "updated_items": dict(updated_items),
-                },
-            )
-
-        if updated_item_count > 0:
-            self.info("校对结果已回写：共更新 {0} 个文件，{1} 条内容。".format(updated_file_count, updated_item_count))
-
-    def _emit_done_event(self, updates_by_file: dict, success_count: int, failed_count: int) -> None:
-        done_event = self.task_data.get("done_event")
-        if done_event is None:
-            return
-
-        updated_file_count = 0
-        updated_item_count = 0
-        file_paths = []
-        for file_path, updated_items in updates_by_file.items():
-            if not updated_items:
-                continue
-
-            updated_file_count += 1
-            updated_item_count += len(updated_items)
-            file_paths.append(file_path)
-
-        self.emit(
-            done_event,
-            {
-                "operation": "proofread",
-                "status": "success" if updated_item_count > 0 else "empty",
-                "updated_file_count": updated_file_count,
-                "updated_item_count": updated_item_count,
-                "success_count": success_count,
-                "failed_count": failed_count,
-                "file_paths": file_paths,
-            },
-        )
-
-    def _finish(self) -> None:
-        """收尾状态更新"""
-        if Base.work_status == Base.STATUS.STOPING:
-            Base.work_status = Base.STATUS.TASKSTOPPED
-            self.info("AI 自动校对任务已停止。")
-        else:
-            Base.work_status = Base.STATUS.IDLE
-            self.info("AI 自动校对任务已结束。")
-
     def _get_progress_interval(self, total_items: int) -> int:
         if total_items <= 10:
             return 1
@@ -390,6 +324,11 @@ class ProofreadTask(ConfigMixin, LogMixin, Base):
         failed_count: int,
         progress_interval: int,
     ) -> None:
+        if self.context.on_progress:
+            self.context.on_progress({
+                "operation": "proofread", "current": processed_count, "total": total_items,
+                "success_count": success_count, "failed_count": failed_count,
+            })
         if processed_count != total_items and processed_count % progress_interval != 0:
             return
 

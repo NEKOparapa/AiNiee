@@ -11,6 +11,16 @@ from Backend.core.platform.platform_paths import is_windows
 _log = logging.getLogger(__name__)
 
 
+def migrate_retired_project_type(config: dict) -> bool:
+    """Retire Word automation selections without relabeling historical caches."""
+    if config.get("translation_project") not in ("OfficeConversionPdf", "OfficeConversionDoc"):
+        return False
+    previous = config["translation_project"]
+    config["translation_project"] = "AutoType"
+    _log.warning("项目类型 %s 已移除，已切换为自动识别；旧 DOC 请先转换为 DOCX", previous)
+    return True
+
+
 def _move_if_unique(src, dst) -> bool:
     """src 存在 → 搬到 dst。
 

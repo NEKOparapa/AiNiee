@@ -1,4 +1,5 @@
 from Backend.core.base import Base
+from Backend.infrastructure.llm.request_control import request_cancelled
 from Backend.core.log import LogMixin
 from Backend.infrastructure.llm.llm_client_factory import LLMClientFactory
 
@@ -307,7 +308,7 @@ class OpenaiRequester(LogMixin, Base):
                     raise ValueError(f"无法解析响应内容，原始响应: {raw_text[:500]}")
 
         except Exception as e:
-            if Base.work_status == Base.STATUS.STOPING:
+            if request_cancelled(platform_config):
                 return True, None, None, None, None
             self.error(f"请求任务错误 ... {e}", e)
             return True, None, None, None, None

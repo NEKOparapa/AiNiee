@@ -36,7 +36,7 @@ class LrcWriter(BaseTranslatedWriter):
             output_lines.append(f"[{subtitle_time}]{subtitle_text}\n")
 
         # 输出已经翻译的文件
-        translation_file_path.write_text("".join(output_lines), encoding=pre_write_metadata.encoding)
+        translation_file_path.write_text("".join(output_lines), encoding=pre_write_metadata.encoding, newline=cache_file.line_ending)
 
     @classmethod
     def get_project_type(self):

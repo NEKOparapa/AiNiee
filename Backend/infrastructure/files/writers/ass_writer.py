@@ -61,7 +61,7 @@ class AssWriter(BaseBilingualWriter, BaseTranslatedWriter):
                 for dialogue_line in line_generator(item):
                     output_lines.append(dialogue_line)
 
-        translation_file_path.write_text("\n".join(output_lines), encoding=pre_write_metadata.encoding)
+        translation_file_path.write_text("\n".join(output_lines), encoding=pre_write_metadata.encoding, newline=cache_file.line_ending)
 
     def _yield_translated_line(self, item: CacheItem) -> Iterator[str]:
         """生成单句翻译的Dialogue行"""

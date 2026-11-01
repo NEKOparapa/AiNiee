@@ -1,6 +1,7 @@
+import copy
 import re
 import threading
-import urllib
+import urllib.request
 
 import rapidjson as json
 
@@ -184,6 +185,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
 
     # 读取配置文件，并记录当前任务要使用的接口角色
     def initialize(self, interface_role: str = "active") -> None:
+        self._snapshot_mode = False
         self.interface_role = self._normalize_interface_role(interface_role)
         self.prepared_interface_role = None
         self.target_platform = None
@@ -199,6 +201,53 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             setattr(self, key, value)
 
         TableConfigHelper.apply_runtime_snapshot(self)
+
+    @classmethod
+    def read_snapshot(cls) -> dict:
+        """Read configuration without migration, normalization writes or backups."""
+        from Backend.core.paths import config_path
+        from Backend.infrastructure.config.defaults import get_defaults
+        from Backend.infrastructure.config.store import ConfigStore
+
+        result = get_defaults()
+        with ConfigStore.CONFIG_FILE_LOCK:
+            path = config_path()
+            if path.exists():
+                with path.open("r", encoding="utf-8") as reader:
+                    saved = json.load(reader)
+                if not isinstance(saved, dict):
+                    raise ValueError("配置根节点必须是对象")
+                result.update(saved)
+        return copy.deepcopy(result)
+
+    @classmethod
+    def from_snapshot(cls, snapshot: dict, interface_role: str = "translate", provider_id: str | None = None):
+        """Resolve an operation-owned configuration; never save global settings."""
+        from Backend.infrastructure.config.defaults import get_defaults
+        from Backend.domain.config.prompt_selection import TranslationPromptConfigHelper
+        from Backend.domain.text.regex import RegexSwitchHelper
+
+        instance = cls()
+        instance._snapshot_mode = True
+        instance.interface_role = instance._normalize_interface_role(interface_role)
+        instance.prepared_interface_role = None
+        values = get_defaults()
+        values.update(copy.deepcopy(snapshot))
+        RegexSwitchHelper.normalize_config(values)
+        TableConfigHelper.normalize_config(values)
+        TranslationPromptConfigHelper.normalize_config(values)
+        values = instance._normalize_api_settings(values, persist=False)
+        if provider_id is not None:
+            if provider_id not in values.get("platforms", {}):
+                raise ValueError("指定的 provider_id 不存在")
+            values["api_settings"][instance.interface_role] = provider_id
+        instance._source_snapshot = copy.deepcopy(values)
+        for key, value in values.items():
+            if not key.startswith("_"):
+                setattr(instance, key, value)
+        TableConfigHelper.apply_runtime_snapshot(instance)
+        instance.prepare_for_active_platform(instance.interface_role)
+        return instance
 
     # API_URL 自动处理方法
     def process_api_url(self, raw_url: str, target_platform: str, auto_complete: bool, api_format: str = "") -> str:
@@ -261,7 +310,8 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
     # 准备当前角色对应的接口配置
     def prepare_for_active_platform(self, interface_role: str | None = None) -> None:
         self.interface_role = self._normalize_interface_role(interface_role or getattr(self, "interface_role", "active"))
-        self.sync_active_platform_settings()
+        if not getattr(self, "_snapshot_mode", False):
+            self.sync_active_platform_settings()
 
         # 获取目标平台
         self.target_platform = self.get_active_platform_tag(self.interface_role)
@@ -302,9 +352,10 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             self.label_output_path = auto_output_dir(self.label_input_path)
 
         # 保存新配置
-        config = self.load_config()
-        config["label_output_path"] = self.label_output_path
-        self.save_config(config)
+        if not getattr(self, "_snapshot_mode", False):
+            config = self.load_config()
+            config["label_output_path"] = self.label_output_path
+            self.save_config(config)
 
         # 计算实际线程数
         self.actual_thread_counts = self.thread_counts_setting(
@@ -337,7 +388,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         try:
             num = -1
             url = url.replace("/v1", "") if url.endswith("/v1") else url
-            with urllib.request.urlopen(f"{url}/slots") as response:
+            with urllib.request.urlopen(f"{url}/slots", timeout=10) as response:
                 data = json.loads(response.read().decode("utf-8"))
                 num = len(data) if data is not None and len(data) > 0 else num
         except Exception:
