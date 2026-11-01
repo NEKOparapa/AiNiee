@@ -1,4 +1,3 @@
-import copy
 import re
 import time
 import itertools
@@ -198,100 +197,73 @@ class TranslatorTask(LogMixin, Base):
         # 提取回复内容
         response_dict = ResponseExtractor.text_extraction(self, self.source_text_dict, response_content)
 
-        # 检查回复内容
-        check_result, error_content = ResponseChecker.check_response_content(
-            self,
-            self.config,
-            self.placeholder_order,
-            response_content,
-            response_dict,
-            self.source_text_dict,
-            self.source_lang
+        # Alignment is a batch invariant; semantic failures belong to an item.
+        batch_error, item_errors = ResponseChecker.check_response_items(
+            self.config, self.placeholder_order, response_content,
+            response_dict, self.source_text_dict, self.source_lang,
         )
+        response_dict = (ResponseExtractor.remove_numbered_prefix(self, response_dict)
+                         if isinstance(response_dict, dict) else {})
+        accepted = {}
+        if not batch_error:
+            for index, item in enumerate(self.items):
+                key = str(index)
+                if key in item_errors:
+                    continue
+                try:
+                    restored = self.text_processor.restore_all(
+                        self.config, {key: response_dict[key]}, self.prefix_codes, self.suffix_codes,
+                        self.placeholder_order, self.affix_whitespace_storage,
+                    )
+                    restored = self.text_symbol_repair.repair_response_dict(self.config, restored)
+                    response = self.text_symbol_repair.repair_text(self.config, item.source_text, restored[key])
+                    if not isinstance(response, str) or not response.strip():
+                        item_errors[key] = "【译文为空】 - 后处理后未获得有效译文"
+                    elif not validate_tokens(item.source_text, response):
+                        item_errors[key] = "【EPUB 注释】 - 后处理后的链接标记不完整，将重新翻译"
+                    else:
+                        accepted[key] = response
+                except Exception as error:
+                    from Backend.core.log_system import redact
+                    item_errors[key] = "【后处理失败】 - " + redact(str(error))
 
-        # 去除回复内容的数字序号
-        response_dict = ResponseExtractor.remove_numbered_prefix(self, response_dict)
+        # Commit only independently validated items. Existing batching selects
+        # UNTRANSLATED items, so later rounds retry just the rejected ones.
+        for key, response in accepted.items():
+            item = self.items[int(key)]
+            with item.atomic_scope():
+                item.model = self.config.model
+                item.translated_text = response
+                item.translation_status = TranslationStatus.TRANSLATED
 
-        if check_result:
-            restore_response_dict = self.text_processor.restore_all(
-                self.config, copy.copy(response_dict), self.prefix_codes, self.suffix_codes,
-                self.placeholder_order, self.affix_whitespace_storage,
-            )
-            restore_response_dict = self.text_symbol_repair.repair_response_dict(self.config, restore_response_dict)
-            final_responses = [
-                self.text_symbol_repair.repair_text(self.config, item.source_text, restore_response_dict[str(i)])
-                for i, item in enumerate(self.items)
-            ]
-            # 后处理也可能改写标记；整批验证成功之后才能写入缓存。
-            if any(not validate_tokens(item.source_text, response)
-                   for item, response in zip(self.items, final_responses)):
-                check_result = False
-                error_content = "【EPUB 注释】 - 后处理后的链接标记不完整，将重新翻译"
-
-        # 模型回复日志
+        check_result = not batch_error and not item_errors
+        error_content = batch_error or next(iter(item_errors.values()), "")
         if response_think:
             self.extra_log.append("模型思考内容：\n" + response_think)
         self.extra_log.append("模型回复内容：\n" + response_content)
-
-        # 检查译文
-        if check_result == False:
-            error = f"译文文本未通过检查，将在下一轮次的翻译中重新翻译 - {error_content}"
-
-            # 打印任务结果
-            self.print(
-                self.generate_log_table(
-                    *self.generate_log_rows(
-                        error,
-                        task_start_time,
-                        prompt_tokens,
-                        completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
-                        self.extra_log,
-                    )
-                )
-            )
-        else:
-            # 更新译文结果到缓存数据中
-            for item, response in zip(self.items, final_responses):
-                with item.atomic_scope():
-                    item.model = self.config.model
-                    item.translated_text = response
-                    item.translation_status = TranslationStatus.TRANSLATED
-
-
-            # 打印任务结果
-            self.print(
-                self.generate_log_table(
-                    *self.generate_log_rows(
-                        "",
-                        task_start_time,
-                        prompt_tokens,
-                        completion_tokens,
-                        self.source_text_dict.values(),
-                        response_dict.values(),
-                        self.extra_log,
-                    )
-                )
-            )
-
-
-        # 否则返回译文检查的结果
-        if check_result == False:
-            return {
-                "check_result": False,
-                "row_count": 0,
-                "prompt_tokens": self.request_tokens_consume,
-                "completion_tokens": 0,
-                "error": error_content,
+        log_error = ""
+        if not check_result:
+            log_error = (f"已保留 {len(accepted)}/{self.row_count} 项有效译文，"
+                         f"其余将在下一轮次重试 - {error_content}")
+        self.print(self.generate_log_table(*self.generate_log_rows(
+            log_error, task_start_time, prompt_tokens, completion_tokens,
+            self.source_text_dict.values(), response_dict.values(), self.extra_log,
+        )))
+        result = {
+            "check_result": check_result,
+            "row_count": len(accepted),
+            # A rejected/partial response was still billed by the provider.
+            "prompt_tokens": prompt_tokens if prompt_tokens is not None else self.request_tokens_consume,
+            "completion_tokens": completion_tokens if completion_tokens is not None else 0,
+        }
+        if not check_result:
+            result["error"] = error_content
+            result["item_errors"] = {
+                item.item_id: batch_error or item_errors[str(index)]
+                for index, item in enumerate(self.items)
+                if batch_error or str(index) in item_errors
             }
-        else:
-            return {
-                "check_result": check_result,
-                "row_count": self.row_count,
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-            }
+        return result
 
 
     # 生成日志行

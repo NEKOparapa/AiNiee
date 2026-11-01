@@ -29,6 +29,7 @@ from Frontend.pages.workspace.edit_view_page import EditViewPage
 from Frontend.platform.macos import about_message, app_menu_title, command_shortcut
 from Frontend.pages.providers.platform_page import PlatformPage
 from Frontend.pages.providers.transcription_page import TranscriptionPage
+from Frontend.pages.providers.ocr_page import OcrPage
 from Frontend.pages.prompts.extraction.extraction_prompt_page import ExtractionPromptPage
 from Frontend.pages.logs.log_view_page import LogViewPage
 from Frontend.pages.settings.advanced_settings_page import AdvancedSettingsPage
@@ -357,6 +358,11 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.transcription_page = TranscriptionPage("transcription_page", self)
         self.addSubInterface(
             self.transcription_page, FluentIcon.MICROPHONE, self.tra("转录接口"),
+            parent=self.interface_management_navigation,
+        )
+        self.ocr_page = OcrPage("ocr_page", self)
+        self.addSubInterface(
+            self.ocr_page, FluentIcon.PHOTO, self.tra("OCR 接口"),
             parent=self.interface_management_navigation,
         )
 

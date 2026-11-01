@@ -4,7 +4,7 @@ import re
 
 
 # 检查多行文本回复内容行数是否正确
-def check_multiline_text( source_text_dict, translated_dict):
+def check_multiline_text(source_text_dict, translated_dict, *, check_single=False):
     """
     检查输入字典中的多行文本块是否正确翻译，包括行数和每行内容的完整性。
 
@@ -16,7 +16,7 @@ def check_multiline_text( source_text_dict, translated_dict):
         bool: 所有多行文本块检查通过返回True，否则返回False。
     """
 
-    if (len(source_text_dict) == 1) and (len(translated_dict) == 1):
+    if not check_single and (len(source_text_dict) == 1) and (len(translated_dict) == 1):
         return True  # 一行就不检查了
 
     # 获取排序后的key，确保按数字顺序检查
@@ -120,10 +120,10 @@ def check_placeholders_exist(placeholder_info: dict, translated_dict: dict) -> b
 
 
 # 检查两个字典是否完全相同，即返回了原文
-def check_dicts_equal(dict1, dict2):
+def check_dicts_equal(dict1, dict2, *, check_single=False):
 
     # 不检测双行及以下
-    if len(dict1) >=3 :
+    if check_single or len(dict1) >=3 :
         i = 0
         s = 0
         for key, value in dict1.items():
@@ -170,7 +170,7 @@ def check_dicts_equal(dict1, dict2):
 
 
 # 检查残留原文的算法
-def detecting_remaining_original_text(dictA, dictB, language):
+def detecting_remaining_original_text(dictA, dictB, language, *, check_single=False):
 
     # 使用复制变量，避免影响到原变量
     dict_src = dictA.copy()
@@ -181,7 +181,7 @@ def detecting_remaining_original_text(dictA, dictB, language):
         return True
 
     # 避免检查单或者少行字典
-    if len(dict_src) <=1 :
+    if not check_single and len(dict_src) <=1 :
         return True
 
     # 不同语言的通用标点符号字符集

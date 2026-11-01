@@ -2,15 +2,17 @@
 from fastapi import APIRouter, Depends
 
 from Backend.api.pipeline_schemas import (
-    DocumentReadRequest, MediaReadRequest, ModelResponse, PdfReadRequest,
+    DocumentReadRequest, ModelResponse, PdfReadRequest,
     TranslateRequest, WriteRequest, WriteResponse,
 )
 from Backend.api.audio_schemas import (
     AudioReadRequest, AudioTranslateRequest, AudioTranslateResponse,
     SubtitleWriteRequest, TranscribeRequest,
 )
+from Backend.api.image_schemas import (
+    ImageReadRequest, OcrRequest, ImageWriteRequest, ImageTranslateRequest, ImagePipelineResponse,
+)
 from Backend.application.execution_context import ExecutionContext
-from Backend.application.pipeline_common import PipelineError
 from Backend.core.protocol import to_wire
 
 
@@ -30,9 +32,35 @@ def create_pipeline_router(runtime, authorized):
         with runtime.operation("read/pdf", context=ExecutionContext()):
             return to_wire(read(body.path, body.options.model_dump(exclude_none=True)))
 
-    @router.post("/read/image")
-    def read_image(body: MediaReadRequest):
-        raise PipelineError("IMAGE_READ_NOT_IMPLEMENTED", "图片读取尚未实现", 501)
+    @router.post("/read/image", response_model=ModelResponse)
+    def read_image(body: ImageReadRequest):
+        from Backend.application.image_read_service import read_image as read
+        with runtime.operation("read/image", context=ExecutionContext()):
+            return to_wire(read(body.path, body.options.model_dump()))
+
+    @router.post("/ocr", response_model=ModelResponse)
+    def ocr(body: OcrRequest):
+        from Backend.application.ocr_service import ocr_model
+        context = ExecutionContext(on_progress=runtime.pipeline_progress)
+        with runtime.operation("ocr", context=context):
+            return to_wire(ocr_model(body.model.model_dump(), body.config.model_dump(exclude_none=True), context=context))
+
+    @router.post("/write/image", response_model=ImagePipelineResponse)
+    def write_image(body: ImageWriteRequest):
+        from Backend.application.image_write_service import write_images
+        context = ExecutionContext(on_progress=runtime.pipeline_progress)
+        with runtime.operation("write/image", context=context):
+            return to_wire(write_images(body.model.model_dump(), body.options.model_dump(exclude_none=True), context=context))
+
+    @router.post("/image/translate", response_model=ImagePipelineResponse)
+    def translate_image(body: ImageTranslateRequest):
+        from Backend.application.image_translation_service import translate_image as run
+        context = ExecutionContext(on_progress=runtime.pipeline_progress)
+        with runtime.operation("image/translate", context=context):
+            return to_wire(run(body.path, read_options=body.read_options.model_dump(),
+                               ocr=body.ocr.model_dump(exclude_none=True),
+                               translation=body.translation.model_dump(exclude_none=True),
+                               output=body.output.model_dump(exclude_none=True), context=context))
 
     @router.post("/read/audio", response_model=ModelResponse)
     def read_audio(body: AudioReadRequest):

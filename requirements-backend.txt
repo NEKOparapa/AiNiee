@@ -8,6 +8,9 @@ anthropic>=0.117.0,<1
 google-genai>=2.12.1
 tiktoken>=0.13.0
 numpy>=2.5.1
+Pillow>=10.4
+# Also used by the image renderer; keep the same OpenCV distribution as RapidOCR.
+opencv-python>=4.10
 openpyxl>=3.1.5
 beautifulsoup4>=4.15.0
 lxml>=6.1.1

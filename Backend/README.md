@@ -2,7 +2,7 @@
 
 后端独立管理配置、项目、缓存、翻译、表格条目润色、提取、校对和导出。PyQt 桌面仅通过 HTTP 与 WebSocket 访问后端，两端不导入对方的 Python 模块。
 
-后端提供统一中间模型及 `/api/v2` 接口，同一时刻执行一个顶层操作，单次翻译内部保留多线程批量处理。PDF 仅使用 BabelDOC；Office 自动化转换链及旧 `.doc` 入口已移除，DOCX、PPTX、XLSX 的原生读写保留。音频支持本地读取、在线转录、翻译与字幕导出，图片读取暂返回 501。设计与迁移范围见 [后端改造计划](docs/backend_refactoring_plan.md)，音频用法见 [音频接口](docs/audio_pipeline.md)。
+后端提供统一中间模型及 `/api/v2` 接口，同一时刻执行一个顶层操作，单次翻译内部保留多线程批量处理。PDF 仅使用 BabelDOC；Office 自动化转换链及旧 `.doc` 入口已移除，DOCX、PPTX、XLSX 的原生读写保留。音频支持本地读取、在线转录、翻译与字幕导出；图片支持独立在线 OCR、翻译、擦字回填与中间模型保存。设计与迁移范围见 [后端改造计划](docs/backend_refactoring_plan.md)，具体用法见 [音频接口](docs/audio_pipeline.md) 和 [图片接口](docs/image_pipeline.md)。
 
 超过 5 分钟的音频自动通过 Silero VAD 选择切点，并发提交带上下文重叠的切片，合并回原始时间轴。失败切片可通过返回的中间模型恢复，已完成片不会重复提交；长音频处理需要 FFmpeg。
 
@@ -133,7 +133,10 @@ WebSocket 消息类型为 `connected`、`status`、`notification`、`log`、`set
 | --- | --- |
 | `POST /api/v2/read/document` | `path`、`options.format/exclude_rule` → 文档模型与读取报告；PDF 使用专用接口 |
 | `POST /api/v2/read/pdf` | `path`、可选 `options.pages/exclude_rule` → BabelDOC 模型与报告 |
-| `POST /api/v2/read/image` | 保留 `path` 与空 `options`，返回 `501 IMAGE_READ_NOT_IMPLEMENTED` |
+| `POST /api/v2/read/image` | 读取本地静态图片或目录，记录尺寸、方向和源文件指纹 |
+| `POST /api/v2/ocr` | 独立在线 OCR，返回原文、像素坐标和阅读顺序 |
+| `POST /api/v2/write/image` | 擦字、回填译文，保存图片、遮罩及中间模型 |
+| `POST /api/v2/image/translate` | 读取 → OCR → 现有批量翻译 → 图片导出的串行流程 |
 | `POST /api/v2/read/audio` | `path`、可选 `options.exclude_rule` → 音频引用、媒体元信息及空条目的中间模型 |
 | `POST /api/v2/transcribe` | `model`、可选 `config` → 在线识别后带原文及时间轴的中间模型 |
 | `POST /api/v2/translate` | `model`、`config` → 更新后的模型、用量及逐条失败报告 |

@@ -231,7 +231,7 @@ def translate_model(model, config=None, context=None) -> dict:
                 failures.pop(item.item_id, None)
                 completed_ids.add(item.item_id)
             else:
-                failures[item.item_id] = result.get("error") or "译文未通过检查"
+                failures[item.item_id] = (result.get("item_errors") or {}).get(item.item_id) or result.get("error") or "译文未通过检查"
         statistics.line = len(preserved) + len(completed_ids)
         snapshot = statistics.to_dict()
         if notify and context.on_batch_complete:

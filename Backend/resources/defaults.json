@@ -31,6 +31,25 @@
         },
         "active_transcription_platform": "bailian_asr"
     },
+    "OcrPage": {
+        "ocr_platforms": {
+            "bailian_ocr": {
+                "name": "百炼文字识别",
+                "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
+                "api_key": "",
+                "model": "qwen-vl-ocr",
+                "api_format": "DashScope",
+                "request_timeout": 180,
+                "max_pixels": 8388608,
+                "max_tokens": 4096,
+                "reading_order": "auto",
+                "group_lines": false,
+                "refine_text": false,
+                "max_retries": 0
+            }
+        },
+        "active_ocr_platform": "bailian_ocr"
+    },
     "AppSettingsPage": {
         "proxy_url": "",
         "proxy_enable": false,

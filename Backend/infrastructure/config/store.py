@@ -66,7 +66,7 @@ class ConfigStore:
     def _validate_profile(profile):
         if not isinstance(profile, dict):
             raise ValueError("配置文件的根节点必须是 JSON 对象")
-        for key in ("platforms", "api_settings", "response_check_switch", "transcription_platforms"):
+        for key in ("platforms", "api_settings", "response_check_switch", "transcription_platforms", "ocr_platforms"):
             if key in profile and not isinstance(profile[key], dict):
                 raise ValueError(f"配置字段 {key} 必须是 JSON 对象")
         if any(not isinstance(value, dict) for value in profile.get("platforms", {}).values()):
@@ -93,6 +93,29 @@ class ConfigStore:
             for field in ("chunk_overlap_seconds", "vad_threshold"):
                 if field in platform and (isinstance(platform[field], bool) or not isinstance(platform[field], (int, float))):
                     raise ValueError(f"转录接口字段 {field} 必须是数字")
+        if "active_ocr_platform" in profile and not isinstance(profile["active_ocr_platform"], str):
+            raise ValueError("配置字段 active_ocr_platform 必须是字符串")
+        for identifier, platform in profile.get("ocr_platforms", {}).items():
+            if not isinstance(identifier, str) or not identifier.strip() or not isinstance(platform, dict):
+                raise ValueError("OCR 接口配置必须使用非空字符串 ID 和 JSON 对象")
+            for field in ("name", "api_url", "api_key", "model", "api_format", "reading_order"):
+                if field in platform and not isinstance(platform[field], str):
+                    raise ValueError(f"OCR 接口字段 {field} 必须是字符串")
+            if "request_timeout" in platform and (isinstance(platform["request_timeout"], bool)
+                    or not isinstance(platform["request_timeout"], (int, float))):
+                raise ValueError("OCR 接口字段 request_timeout 必须是数字")
+            for field in ("max_pixels", "max_tokens", "max_retries"):
+                if field in platform and type(platform[field]) is not int:
+                    raise ValueError(f"OCR 接口字段 {field} 必须是整数")
+            ocr_model = platform.get("model", "qwen-vl-ocr").strip()
+            token_limit = {"qwen-vl-ocr": 4096, "qwen-vl-ocr-2025-11-20": 8192}.get(ocr_model, 32768)
+            if not 1 <= platform.get("max_tokens", 4096) <= token_limit:
+                raise ValueError(f"OCR 模型 {ocr_model} 的 max_tokens 必须是 1 至 {token_limit} 的整数")
+            for field in ("group_lines", "refine_text"):
+                if field in platform and type(platform[field]) is not bool:
+                    raise ValueError(f"OCR 接口字段 {field} 必须是布尔值")
+            if platform.get("refine_text", False) and not platform.get("group_lines", False):
+                raise ValueError("复核气泡原文需要先开启“合并相邻文字行”。")
         for kind in TableConfigHelper.KINDS:
             key = f"{kind}_tables"
             if key not in profile:
@@ -265,7 +288,7 @@ class ConfigStore:
         for key, value in new.items():
             # Provider IDs form a user-owned collection. Once initialized, an
             # intentionally deleted default provider must not return at startup.
-            if key == "transcription_platforms" and key in old:
+            if key in ("transcription_platforms", "ocr_platforms") and key in old:
                 continue
             if isinstance(value, dict) and isinstance(old.get(key), dict):
                 old[key] = self.fill_config(old[key], value)
