@@ -30,6 +30,8 @@ from Frontend.platform.macos import about_message, app_menu_title, command_short
 from Frontend.pages.providers.platform_page import PlatformPage
 from Frontend.pages.providers.transcription_page import TranscriptionPage
 from Frontend.pages.providers.ocr_page import OcrPage
+from Frontend.pages.providers.image_generation_page import ImageGenerationPage
+from Frontend.pages.media.workspace_page import ImageTranslationPage, AudioTranslationPage
 from Frontend.pages.prompts.extraction.extraction_prompt_page import ExtractionPromptPage
 from Frontend.pages.logs.log_view_page import LogViewPage
 from Frontend.pages.settings.advanced_settings_page import AdvancedSettingsPage
@@ -137,6 +139,10 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             return
         self._close_in_progress = True
         try:
+            for page in getattr(self, "media_pages", ()):
+                if not page.prepare_to_close():
+                    event.ignore()
+                    return
             info_cont = self.tra("确定退出程序并关闭后端服务？\n后端将停止正在执行的任务并保存缓存。")
             message_box = MessageBox("Warning", info_cont, self)
             message_box.yesButton.setText(self.tra("确认"))
@@ -161,6 +167,8 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             # A native Alt+F4 may send a QCloseEvent without calling QWidget.close.
             # Commit shutdown once, including when another close event is queued.
             self._shutdown_complete = True
+            for page in getattr(self, "media_pages", ()):
+                page.cleanup()
             try:
                 # Local cleanup must run before quitting the Qt event loop.
                 EventManager.get_singleton().process_event(Base.EVENT.APP_SHUT_DOWN, {})
@@ -365,9 +373,19 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             self.ocr_page, FluentIcon.PHOTO, self.tra("OCR 接口"),
             parent=self.interface_management_navigation,
         )
+        self.image_generation_page = ImageGenerationPage("image_generation_page", self)
+        self.addSubInterface(
+            self.image_generation_page, FluentIcon.PHOTO, self.tra("生图接口"),
+            parent=self.interface_management_navigation,
+        )
 
         self.edit_view_page = EditViewPage("edit_view_page", self, cache_manager, file_reader)
         self.addSubInterface(self.edit_view_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)
+        self.image_translation_page = ImageTranslationPage(parent=self)
+        self.audio_translation_page = AudioTranslationPage(parent=self)
+        self.media_pages = (self.image_translation_page, self.audio_translation_page)
+        self.addSubInterface(self.image_translation_page, FluentIcon.PHOTO, self.tra("图片翻译"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.audio_translation_page, FluentIcon.MUSIC, self.tra("音频翻译"), NavigationItemPosition.SCROLL)
 
     def _open_interface_management(self) -> None:
         self.interface_management_item.setExpanded(True)

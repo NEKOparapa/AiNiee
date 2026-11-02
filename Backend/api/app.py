@@ -210,8 +210,14 @@ def create_app(runtime=None, token=None):
 
     from Backend.api.pipeline import create_pipeline_router
     app.include_router(create_pipeline_router(runtime, authorized))
+    from Backend.api.image_generation import create_image_generation_router
+    app.include_router(create_image_generation_router(runtime, authorized))
+    from Backend.api.media import create_media_router
+    app.include_router(create_media_router(runtime, authorized))
     from Backend.api.tasks import create_task_router
     app.include_router(create_task_router(runtime, authorized))
+    from Backend.api.media_operations import create_media_operation_router
+    app.include_router(create_media_operation_router(runtime, authorized))
     return app
 
 

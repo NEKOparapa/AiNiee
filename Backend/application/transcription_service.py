@@ -63,6 +63,12 @@ def transcribe_model(model, config=None, context=None) -> dict:
         "usage": {"requests": 0, "duration": 0, "input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
     }
     changed = False
+    if context.on_model_prepared:
+        try:
+            context.on_model_prepared(project)
+        except Exception:
+            report["operation_errors"].append({"code": "ASR_CALLBACK_FAILED", "message": "无法保存转录初始模型"})
+            return {"status": "failed", "model": project, "report": report}
     for ordinal, cache_file in enumerate(audio_files):
         if context.is_cancelled():
             report["cancelled_files"] = len(audio_files) - ordinal

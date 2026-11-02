@@ -40,6 +40,7 @@ class Runtime(ConfigStore):
         self._started = False
         self._operation_source = None
         self._operation_name = None
+        self._operation_id = None
         self._operation_context = None
         self._operation_done = threading.Event()
         self._operation_done.set()
@@ -134,7 +135,7 @@ class Runtime(ConfigStore):
         result["last_error"] = self.last_error
         result["last_operation"] = self.last_operation
         result["operation"] = (
-            {"source": self._operation_source, "name": self._operation_name}
+            {"source": self._operation_source, "name": self._operation_name, "id": self._operation_id}
             if self.busy else None
         )
         if self._operation_source == "api":
@@ -158,7 +159,7 @@ class Runtime(ConfigStore):
             raise BusyError("后端正在执行任务，请先停止或等待任务完成")
 
     @contextmanager
-    def operation(self, name, *, source="api", context=None):
+    def operation(self, name, *, source="api", context=None, operation_id=None):
         """Reserve one top-level operation; its batches may use many threads.
 
         The lock protects admission only. Never hold it while doing model or
@@ -171,6 +172,7 @@ class Runtime(ConfigStore):
             self._running = True
             self._operation_source = source
             self._operation_name = name
+            self._operation_id = operation_id
             self._operation_context = context
             self._pipeline_progress = {}
             self._operation_done.clear()
@@ -183,6 +185,7 @@ class Runtime(ConfigStore):
                 self._running = False
                 self._operation_source = None
                 self._operation_name = None
+                self._operation_id = None
                 self._operation_context = None
                 self._operation_done.set()
 
@@ -274,6 +277,19 @@ class Runtime(ConfigStore):
             self._operation_context.cancel()
             self._publish({"type": "status", "status": self.status()})
             return self.status()
+
+    def stop_model_operation(self, operation_id):
+        """Cancel only the explicitly identified model call, never another page."""
+        with self.lock:
+            if not self.busy:
+                return {"status": "idle"}
+            if (self._operation_source != "api" or not operation_id
+                    or self._operation_id != operation_id):
+                raise PipelineError("OPERATION_OWNERSHIP", "此操作不属于当前媒体页面，未停止其他任务", 409)
+            if self._operation_context is None:
+                raise PipelineError("OPERATION_NOT_CANCELLABLE", "当前操作需等待完成", 409)
+            self._operation_context.cancel()
+            return {"status": "stopping", "operation_id": operation_id}
 
     def start_translation(self, continue_status=False):
         def action(context):

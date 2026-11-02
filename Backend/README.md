@@ -2,7 +2,7 @@
 
 后端独立管理配置、项目、缓存、翻译、表格条目润色、提取、校对和导出。PyQt 桌面仅通过 HTTP 与 WebSocket 访问后端，两端不导入对方的 Python 模块。
 
-后端提供统一中间模型及 `/api/v2` 接口，同一时刻执行一个顶层操作，单次翻译内部保留多线程批量处理。PDF 仅使用 BabelDOC；Office 自动化转换链及旧 `.doc` 入口已移除，DOCX、PPTX、XLSX 的原生读写保留。音频支持本地读取、在线转录、翻译与字幕导出；图片支持独立在线 OCR、翻译、擦字回填与中间模型保存。设计与迁移范围见 [后端改造计划](docs/backend_refactoring_plan.md)，具体用法见 [音频接口](docs/audio_pipeline.md) 和 [图片接口](docs/image_pipeline.md)。
+后端提供统一中间模型及 `/api/v2` 接口，同一时刻执行一个顶层操作，单次翻译内部保留多线程批量处理。PDF 仅使用 BabelDOC；Office 自动化转换链及旧 `.doc` 入口已移除，DOCX、PPTX、XLSX 的原生读写保留。音频支持本地读取、在线转录、翻译与字幕导出；图片支持独立在线 OCR、翻译、擦字回填，也可使用独立生图接口直接翻译整图，两种流程均保存中间模型。设计与迁移范围见 [后端改造计划](docs/backend_refactoring_plan.md)，具体用法见 [音频接口](docs/audio_pipeline.md)、[OCR 图片接口](docs/image_pipeline.md)、[生图翻译接口](docs/image_generation.md) 和 [图片/音频预览工作区](docs/media_workspaces.md)。
 
 超过 5 分钟的音频自动通过 Silero VAD 选择切点，并发提交带上下文重叠的切片，合并回原始时间轴。失败切片可通过返回的中间模型恢复，已完成片不会重复提交；长音频处理需要 FFmpeg。
 
@@ -137,6 +137,10 @@ WebSocket 消息类型为 `connected`、`status`、`notification`、`log`、`set
 | `POST /api/v2/ocr` | 独立在线 OCR，返回原文、像素坐标和阅读顺序 |
 | `POST /api/v2/write/image` | 擦字、回填译文，保存图片、遮罩及中间模型 |
 | `POST /api/v2/image/translate` | 读取 → OCR → 现有批量翻译 → 图片导出的串行流程 |
+| `POST /api/v2/image/generate-translation` | 中间模型 → 独立生图接口 → 含译图产物的中间模型 |
+| `POST /api/v2/write/generated-image` | 直接导出生图产物及中间模型，无需 OCR 或字体排版 |
+| `POST /api/v2/image/generate-pipeline` | 读取 → 生图翻译 → 图片与模型导出的串行流程 |
+| `POST /api/v2/image/operations/{operation_id}/stop` | 协作停止匹配的生图流程，保存在途页结果 |
 | `POST /api/v2/read/audio` | `path`、可选 `options.exclude_rule` → 音频引用、媒体元信息及空条目的中间模型 |
 | `POST /api/v2/transcribe` | `model`、可选 `config` → 在线识别后带原文及时间轴的中间模型 |
 | `POST /api/v2/translate` | `model`、`config` → 更新后的模型、用量及逐条失败报告 |
@@ -193,12 +197,12 @@ with httpx.Client(base_url="http://127.0.0.1:3389", headers=headers,
 ## 验证
 
 ```powershell
-python -m pytest tests -q
+python Tests/run_all.py
 ```
 
-测试使用临时目录和模拟模型回复，覆盖模型与缓存迁移、多线程翻译、取消与重试、显式工作区接口、持久化与通知顺序、服务独立调用、桌面请求和状态恢复、TXT/字幕/DOCX/EPUB/PPTX 等格式读写及 PDF 映射。真实 BabelDOC PDF 测试需启用相应环境变量，并已具备 BabelDOC 所需的模型和字体资产：
+测试使用临时目录和模拟模型回复，覆盖模型与缓存迁移、多线程翻译、取消与重试、显式工作区接口、持久化与通知顺序、服务独立调用、桌面请求和状态恢复、TXT/字幕/DOCX/EPUB/PPTX 等格式读写及 PDF 映射。测试入口将后端与桌面测试分进程运行，避免 Windows 下 QtMultimedia 与 ONNX Runtime 的原生库加载冲突。真实 BabelDOC PDF 测试需启用相应环境变量，并已具备 BabelDOC 所需的模型和字体资产：
 
 ```powershell
 $env:AINIEE_TEST_REAL_PDF = "1"
-python -X utf8 -m pytest tests -q
+python -X utf8 Tests/run_all.py
 ```
