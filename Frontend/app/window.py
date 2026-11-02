@@ -347,14 +347,14 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 添加快速开始
     def add_project_pages(self, cache_manager, file_reader) -> None:
-        self.interface_management_navigation = "interface_management_navigation"
-        self.interface_management_item = self.navigationInterface.addItem(
-            routeKey=self.interface_management_navigation,
-            icon=FluentIcon.IOT,
-            text=self.tra("接口管理"),
-            onClick=self._open_interface_management,
-            position=NavigationItemPosition.SCROLL,
+        self.interface_management_navigation = BaseNavigationItem("interface_management_navigation", self)
+        self.interface_management_item = self.addSubInterface(
+            self.interface_management_navigation,
+            FluentIcon.IOT,
+            self.tra("接口管理"),
+            NavigationItemPosition.SCROLL,
         )
+        self.interface_management_item.clicked.connect(lambda: self.interface_management_item.setExpanded(True))
         self.platform_page = PlatformPage("platform_page", self)
         self.platform_page.header_card.titleLabel.setText(self.tra("翻译接口"))
         self.addSubInterface(
@@ -378,27 +378,23 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         )
 
         self.edit_view_page = EditViewPage("edit_view_page", self, cache_manager, file_reader)
-        self.addSubInterface(self.edit_view_page, FluentIcon.PLAY, self.tra("开始翻译"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.edit_view_page, FluentIcon.FONT_SIZE, self.tra("文本翻译"), NavigationItemPosition.SCROLL)
         self.image_translation_page = ImageTranslationPage(parent=self)
         self.audio_translation_page = AudioTranslationPage(parent=self)
         self.media_pages = (self.image_translation_page, self.audio_translation_page)
         self.addSubInterface(self.image_translation_page, FluentIcon.PHOTO, self.tra("图片翻译"), NavigationItemPosition.SCROLL)
         self.addSubInterface(self.audio_translation_page, FluentIcon.MUSIC, self.tra("音频翻译"), NavigationItemPosition.SCROLL)
 
-    def _open_interface_management(self) -> None:
-        self.interface_management_item.setExpanded(True)
-        self.switchTo(self.platform_page)
-
     # 添加任务设置
     def add_task_setting_pages(self) -> None:
-        self.text_translation_settings_navigation = "text_translation_settings_navigation"
-        self.text_translation_settings_item = self.navigationInterface.addItem(
-            routeKey=self.text_translation_settings_navigation,
-            icon=FluentIcon.DOCUMENT,
-            text=self.tra("文译设置"),
-            onClick=self._open_text_translation_settings,
-            position=NavigationItemPosition.SCROLL,
+        self.text_translation_settings_navigation = BaseNavigationItem("text_translation_settings_navigation", self)
+        self.text_translation_settings_item = self.addSubInterface(
+            self.text_translation_settings_navigation,
+            FluentIcon.DOCUMENT,
+            self.tra("文译设置"),
+            NavigationItemPosition.SCROLL,
         )
+        self.text_translation_settings_item.clicked.connect(lambda: self.text_translation_settings_item.setExpanded(True))
         self.task_settings_page = TaskSettingsPage("task_settings_page", self)
         self.addSubInterface(
             self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"),
@@ -429,10 +425,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             self.image_translation_settings_page, FluentIcon.PHOTO,
             self.tra("图译设置"), NavigationItemPosition.SCROLL,
         )
-
-    def _open_text_translation_settings(self) -> None:
-        self.text_translation_settings_item.setExpanded(True)
-        self.switchTo(self.task_settings_page)
 
     # 添加提示词设置
     def add_prompt_setting_pages(self) -> None:
@@ -494,7 +486,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.addSubInterface(self.exclusion_list_page, FluentIcon.DICTIONARY, self.tra("禁翻表"), NavigationItemPosition.SCROLL)
 
         self.text_replace_navigation_item = BaseNavigationItem("text_replace_navigation_item", self)
-        self.addSubInterface(self.text_replace_navigation_item, FluentIcon.FONT_SIZE, self.tra("文本替换"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.text_replace_navigation_item, FluentIcon.SYNC, self.tra("文本替换"), NavigationItemPosition.SCROLL)
 
         self.text_replace_a_page = TextReplaceAPage("text_replace_a_page", self)
         self.addSubInterface(self.text_replace_a_page, FluentIcon.SEARCH, self.tra("译前替换"), parent=self.text_replace_navigation_item)

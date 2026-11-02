@@ -51,7 +51,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
         self.add_widget_auto_set(self.vbox, config)
         self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_bilingual_text_order(self.vbox, config)
-        self.add_widget_translation_result_check(self.vbox, config)
         self.add_widget_encoding(self.vbox, config)
         # 填充
         self.vbox.addStretch(1)
@@ -162,25 +161,6 @@ class OutputSettingsPage(QFrame, ConfigMixin, Base):
                 self.tra("保持输入输出文件编码一致"),
                 self.tra("启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），"
                          "关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）"),
-                widget_init,
-                widget_callback,
-            )
-        )
-
-    # 输出翻译检查结果
-    def add_widget_translation_result_check(self, parent, config) -> None:
-        def widget_init(widget) -> None:
-            widget.set_checked(config.get("translation_result_check_switch"))
-
-        def widget_callback(widget, checked: bool) -> None:
-            config = self.load_config()
-            config["translation_result_check_switch"] = checked
-            self.save_config(config)
-
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("输出翻译检查结果"),
-                self.tra("启用后，将在翻译任务完成并输出文件后执行翻译检查并输出总结，在发现问题时生成 JSON 错误报告"),
                 widget_init,
                 widget_callback,
             )

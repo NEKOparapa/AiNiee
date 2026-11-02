@@ -117,7 +117,6 @@
         "auto_set_output_path": true,
         "output_filename_suffix": "_translated",
         "bilingual_text_order": "translation_first",
-        "translation_result_check_switch": false,
         "keep_original_encoding": false
     },
     "TaskSettingsPage": {

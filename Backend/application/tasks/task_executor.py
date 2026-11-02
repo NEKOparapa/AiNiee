@@ -12,7 +12,6 @@ from Backend.core.config import ConfigMixin
 from Backend.core.log import LogMixin
 from Backend.domain.config.task_config import TaskConfig
 from Backend.domain.models.cache_project import CacheProject, CacheProjectStatistics
-from Backend.domain.text.translation_result_check import TranslationResultCheck
 
 
 class TaskExecutor(ConfigMixin, LogMixin):
@@ -21,7 +20,6 @@ class TaskExecutor(ConfigMixin, LogMixin):
         self.file_reader = file_reader
         self.file_writer = file_writer
         self.config = TaskConfig()
-        self.translation_result_check = TranslationResultCheck()
         self._executor_lock = threading.RLock()
         self._active_executor = None
         self._active_context = None
@@ -202,6 +200,4 @@ class TaskExecutor(ConfigMixin, LogMixin):
                     if result["status"] == "success":
                         result["status"] = "partial"
                     self.warning("部分文件导出失败，请检查输出报告")
-                if self.translation_result_check.is_enabled(self.config):
-                    self.translation_result_check.check_cache(self.config, self.cache_manager.project)
             return result
