@@ -102,6 +102,18 @@
       "English": "Output Settings",
       "日本語": "出力設定"
     },
+    "音译设置": {
+      "简中": "音译设置",
+      "繁中": "音譯設定",
+      "English": "Audio Translation Settings",
+      "日本語": "音声翻訳設定"
+    },
+    "图译设置": {
+      "简中": "图译设置",
+      "繁中": "圖譯設定",
+      "English": "Image Translation Settings",
+      "日本語": "画像翻訳設定"
+    },
     "翻译设置": {
       "简中": "翻译设置",
       "繁中": "翻譯設定",

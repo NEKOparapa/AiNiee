@@ -1,0 +1,196 @@
+"""Derive media workflow states from snapshots without scheduling any work."""
+
+
+def _object(value):
+    return value if isinstance(value, dict) else {}
+
+
+def _text(value):
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _items(file):
+    values = file.get("items", [])
+    return [item for item in values if isinstance(item, dict)] if isinstance(values, list) else []
+
+
+def _files(workspace, kind):
+    values = _object(_object(_object(workspace).get("model")).get("files"))
+    return [file for file in values.values() if isinstance(file, dict)
+            and file.get("media_type", kind) in ("", kind)]
+
+
+def _assets(workspace):
+    values = _object(workspace).get("files", [])
+    return {entry.get("file_id"): entry for entry in values
+            if isinstance(entry, dict) and isinstance(entry.get("file_id"), str)} if isinstance(values, list) else {}
+
+
+def _has_checkpoint(file):
+    return isinstance(_object(file.get("extra")).get("transcription_checkpoint"), dict)
+
+
+def _recognized(file, kind):
+    extra = _object(file.get("extra"))
+    if kind == "audio" and _has_checkpoint(file):
+        return False
+    record = _object(extra.get("ocr" if kind == "image" else "transcription"))
+    source_hash = _object(file.get("source_ref")).get("sha256")
+    complete = (record.get("status") == "complete" and _text(source_hash)
+                and record.get("source_sha256") == source_hash)
+    # Older audio models can have usable segments without transcription metadata.
+    return complete or (kind == "audio" and any(_text(item.get("source_text")) for item in _items(file)))
+
+
+def _empty_recognized(file, kind):
+    return _recognized(file, kind) and not any(_text(item.get("source_text")) for item in _items(file))
+
+
+def _translated(item):
+    return item.get("translation_status") in (1, 2) and _text(item.get("translated_text"))
+
+
+def _renderable(item):
+    locator = _object(item.get("locator"))
+    polygon = locator.get("polygon")
+    return (_translated(item) and locator.get("kind") == "image"
+            and isinstance(polygon, list) and len(polygon) >= 3)
+
+
+def _step(status, detail):
+    return {"status": status, "detail": detail, "active": False}
+
+
+def _preview_states(files, assets, mode):
+    if mode == "generation":
+        return _step("不适用", "当前使用整图生成流程，无需 OCR 回填。")
+    complete = partial = stale = 0
+    for file in files:
+        render = _object(_object(_object(file.get("extra")).get("image_pipeline")).get("render"))
+        artifact = _object(_object(render.get("artifacts")).get("image"))
+        source_hash = _object(file.get("source_ref")).get("sha256")
+        registered = _text(assets.get(file.get("file_id"), {}).get("translated_url"))
+        usable = (registered and _text(artifact.get("path")) and _text(artifact.get("sha256"))
+                  and _text(source_hash) and render.get("source_sha256") == source_hash)
+        complete += bool(usable and render.get("status") == "complete")
+        partial += bool(usable and render.get("status") == "partial")
+        stale += bool(render and not usable)
+    detail = f"已完成 {complete} / {len(files)} 个文件"
+    if partial:
+        detail += f"；{partial} 个文件已有预览，部分文字仍需复核"
+    if stale:
+        detail += f"；{stale} 个文件的预览需要更新或恢复"
+    if complete == len(files):
+        status = "已完成"
+    elif partial:
+        status = "待复核"
+    elif complete:
+        status = "部分完成"
+    elif stale:
+        status = "待更新"
+    else:
+        ready = any(_empty_recognized(file, "image") or any(_renderable(item) for item in _items(file))
+                    for file in files)
+        status = "待回填" if ready else "待翻译"
+    return _step(status, detail)
+
+
+def _generation_state(files, assets, generation_states):
+    states = []
+    for file in files:
+        identifier = file.get("file_id")
+        if isinstance(generation_states, dict):
+            state = generation_states.get(identifier, "pending")
+        else:
+            state = assets.get(identifier, {}).get("generation_status", "pending")
+        states.append(state)
+    complete = states.count("complete")
+    detail = f"已完成 {complete} / {len(files)} 页"
+    if complete == len(files):
+        status = "已完成"
+    elif "stale" in states:
+        status = "待更新"
+        detail += "；部分译图与当前要求不一致"
+    elif any(state in ("unknown", "request_in_flight") for state in states):
+        status = "待确认"
+        detail += "；存在结果尚未确认的生成请求"
+    elif any(state in ("generated_pending_download", "download_failed", "unavailable") for state in states):
+        status = "待恢复"
+        detail += "；部分译图需要继续下载或恢复"
+    elif "failed" in states:
+        status = "待重试"
+    else:
+        status = "部分完成" if complete else "待生成"
+    return _step(status, detail)
+
+
+def workflow_states(workspace, kind, mode="ocr", generation_states=None):
+    """Describe existing results; callers own active-stage and unsaved-edit overrides.
+
+    ``generation_states`` maps file IDs to the caller's verified generation state.
+    Preview URLs attest to registered snapshot results, not current disk health.
+    Locally edited OCR rows must invalidate the caller's preview-step display until
+    a fresh saved snapshot arrives. No status here instructs callers to skip work.
+    """
+    files = _files(workspace, kind)
+    if not files:
+        return {stage: _step("待导入", "请先导入媒体文件。")
+                for stage in ("recognize", "translate", "preview", "generate")}
+    recognized = sum(_recognized(file, kind) for file in files)
+    resumable = kind == "audio" and any(_has_checkpoint(file) for file in files)
+    recognition_status = ("已完成" if recognized == len(files) else "部分完成" if recognized
+                          else "待继续" if resumable else "待开始")
+    recognition_detail = f"已识别 {recognized} / {len(files)} 个文件"
+    if resumable:
+        recognition_detail += "；未完成的音频分片可继续处理"
+    items = [item for file in files for item in _items(file)]
+    candidates = [item for item in items if _text(item.get("source_text"))
+                  and item.get("translation_status", 0) in (0, 1, 2)]
+    completed = sum(_translated(item) for item in candidates)
+    review = sum(item.get("translation_status") == 8 for item in items)
+    excluded = sum(item.get("translation_status") == 7 for item in items)
+    unread = sum(not _recognized(file, kind) and not any(_text(item.get("source_text")) for item in _items(file))
+                 for file in files)
+    if review:
+        translation_status = "待复核"
+    elif candidates:
+        translation_status = ("已完成" if completed == len(candidates) and not unread else
+                              "部分完成" if completed else "待翻译")
+    else:
+        translation_status = "待识别" if unread else "无需翻译"
+    translation_detail = f"已完成 {completed} / {len(candidates)} 条"
+    if excluded:
+        translation_detail += f"；已排除 {excluded} 条"
+    if review:
+        translation_detail += f"；待复核 {review} 条"
+    if unread:
+        translation_detail += f"；{unread} 个文件尚无识别结果"
+    elif not candidates and not review:
+        translation_detail += "；没有待翻译原文"
+    assets = _assets(workspace)
+    return {
+        "recognize": _step(recognition_status, recognition_detail),
+        "translate": _step(translation_status, translation_detail),
+        "preview": (_preview_states(files, assets, mode) if kind == "image" else
+                    _step("不适用", "字幕可直接校润和导出，无需图片回填。")),
+        "generate": (_generation_state(files, assets, generation_states) if kind == "image" else
+                     _step("不适用", "音频项目不使用图像生成。")),
+    }
+
+
+def prerequisite_message(workspace, kind, mode, stages):
+    """Explain a missing selected step's inputs, allowing usable partial results."""
+    files = _files(workspace, kind)
+    if not files:
+        return "请先导入媒体文件。"
+    selected = set(stages)
+    items = [item for file in files for item in _items(file)]
+    source_ready = any(_text(item.get("source_text")) for item in items)
+    empty_ready = any(_empty_recognized(file, kind) for file in files)
+    if "translate" in selected and "recognize" not in selected and not (source_ready or empty_ready):
+        return ("尚无可翻译原文，请先识别原文或勾选“识别”步骤。" if kind == "image" else
+                "尚无可翻译字幕，请先转录字幕或勾选“转录”步骤。")
+    if kind == "image" and "preview" in selected and "translate" not in selected:
+        if not any(_renderable(item) for item in items) and not empty_ready:
+            return "尚无可回填的译文，请先完成翻译或勾选“翻译”步骤。"
+    return ""

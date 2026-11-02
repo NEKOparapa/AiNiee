@@ -24,7 +24,12 @@ class MediaRunRequest(RequestModel):
 
 def _validated(schema, values):
     try:
-        return schema.model_validate(values).model_dump(exclude_none=True)
+        validated = schema.model_validate(values)
+        result = validated.model_dump(exclude_none=True)
+        # An explicit null seed requests randomness over a saved fixed seed.
+        if schema is ImageGenerationOptions and "seed" in validated.model_fields_set:
+            result["seed"] = validated.seed
+        return result
     except ValidationError as error:
         # Validation errors can echo a provider secret from rejected input.
         raise PipelineError("INVALID_MEDIA_OPTIONS", "媒体处理参数无效，请检查接口配置或导出选项", 422) from error

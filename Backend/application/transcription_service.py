@@ -8,7 +8,8 @@ from Backend.domain.config.transcription_config import resolve_transcription_con
 from Backend.domain.models.cache_item import CacheItem, TranslationStatus
 from Backend.domain.models.intermediate import parse_model
 from Backend.infrastructure.files.pipeline_support import file_sha256
-from Backend.infrastructure.transcription.dashscope import SUPPORTED_FORMATS, request_transcription
+from Backend.infrastructure.transcription.provider import SUPPORTED_FORMATS, request_transcription
+from Backend.infrastructure.transcription.volcengine import FAST_FORMATS, FAST_MAX_BYTES
 
 
 def _audio_source(cache_file):
@@ -90,7 +91,8 @@ def transcribe_model(model, config=None, context=None) -> dict:
                 if context.is_cancelled():
                     report["cancelled_files"] = len(audio_files) - ordinal
                     break
-                if duration_ms > 300000:
+                if (duration_ms > 300000 or resolved.api_format == "VolcengineASRFast" and
+                      (audio_format not in FAST_FORMATS or path.stat().st_size > FAST_MAX_BYTES)):
                     from Backend.application.long_transcription_service import transcribe_long_audio
                     outcome = transcribe_long_audio(cache_file, path, resolved, context, request_transcription)
                     chunk_report = outcome["report"]
@@ -144,7 +146,8 @@ def transcribe_model(model, config=None, context=None) -> dict:
                 cache_file.extra.pop("transcription_checkpoint", None)
                 cache_file.media_metadata["duration_ms"] = duration_ms
                 language = result.get("language")
-                if not language and len(resolved.language_hints) == 1 and not resolved.speaker_diarization_enabled:
+                if (not language and resolved.api_format == "DashScope" and len(resolved.language_hints) == 1
+                        and not resolved.speaker_diarization_enabled):
                     language = resolved.language_hints[0]
                 cache_file.language_stats = [(language, len(items), 1.0)] if language and items else []
                 cache_file.lc_language_stats = []

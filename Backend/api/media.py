@@ -8,7 +8,6 @@ from pydantic import Field
 from Backend.api.schemas import RequestModel
 from Backend.application.execution_context import ExecutionContext
 from Backend.application.media_workspace_service import get_media_store
-from Backend.application.pipeline_common import PipelineError
 from Backend.domain.models.intermediate import IntermediateModel
 
 
@@ -42,14 +41,15 @@ def create_media_router(runtime, authorized):
 
     @router.post("/{workspace_id}/model")
     def save(workspace_id: str, body: MediaSaveRequest):
-        # The short lock spans validation + JSON commit so a run cannot enter
-        # between the ownership check and a stale public model overwrite.
+        # Public saves share admission with runs, imports, and deletion.
         # Internal paid-stage checkpoints call the store directly.
-        with runtime.lock:
-            operation = getattr(runtime, "_operation_name", None) or ""
-            if operation.startswith(f"media/{workspace_id}/"):
-                raise PipelineError("BACKEND_BUSY", "此媒体工作区正在处理，请等待完成或停止后保存", 409)
+        with runtime.operation(f"media/{workspace_id}/save", context=ExecutionContext()):
             return store.save_model(workspace_id, body.model.model_dump(), preview_files=body.preview_files)
+
+    @router.delete("/{workspace_id}")
+    def delete(workspace_id: str):
+        with runtime.operation(f"media/{workspace_id}/delete", context=ExecutionContext()):
+            return store.delete(workspace_id)
 
     @router.get("/{workspace_id}/files/{file_id}/{variant}")
     @router.head("/{workspace_id}/files/{file_id}/{variant}")

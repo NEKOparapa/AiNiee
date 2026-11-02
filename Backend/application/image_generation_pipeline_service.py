@@ -32,7 +32,7 @@ def _checkpoint(model):
     return str(destination)
 
 
-def generate_with_checkpoint(model, config=None, context=None):
+def generate_with_checkpoint(model, config=None, context=None, *, prompt_is_explicit=None):
     from Backend.application.image_generation_service import generate_image_model
     context = context or ExecutionContext()
     latest = {"model": model, "path": None}
@@ -49,7 +49,7 @@ def generate_with_checkpoint(model, config=None, context=None):
             context.on_batch_complete(*args)
 
     scoped = replace(context, on_model_prepared=prepared, on_batch_complete=completed)
-    result = generate_image_model(model, config, context=scoped)
+    result = generate_image_model(model, config, context=scoped, prompt_is_explicit=prompt_is_explicit)
     try:
         result["model_path"] = _checkpoint(result["model"])
     except PipelineError as error:
@@ -64,9 +64,11 @@ def translate_image_generation(path, *, read_options=None, generation=None, outp
     from Backend.application.generated_image_write_service import (
         validate_generated_image_options, validate_generated_image_targets, write_generated_images,
     )
-    from Backend.domain.config.image_generation_config import resolve_image_generation_config
+    from Backend.domain.config.image_generation_config import ImageGenerationConfig, resolve_image_generation_config
     context = context or ExecutionContext()
     config = resolve_image_generation_config(generation)
+    prompt_is_explicit = (isinstance(generation, ImageGenerationConfig)
+                          or isinstance(generation, dict) and "prompt" in generation)
     options = validate_generated_image_options(output)
     read = read_image(path, read_options)
     project = read["model"]
@@ -83,7 +85,8 @@ def translate_image_generation(path, *, read_options=None, generation=None, outp
             return response("cancelled", stage)
         try:
             if stage == "generation":
-                result = generate_with_checkpoint(project, config, context=context)
+                result = generate_with_checkpoint(project, config, context=context,
+                                                  prompt_is_explicit=prompt_is_explicit)
             else:
                 result = write_generated_images(project, options, context=context)
             files = result.get("files", [])

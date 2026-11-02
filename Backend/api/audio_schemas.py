@@ -21,7 +21,9 @@ class TranscriptionOptions(RequestModel):
     provider_id: str | None = None
     api_url: str | None = None
     api_key: str | None = Field(default=None, repr=False)
-    api_format: Literal["DashScope"] | None = None
+    api_format: Literal["DashScope", "VolcengineASRFast"] | None = None
+    app_id: str | None = None
+    resource_id: str | None = None
     model: str | None = None
     request_timeout: float | None = Field(default=None, gt=0, le=3600)
     timeout: float | None = Field(default=None, gt=0, le=3600)

@@ -2,6 +2,12 @@
 
 图片复用中间模型 v2 和现有批量多线程翻译服务。桌面“接口管理 → OCR 接口”单独配置文字识别服务，与翻译和转录配置分开保存。首版接入百炼 Qwen-OCR 原生 DashScope HTTP API；桌面使用独立[图片预览工作区](media_workspaces.md)，不创建并行 Job。另有不经过 OCR 的[生图模型翻译流程](image_generation.md)。
 
+OCR 接口页管理连接名称、地址、密钥、协议、模型和超时；阅读顺序、合并相邻文字行及气泡原文复核位于“任务配置 → 图译设置”，修改后自动保存于全局 `image_translation_settings.ocr` 的 `reading_order`、`group_lines`、`refine_text`。任务设置独立于接口，可在尚未配置密钥时保存。
+
+桌面翻译页以箭头连接“OCR 识别 → 文字翻译 → 译图回填”步骤，可单独勾选或组合执行。每次执行选中的识别、翻译步骤分别传入 `reocr=true`、`retranslate=true`，会重新处理已完成内容，不设单独重译开关。只需更新后续结果时应取消勾选前面步骤；程序不会隐式添加识别或翻译请求。后端分步接口的默认缓存复用与显式覆盖参数保持不变。
+
+运行期按“接口保存值 → 全局图译识别设置 → 本次请求显式覆盖”的顺序合并。首次升级只将当前激活 OCR 接口的旧任务字段补入缺失的全局字段，无激活接口时采用默认值；已有全局设置和旧接口字段均保留。配置存储负责迁移落盘，运行期快照只读补全。手动构造的 `OCRConfig` 使用自身字段，不重新读取全局设置。
+
 ## 独立模块
 
 - `domain/config/ocr_config.py`：解析独立 `ocr_platforms`、`active_ocr_platform`，不读取翻译密钥作为回退。
@@ -76,6 +82,8 @@ with httpx.Client(base_url="http://127.0.0.1:3389", timeout=3600) as client:
 ## 导出与恢复
 
 默认导出 PNG，支持 JPEG、WebP；`save_model` 默认为 `true`。最终模型为输出目录下的 `{project_id}_image_model.json`；遮罩与可选预览放在 `_image_assets/{project_id}/`。全流程还会把读取、OCR、翻译阶段模型分别保存到 `.ainiee/checkpoints/{project_id}/`；OCR 页与气泡复核完成后更新 `ocr-progress.json`，响应中的 `report.checkpoints` 提供完整路径。
+
+桌面图片格式由“图译设置 → 导出设置”保存于 `image_translation_settings.export.format`。工作区只通过顶部“导出结果”选择目录并读取最新格式，处理完成后不自动导出；这不影响 `/image/translate` 等后端全流程接口自身的写出步骤。
 
 失败后用最近的模型调用相应分步接口。例如 OCR 完成但翻译失败时，只重试 `/translate`；导出失败或调整译文后，只调用 `/write/image`。重复 OCR 默认复用已完成且源文件、识别配置匹配的页；`reocr=true` 明确重新识别。重新 OCR 成功后才替换该页原文并清除旧译文。无文字页也有完成标记，避免反复付费。
 

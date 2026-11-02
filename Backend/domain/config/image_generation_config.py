@@ -7,6 +7,7 @@ import re
 from urllib.parse import urlsplit
 
 from Backend.application.pipeline_common import PipelineError
+from Backend.domain.config.media_task_config import migrate_media_task_settings
 
 DEFAULT_IMAGE_GENERATION_PROVIDER_ID = "bailian_image"
 DEFAULT_IMAGE_GENERATION_PLATFORM = {
@@ -15,6 +16,8 @@ DEFAULT_IMAGE_GENERATION_PLATFORM = {
     "api_key": "", "model": "qwen-image-3.0-pro", "request_timeout": 600,
     "prompt_extend": True, "watermark": False, "size": "auto", "seed": None,
 }
+VOLCENGINE_ARK_API_URL = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
+VOLCENGINE_SEEDREAM_MODEL = "doubao-seedream-5-0-pro-260628"
 
 
 @dataclass(frozen=True)
@@ -42,7 +45,8 @@ class ImageGenerationConfig:
         from Backend.infrastructure.config.store import ConfigStore
         result = {"image_generation_platforms": {
             DEFAULT_IMAGE_GENERATION_PROVIDER_ID: copy.deepcopy(DEFAULT_IMAGE_GENERATION_PLATFORM)},
-            "active_image_generation_platform": DEFAULT_IMAGE_GENERATION_PROVIDER_ID}
+            "active_image_generation_platform": DEFAULT_IMAGE_GENERATION_PROVIDER_ID,
+            "image_translation_settings": {}}
         try:
             with ConfigStore.CONFIG_FILE_LOCK:
                 path = config_path()
@@ -50,21 +54,32 @@ class ImageGenerationConfig:
                     saved = json.loads(path.read_text(encoding="utf-8"))
                     if not isinstance(saved, dict):
                         raise ValueError("invalid config")
+                    migrate_media_task_settings(saved)
                     for key in result:
                         if key in saved:
                             result[key] = copy.deepcopy(saved[key])
+                migrate_media_task_settings(result)
         except (OSError, ValueError, TypeError):
             raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "无法读取生图接口配置", 400) from None
         return result
 
     def to_request_config(self):
-        return {name: getattr(self, name) for name in ("api_url", "api_key", "model", "request_timeout",
+        return {name: getattr(self, name) for name in ("api_url", "api_key", "api_format", "model", "request_timeout",
                                                       "prompt_extend", "watermark", "seed")}
 
 
-def validate_size(value):
+def validate_size(value, api_format="DashScope"):
     if value is None or value == "auto":
         return "auto"
+    if api_format == "VolcengineArk":
+        if isinstance(value, str) and value.upper() in ("1K", "1.5K", "2K"):
+            return value.upper()
+        if not isinstance(value, str) or not re.fullmatch(r"[1-9][0-9]{0,4}[x*][1-9][0-9]{0,4}", value):
+            raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "Seedream 5.0 pro尺寸需为auto、1K、1.5K、2K或宽*高", 422)
+        width, height = map(int, re.split(r"[x*]", value))
+        if not 921600 <= width * height <= 4624220 or max(width, height) / min(width, height) > 16:
+            raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "Seedream 5.0 pro总像素需为921600至4624220且宽高比不超过16", 422)
+        return f"{width}x{height}"
     if not isinstance(value, str) or not re.fullmatch(r"[1-9][0-9]{0,4}\*[1-9][0-9]{0,4}", value):
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "生图尺寸必须为 auto 或 宽*高", 422)
     width, height = map(int, value.split("*"))
@@ -89,6 +104,11 @@ def resolve_image_generation_config(config=None):
             raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请先配置并选择独立生图接口", 400)
         values = asdict(ImageGenerationConfig())
         values.update({key: copy.deepcopy(value) for key, value in platforms[provider].items() if key in fields and key != "provider_id"})
+        task_settings = snapshot.get("image_translation_settings")
+        if not isinstance(task_settings, dict) or not isinstance(task_settings.get("generation"), dict):
+            raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "图译生成设置必须为对象", 422)
+        values.update({key: copy.deepcopy(value) for key, value in task_settings["generation"].items()
+                       if key in ("size", "seed", "prompt_extend", "prompt", "watermark")})
         values.update(copy.deepcopy(overrides))
         values["provider_id"] = provider
     for key in ("provider_id", "api_url", "api_key", "model", "source_language", "target_language"):
@@ -103,8 +123,8 @@ def resolve_image_generation_config(config=None):
         _ = address.port
     except ValueError:
         valid = False
-    if not valid or values["api_format"] != "DashScope":
-        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请使用无凭据或查询参数的HTTP(S)地址与DashScope格式", 400)
+    if not valid or values["api_format"] not in ("DashScope", "VolcengineArk"):
+        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请使用无凭据或查询参数的HTTP(S)地址与DashScope或VolcengineArk格式", 400)
     timeout = values["request_timeout"]
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or not 0 < timeout <= 3600:
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "生图超时需大于0且不超过3600秒", 422)
@@ -113,7 +133,7 @@ def resolve_image_generation_config(config=None):
             raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", f"生图 {key} 必须为布尔值", 422)
     if values["seed"] is not None and (type(values["seed"]) is not int or not 0 <= values["seed"] <= 2147483647):
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "seed需为0至2147483647的整数或空值", 422)
-    values["size"] = validate_size(values["size"])
+    values["size"] = validate_size(values["size"], values["api_format"])
     if values["text_mode"] not in ("direct", "specified"):
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "text_mode需为direct或specified", 422)
     if not isinstance(values["prompt"], str) or len(values["prompt"]) > 10000 or "\x00" in values["prompt"]:

@@ -36,6 +36,8 @@ from Frontend.pages.prompts.extraction.extraction_prompt_page import ExtractionP
 from Frontend.pages.logs.log_view_page import LogViewPage
 from Frontend.pages.settings.advanced_settings_page import AdvancedSettingsPage
 from Frontend.pages.settings.app_settings_page import AppSettingsPage
+from Frontend.pages.settings.audio_translation_settings_page import AudioTranslationSettingsPage
+from Frontend.pages.settings.image_translation_settings_page import ImageTranslationSettingsPage
 from Frontend.pages.settings.output_settings_page import OutputSettingsPage
 from Frontend.pages.settings.task_settings_page import TaskSettingsPage
 from Frontend.pages.tables.exclusion_list_page import ExclusionListPage
@@ -395,6 +397,17 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
     def add_task_setting_pages(self) -> None:
         self.task_settings_page = TaskSettingsPage("task_settings_page", self)
         self.addSubInterface(self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"), NavigationItemPosition.SCROLL)
+
+        self.audio_translation_settings_page = AudioTranslationSettingsPage("audio_translation_settings_page", self)
+        self.addSubInterface(
+            self.audio_translation_settings_page, FluentIcon.MICROPHONE,
+            self.tra("音译设置"), NavigationItemPosition.SCROLL,
+        )
+        self.image_translation_settings_page = ImageTranslationSettingsPage("image_translation_settings_page", self)
+        self.addSubInterface(
+            self.image_translation_settings_page, FluentIcon.PHOTO,
+            self.tra("图译设置"), NavigationItemPosition.SCROLL,
+        )
 
         self.output_settings_page = OutputSettingsPage("output_settings_page", self)
         self.addSubInterface(self.output_settings_page, FluentIcon.ALBUM, self.tra("输出设置"), NavigationItemPosition.SCROLL)

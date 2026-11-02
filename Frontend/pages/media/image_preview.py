@@ -9,7 +9,10 @@ from PyQt5.QtWidgets import (
     QAbstractItemView, QFrame, QGraphicsScene, QGraphicsView, QHBoxLayout,
     QHeaderView, QSplitter, QStackedWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
-from qfluentwidgets import BodyLabel, CaptionLabel, CardWidget, PushButton, Slider, StrongBodyLabel, TableWidget
+from qfluentwidgets import (
+    BodyLabel, CaptionLabel, CardWidget, FluentIcon, PushButton, Slider,
+    StrongBodyLabel, TabBar, TableWidget, TransparentToolButton,
+)
 
 from Frontend.core.config import ConfigMixin
 
@@ -118,9 +121,9 @@ class ImagePreview(QWidget, ConfigMixin):
         self._urls = {"source": "", "translated": ""}
         self._headers = {}
         self._file_id = None
+        self._file_items = []
         self._editable = True
         self._generation_mode = False
-        self._specified_text = False
         self._loading_table = False
         self._translation_values = {}
         self._fit_mode = True
@@ -134,7 +137,32 @@ class ImagePreview(QWidget, ConfigMixin):
     def _build_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setSpacing(0)
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+        header.setSpacing(8)
+        self.tab_bar = TabBar(self)
+        self.tab_bar.setTabMaximumWidth(160)
+        self.tab_bar.setTabShadowEnabled(False)
+        self.tab_bar.setScrollable(True)
+        self.tab_bar.setAddButtonVisible(False)
+        self.tab_bar.setTabsClosable(False)
+        self.tab_bar.setMovable(False)
+        self.tab_bar.addTab("image_preview", self.tra("图片预览"))
+        self.tab_bar.addTab("ocr_information", self.tra("OCR 信息"))
+        header.addWidget(self.tab_bar, 1)
+        self.refresh_button = TransparentToolButton(FluentIcon.SYNC, self)
+        self.refresh_button.setFixedSize(32, 32)
+        self.refresh_button.setToolTip(self.tra("更新译图预览"))
+        self.refresh_button.setAccessibleName(self.tra("更新译图预览"))
+        header.addWidget(self.refresh_button)
+        layout.addLayout(header)
+        self.stacked_widget = QStackedWidget(self)
+        layout.addWidget(self.stacked_widget, 1)
+        self.preview_page = QWidget(self.stacked_widget)
+        preview_layout = QVBoxLayout(self.preview_page)
+        preview_layout.setContentsMargins(0, 10, 0, 0)
+        preview_layout.setSpacing(10)
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
         self.fit_button = PushButton(self.tra("适应窗口"), self)
@@ -161,13 +189,12 @@ class ImagePreview(QWidget, ConfigMixin):
                        self.zoom_slider, self.zoom_in_button, self.zoom_label):
             toolbar.addWidget(widget)
         toolbar.addStretch(1)
-        self.text_button = PushButton(self.tra("文字校对（0）"), self)
-        self.text_button.setCheckable(True)
-        self.text_button.toggled.connect(self._toggle_text)
-        toolbar.addWidget(self.text_button)
-        layout.addLayout(toolbar)
-        self.image_splitter = QSplitter(Qt.Horizontal, self)
+        preview_layout.addLayout(toolbar)
+        self.image_splitter = QSplitter(Qt.Horizontal, self.preview_page)
         self.image_splitter.setChildrenCollapsible(False)
+        self.image_splitter.setHandleWidth(8)
+        self.image_splitter.setStyleSheet(
+            "QSplitter::handle { width: 8px; background: transparent; }")
         self.source_pane = _ImagePane("原图", self.image_splitter)
         self.translated_pane = _ImagePane("译图", self.image_splitter)
         self._panes = {"source": self.source_pane, "translated": self.translated_pane}
@@ -175,14 +202,21 @@ class ImagePreview(QWidget, ConfigMixin):
             self.image_splitter.addWidget(pane)
             pane.scroll.viewport().installEventFilter(self)
         self.image_splitter.setSizes([600, 600])
-        layout.addWidget(self.image_splitter, 1)
-        self.text_panel = CardWidget(self)
+        preview_layout.addWidget(self.image_splitter, 1)
+        self.stacked_widget.addWidget(self.preview_page)
+        self.text_panel = CardWidget(self.stacked_widget)
         text_layout = QVBoxLayout(self.text_panel)
         text_layout.setContentsMargins(12, 8, 12, 8)
-        self.edit_hint = CaptionLabel(self.tra("双击译文校对；重新生成预览后会更新图片。"), self.text_panel)
-        self.edit_hint.setWordWrap(True)
-        text_layout.addWidget(self.edit_hint)
-        self.text_table = TableWidget(self.text_panel)
+        self.translation_progress_label = CaptionLabel(self.text_panel)
+        self.translation_progress_label.setTextColor("#707070", "#b0b0b0")
+        self.translation_progress_label.setAlignment(Qt.AlignRight)
+        text_layout.addWidget(self.translation_progress_label)
+        self.ocr_stack = QStackedWidget(self.text_panel)
+        self.ocr_empty = BodyLabel(self.tra("暂无 OCR 信息"), self.ocr_stack)
+        self.ocr_empty.setAlignment(Qt.AlignCenter)
+        self.ocr_empty.setTextColor("#777777", "#b0b0b0")
+        self.ocr_stack.addWidget(self.ocr_empty)
+        self.text_table = TableWidget(self.ocr_stack)
         self.text_table.setColumnCount(3)
         self.text_table.setHorizontalHeaderLabels([self.tra("序号"), self.tra("原文"), self.tra("译文")])
         self.text_table.verticalHeader().hide()
@@ -193,12 +227,18 @@ class ImagePreview(QWidget, ConfigMixin):
         self.text_table.setWordWrap(True)
         self.text_table.setSortingEnabled(False)
         self.text_table.itemChanged.connect(self._text_changed)
-        text_layout.addWidget(self.text_table, 1)
+        self.ocr_stack.addWidget(self.text_table)
+        text_layout.addWidget(self.ocr_stack, 1)
         self.text_panel.setMinimumHeight(180)
-        self.text_panel.setMaximumHeight(260)
-        layout.addWidget(self.text_panel)
-        self.text_panel.hide()
+        self.stacked_widget.addWidget(self.text_panel)
+        self.tab_bar.currentChanged.connect(self._switch_tab)
+        self.stacked_widget.currentChanged.connect(self.tab_bar.setCurrentIndex)
         self.set_editable(True)
+
+    def _switch_tab(self, index):
+        self.stacked_widget.setCurrentIndex(index)
+        if index == 0 and self._fit_mode:
+            self._fit_timer.start(0)
 
     def set_file(self, file, source_url="", translated_url="", headers=None):
         """Select a wire CacheFile; each URL is the authenticated backend asset URL."""
@@ -209,10 +249,16 @@ class ImagePreview(QWidget, ConfigMixin):
         previous_source = self._urls["source"]
         same_headers = headers == self._headers
         self._file_id, self._headers = file_id, headers
+        self._file_items = [dict(entry) for entry in (file.get("items") or [])
+                            if isinstance(entry, dict)]
         self._urls = {"source": str(source_url or ""), "translated": str(translated_url or "")}
         if not same_file:
             self._fit_mode = True
-        self._set_text_items(file.get("items", []))
+        self._sync_ocr_information()
+        completed = sum(entry.get("translation_status") in (1, 2)
+                        and bool(str(entry.get("translated_text") or "").strip())
+                        for entry in self._file_items)
+        self.set_translation_progress(completed, len(self._file_items))
         if not same_file or not same_headers or previous_source != self._urls["source"] or self.source_pane._pixmap.isNull():
             self._load("source", self._urls["source"])
         # The file/URL may stay the same after an export. Always request fresh bytes.
@@ -227,27 +273,16 @@ class ImagePreview(QWidget, ConfigMixin):
             self._urls["translated"] = str(url)
         self._load("translated", self._urls["translated"])
 
-    def set_generation_mode(self, enabled, *, specified=False):
+    def set_generation_mode(self, enabled):
+        mode_changed = self._generation_mode != bool(enabled)
         self._generation_mode = bool(enabled)
-        self._specified_text = bool(specified)
-        show_editor = not self._generation_mode or self._specified_text
-        self.text_button.setVisible(show_editor)
-        if not show_editor:
-            self.text_button.setChecked(False)
-            self.text_panel.hide()
-        self.edit_hint.setText(self.tra("修改译文后需重新生成图片；指定换字结果仍需对照原图复核。" if self._generation_mode
-                                      else "双击译文校对；重新生成预览后会更新图片。"))
+        if mode_changed:
+            self._sync_ocr_information()
         if self.translated_pane._pixmap.isNull() and not self._urls["translated"]:
             self.translated_pane.show_message(self._empty_translation_message())
 
-    def invalidate_translated(self):
-        """Do not display an older specified-text render while its text is edited."""
-        self._urls["translated"] = ""
-        self._cancel("translated")
-        self.translated_pane.show_message("译文已修改，请重新生成图片。")
-
     def _empty_translation_message(self):
-        return ("生成图尚未就绪\n开始生成或继续下载后，会显示在这里。" if self._generation_mode else
+        return ("生成图尚未就绪\n生成完成后，会显示在这里。" if self._generation_mode else
                 "译图尚未生成\n完成翻译并生成预览后，会显示在这里。")
 
     def set_editable(self, editable):
@@ -256,10 +291,26 @@ class ImagePreview(QWidget, ConfigMixin):
             QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed
             if self._editable else QAbstractItemView.NoEditTriggers)
 
+    def set_translation_progress(self, completed, total):
+        """Refresh the current file count without changing table cells or focus."""
+        total = max(0, int(total))
+        completed = max(0, min(int(completed), total))
+        self.translation_progress_label.setText(
+            self.tra("已译 {0} / {1} 条").format(completed, total))
+        self.translation_progress_label.setVisible(
+            bool(self._file_items) and not self._generation_mode)
+
     def _set_zoom_enabled(self, enabled):
         for widget in (self.fit_button, self.actual_button, self.zoom_out_button,
                        self.zoom_slider, self.zoom_in_button):
             widget.setEnabled(enabled)
+
+    def _sync_ocr_information(self):
+        # Direct image generation has no per-item OCR information.
+        items = [] if self._generation_mode else self._file_items
+        self._set_text_items(items)
+        self.ocr_stack.setCurrentWidget(self.text_table if items else self.ocr_empty)
+        self.translation_progress_label.setVisible(bool(items))
 
     def _set_text_items(self, items):
         self._loading_table = True
@@ -282,14 +333,9 @@ class ImagePreview(QWidget, ConfigMixin):
         finally:
             self.text_table.blockSignals(False)
             self._loading_table = False
-        self.text_button.setText(self.tra("文字校对") + f"（{len(items)}）")
-        self.text_button.setEnabled(bool(items))
-        if not items:
-            self.text_button.setChecked(False)
-            self.text_panel.hide()
 
     def _text_changed(self, item):
-        if self._loading_table or not self._editable or item.column() != 2:
+        if self._loading_table or not self._editable or self._generation_mode or item.column() != 2:
             return
         item_id = item.data(Qt.UserRole)
         if not item_id or item_id not in self._translation_values:
@@ -298,12 +344,11 @@ class ImagePreview(QWidget, ConfigMixin):
         if self._translation_values[item_id] == value:
             return
         self._translation_values[item_id] = value
+        for entry in self._file_items:
+            if str(entry.get("item_id", "")) == item_id:
+                entry["translated_text"] = value
+                break
         self.translationEdited.emit(item_id, value)
-
-    def _toggle_text(self, visible):
-        self.text_panel.setVisible(visible)
-        if self._fit_mode:
-            self._fit_timer.start(0)
 
     def _cancel(self, side):
         self._tickets[side] += 1

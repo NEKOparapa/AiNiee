@@ -11,6 +11,7 @@ from Backend.infrastructure.config.migration import migrate_config_if_needed, mi
 from Backend.domain.text.regex import RegexSwitchHelper
 from Backend.domain.config.tables import TableConfigHelper
 from Backend.domain.config.prompt_selection import TranslationPromptConfigHelper
+from Backend.domain.config.media_task_config import migrate_media_task_settings, validate_media_task_settings
 
 
 class ConfigStore:
@@ -67,6 +68,7 @@ class ConfigStore:
     def _validate_profile(profile):
         if not isinstance(profile, dict):
             raise ValueError("配置文件的根节点必须是 JSON 对象")
+        validate_media_task_settings(profile)
         for key in ("platforms", "api_settings", "response_check_switch", "transcription_platforms", "ocr_platforms", "image_generation_platforms"):
             if key in profile and not isinstance(profile[key], dict):
                 raise ValueError(f"配置字段 {key} 必须是 JSON 对象")
@@ -80,6 +82,10 @@ class ConfigStore:
             for field in ("name", "api_url", "api_key", "model", "api_format"):
                 if field in platform and not isinstance(platform[field], str):
                     raise ValueError(f"转录接口字段 {field} 必须是字符串")
+            for field in ("app_id", "resource_id"):
+                value = platform.get(field, "")
+                if not isinstance(value, str) or any(c in value for c in "\r\n\x00"):
+                    raise ValueError(f"转录接口字段 {field} 必须是单行文本")
             if "request_timeout" in platform and (isinstance(platform["request_timeout"], bool)
                     or not isinstance(platform["request_timeout"], (int, float))):
                 raise ValueError("转录接口字段 request_timeout 必须是数字")
@@ -137,7 +143,7 @@ class ConfigStore:
             from Backend.domain.config.image_generation_config import validate_size
             from Backend.application.pipeline_common import PipelineError
             try:
-                validate_size(platform.get("size", "auto"))
+                validate_size(platform.get("size", "auto"), platform.get("api_format", "DashScope"))
             except PipelineError as error:
                 raise ValueError(error.message) from None
         for kind in TableConfigHelper.KINDS:
@@ -193,6 +199,7 @@ class ConfigStore:
         with ConfigStore.CONFIG_FILE_LOCK:
             migrate_config_if_needed()
             ConfigStore.CONFIG_PATH = config_path()
+            needs_write = False
             if os.path.exists(ConfigStore.CONFIG_PATH):
                 try:
                     with open(ConfigStore.CONFIG_PATH, "r", encoding="utf-8") as reader:
@@ -225,13 +232,18 @@ class ConfigStore:
                         deepseek_platform["think_depth"] = "high"
                         needs_write = True
 
-                if needs_write:
-                    tmp_path = f"{ConfigStore.CONFIG_PATH}.tmp"
-                    with open(tmp_path, "w", encoding="utf-8") as writer:
-                        writer.write(json.dumps(config, indent=4, ensure_ascii=False))
-                    os.replace(tmp_path, ConfigStore.CONFIG_PATH)
             else:
                 print("[[red]WARNING[/]] Config file does not exist ...")
+
+            # Migrate before initialize_config merges defaults, so saved provider
+            # options seed the new task settings rather than being overwritten.
+            needs_write = migrate_media_task_settings(config) or needs_write
+            if needs_write:
+                os.makedirs(os.path.dirname(ConfigStore.CONFIG_PATH), exist_ok=True)
+                tmp_path = f"{ConfigStore.CONFIG_PATH}.tmp"
+                with open(tmp_path, "w", encoding="utf-8") as writer:
+                    writer.write(json.dumps(config, indent=4, ensure_ascii=False))
+                os.replace(tmp_path, ConfigStore.CONFIG_PATH)
 
         if config:
             from Backend.core.paths import (
@@ -286,9 +298,11 @@ class ConfigStore:
                     continue
                 old[key] = value
 
+            media_changed = migrate_media_task_settings(old)
+            validate_media_task_settings(old)
             prompt_changed = TranslationPromptConfigHelper.normalize_config(old)
             project_type_changed = migrate_retired_project_type(old)
-            if unchanged and not prompt_changed and not project_type_changed and not retired:
+            if unchanged and not media_changed and not prompt_changed and not project_type_changed and not retired:
                 return old
 
             os.makedirs(os.path.dirname(ConfigStore.CONFIG_PATH), exist_ok=True)

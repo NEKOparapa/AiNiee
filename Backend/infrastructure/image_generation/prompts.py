@@ -7,42 +7,50 @@ import math
 from Backend.application.pipeline_common import PipelineError
 from Backend.domain.config.image_generation_config import validate_size
 from Backend.infrastructure.image_generation.artifacts import digest, item_text_identity
-from Backend.infrastructure.image_generation.dashscope import MAX_INPUT_BYTES
+from Backend.infrastructure.image_generation.dashscope import MAX_INPUT_BYTES as DASHSCOPE_MAX_INPUT_BYTES
+from Backend.infrastructure.image_generation.volcengine_ark import MAX_INPUT_BYTES as ARK_MAX_INPUT_BYTES
 
 _LANGUAGES = {"auto": "图中原文的语言", "japanese": "日语", "chinese_simplified": "简体中文",
               "chinese_traditional": "繁体中文", "english": "英语", "korean": "韩语"}
 
 
-def output_size(width, height, requested="auto"):
+def output_size(width, height, requested="auto", api_format="DashScope"):
     if requested not in (None, "auto"):
-        return validate_size(requested)
-    if max(width, height) / min(width, height) > 8:
-        raise PipelineError("IMAGE_GENERATION_SIZE_UNSUPPORTED", "自动尺寸暂不支持宽高比超过8的长图，请拆分图片或显式指定尺寸", 422)
+        return validate_size(requested, api_format)
+    is_ark = api_format == "VolcengineArk"
+    min_pixels, max_pixels, max_ratio = (921600, 4624220, 16) if is_ark else (512 ** 2, 2048 ** 2, 8)
+    if max(width, height) / min(width, height) > max_ratio:
+        raise PipelineError("IMAGE_GENERATION_SIZE_UNSUPPORTED", f"此接口自动尺寸不支持宽高比超过{max_ratio}的长图，请拆分图片或显式指定尺寸", 422)
     area = width * height
-    factor = math.sqrt(min(2048 ** 2, max(512 ** 2, area)) / area)
+    factor = math.sqrt(min(max_pixels, max(min_pixels, area)) / area)
     width, height = max(16, round(width * factor / 16) * 16), max(16, round(height * factor / 16) * 16)
-    while width * height > 2048 ** 2:
+    while width * height > max_pixels or (is_ark and max(width, height) / min(width, height) > max_ratio):
         if width >= height:
             width -= 16
         else:
             height -= 16
-    while width * height < 512 ** 2 or max(width, height) / min(width, height) > 8:
+    while width * height < min_pixels or (not is_ark and max(width, height) / min(width, height) > max_ratio):
         if width <= height:
             width += 16
         else:
             height += 16
-    return validate_size(f"{width}*{height}")
+    return validate_size(f"{width}*{height}", api_format)
 
 
 def prepare_generation(file, image, config):
-    if max(image.size) > 8000 or max(image.size) / min(image.size) > 10:
+    is_ark = config.api_format == "VolcengineArk"
+    if is_ark:
+        if min(image.size) <= 14 or image.width * image.height > 36_000_000 or max(image.size) / min(image.size) > 16:
+            raise PipelineError("IMAGE_GENERATION_INPUT_TOO_LARGE", "火山生图输入宽高需大于14，总像素不超过3600万，宽高比不超过16", 422)
+    elif max(image.size) > 8000 or max(image.size) / min(image.size) > 10:
         raise PipelineError("IMAGE_GENERATION_INPUT_TOO_LARGE", "生图输入边长不能超过8000，宽高比不能超过10", 422)
     stream = io.BytesIO()
     image.save(stream, format="PNG")
     data = stream.getvalue()
-    if len(data) > MAX_INPUT_BYTES:
-        raise PipelineError("IMAGE_GENERATION_INPUT_TOO_LARGE", "规范化图片超过10MiB，请先缩小图片", 422)
-    size = output_size(*image.size, config.size)
+    max_bytes = ARK_MAX_INPUT_BYTES if is_ark else DASHSCOPE_MAX_INPUT_BYTES
+    if len(data) > max_bytes:
+        raise PipelineError("IMAGE_GENERATION_INPUT_TOO_LARGE", f"规范化图片超过{max_bytes // (1024 * 1024)}MiB，请先缩小图片", 422)
+    size = output_size(*image.size, config.size, config.api_format)
     source = _LANGUAGES.get(config.source_language, config.source_language)
     target = _LANGUAGES.get(config.target_language, config.target_language)
     text_source, text_identity = "none", digest([])
@@ -77,6 +85,11 @@ def prepare_generation(file, image, config):
                 "size": size, "seed": config.seed, "prompt_extend": config.prompt_extend,
                 "watermark": config.watermark, "n": 1, "prompt": prompt,
                 "text_source": text_source, "text_identity": text_identity}
+    if is_ark:
+        # Keep existing DashScope cache identities stable, and fingerprint only
+        # effective Ark options so ignored legacy values never trigger a charge.
+        identity.update(api_format="VolcengineArk", seed=None, prompt_extend=None,
+                        optimize_prompt_mode="standard", output_format="png")
     return {"data": data, "size": size, "prompt": prompt, "identity": identity,
             "fingerprint": digest(identity), "text_source": text_source, "text_identity": text_identity,
             "settings": settings}

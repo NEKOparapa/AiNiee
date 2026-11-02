@@ -10,14 +10,14 @@ import uuid
 from Backend.application.execution_context import ExecutionContext
 from Backend.application.pipeline_common import PipelineError
 from Backend.core.paths import project_cache_root
-from Backend.domain.config.image_generation_config import resolve_image_generation_config
+from Backend.domain.config.image_generation_config import ImageGenerationConfig, resolve_image_generation_config
 from Backend.domain.models.intermediate import parse_model
 from Backend.infrastructure.files.pipeline_support import file_sha256
 from Backend.infrastructure.images.source import verified_image
 from Backend.infrastructure.image_generation.artifacts import (
     atomic_bytes, atomic_json, generation_artifact_current, verified_generated_image,
 )
-from Backend.infrastructure.image_generation.dashscope import request_generation, download_image, safe_message
+from Backend.infrastructure.image_generation.client import request_generation, download_image, safe_message
 from Backend.infrastructure.image_generation.prompts import prepare_generation
 
 
@@ -54,7 +54,7 @@ def _accumulate_usage(report, usage):
             report["usage"][key] = report["usage"].get(key, 0) + value
 
 
-def generate_image_model(model, config=None, context=None):
+def generate_image_model(model, config=None, context=None, *, prompt_is_explicit=None):
     project = parse_model(model)
     resolved = resolve_image_generation_config(config)
     context = context or ExecutionContext()
@@ -65,11 +65,20 @@ def generate_image_model(model, config=None, context=None):
     if selected - {file.file_id for file in files}:
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "替换清单含不属于此模型的file_id", 422)
     project.extra["image_translation_mode"] = "generation"
-    settings = {key: getattr(resolved, key) for key in ("source_language", "target_language", "text_mode", "prompt")}
+    settings = {key: getattr(resolved, key) for key in ("source_language", "target_language", "text_mode")}
+    # Keep inherited task defaults out of the project's explicit prompt override.
+    if prompt_is_explicit is None:
+        prompt_is_explicit = isinstance(config, ImageGenerationConfig) or isinstance(config, dict) and "prompt" in config
+    settings["prompt"] = resolved.prompt if prompt_is_explicit else ""
     project.extra["image_generation_options"] = dict(settings)
     report = {"total": len(files), "succeeded": 0, "skipped": 0, "failed": 0, "cancelled": False,
               "cancelled_files": 0, "files": [], "errors": [], "warnings": [], "operation_errors": [],
               "usage": {"requests": 0, "downloads": 0}}
+    if resolved.api_format == "VolcengineArk" and (resolved.seed is not None or not resolved.prompt_extend):
+        report["warnings"].append({
+            "code": "IMAGE_GENERATION_UNSUPPORTED_PARAMETERS",
+            "message": "Seedream使用标准提示词优化；现有随机种子和关闭自动改写设置不适用于此接口，未发送这两个参数。",
+        })
     outputs = []
     if context.on_model_prepared:
         try:

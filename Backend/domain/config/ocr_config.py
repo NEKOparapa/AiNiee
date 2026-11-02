@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass, field
 from urllib.parse import urlsplit
 
 from Backend.application.pipeline_common import PipelineError
+from Backend.domain.config.media_task_config import migrate_media_task_settings
 
 
 DEFAULT_OCR_PROVIDER_ID = "bailian_ocr"
@@ -40,7 +41,8 @@ class OCRConfig:
         from Backend.infrastructure.config.store import ConfigStore
 
         result = {"ocr_platforms": {DEFAULT_OCR_PROVIDER_ID: copy.deepcopy(DEFAULT_OCR_PLATFORM)},
-                  "active_ocr_platform": DEFAULT_OCR_PROVIDER_ID}
+                  "active_ocr_platform": DEFAULT_OCR_PROVIDER_ID,
+                  "image_translation_settings": {}}
         try:
             with ConfigStore.CONFIG_FILE_LOCK:
                 path = config_path()
@@ -48,9 +50,11 @@ class OCRConfig:
                     saved = json.loads(path.read_text(encoding="utf-8"))
                     if not isinstance(saved, dict):
                         raise ValueError("invalid configuration root")
+                    migrate_media_task_settings(saved)
                     for key in result:
                         if key in saved:
                             result[key] = copy.deepcopy(saved[key])
+                migrate_media_task_settings(result)
         except (OSError, ValueError, TypeError):
             raise PipelineError("OCR_CONFIG_ERROR", "无法读取 OCR 接口配置", 400) from None
         return result
@@ -78,6 +82,11 @@ def resolve_ocr_config(config=None):
             raise PipelineError("OCR_CONFIG_ERROR", "所选 OCR 接口不存在", 400)
         values = asdict(OCRConfig())
         values.update({key: copy.deepcopy(value) for key, value in platform.items() if key in supported and key != "provider_id"})
+        task_settings = snapshot.get("image_translation_settings")
+        if not isinstance(task_settings, dict) or not isinstance(task_settings.get("ocr"), dict):
+            raise PipelineError("OCR_CONFIG_ERROR", "图译识别设置必须为对象", 400)
+        values.update({key: copy.deepcopy(value) for key, value in task_settings["ocr"].items()
+                       if key in ("reading_order", "group_lines", "refine_text")})
         values.update(copy.deepcopy(overrides))
         values["provider_id"] = provider_id
     for key in ("provider_id", "api_url", "api_key", "model"):

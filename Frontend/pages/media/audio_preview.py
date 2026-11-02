@@ -10,7 +10,7 @@ from PyQt5.QtGui import QColor, QPainter, QPen
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 from PyQt5.QtWidgets import (
     QAbstractItemView, QApplication, QFrame, QHeaderView, QHBoxLayout,
-    QSizePolicy, QTableWidgetItem, QVBoxLayout, QWidget,
+    QTableWidgetItem, QVBoxLayout, QWidget,
 )
 from qfluentwidgets import BodyLabel, CaptionLabel, FluentIcon, PushButton, Slider, StrongBodyLabel, TableWidget, isDarkTheme
 
@@ -41,8 +41,8 @@ class SubtitleTimeline(QWidget):
         self.duration_ms = 0
         self.position_ms = 0
         self.segments = []
-        self.setMinimumHeight(76)
-        self.setMaximumHeight(96)
+        self.setMinimumHeight(46)
+        self.setMaximumHeight(50)
         self.setFocusPolicy(Qt.StrongFocus)
         self.setCursor(Qt.PointingHandCursor)
         self.setAccessibleName("字幕时间轴")
@@ -81,8 +81,10 @@ class SubtitleTimeline(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         width = max(1, self.width() - 24)
+        label_baseline = painter.fontMetrics().ascent() + 2
+        track_y = label_baseline + 7
         dark = isDarkTheme()
-        painter.fillRect(12, 30, width, 24, QColor("#30343d" if dark else "#e8edf5"))
+        painter.fillRect(12, track_y, width, 12, QColor("#30343d" if dark else "#e8edf5"))
         if not self.duration_ms:
             painter.setPen(QColor("#b7c0cd" if dark else "#607086"))
             painter.drawText(self.rect(), Qt.AlignCenter, "00:00")
@@ -92,17 +94,17 @@ class SubtitleTimeline(QWidget):
             x = 12 + width * min(start, self.duration_ms) / self.duration_ms
             extent = width * (min(end, self.duration_ms) - min(start, self.duration_ms)) / self.duration_ms
             painter.setBrush(QColor("#70a9f5" if start <= self.position_ms < end else "#8397b5"))
-            painter.drawRoundedRect(round(x), 32, max(2, round(extent)), 20, 2, 2)
+            painter.drawRoundedRect(round(x), track_y + 1, max(2, round(extent)), 10, 2, 2)
         painter.setPen(QColor("#bbc4d0" if dark else "#526277"))
         for index in range(5):
             stamp = round(self.duration_ms * index / 4)
             x = round(12 + width * index / 4)
             label = format_time(stamp)
             text_width = painter.fontMetrics().horizontalAdvance(label)
-            painter.drawText(max(0, min(self.width() - text_width, x - text_width // 2)), 20, label)
+            painter.drawText(max(0, min(self.width() - text_width, x - text_width // 2)), label_baseline, label)
         x = round(12 + width * self.position_ms / self.duration_ms)
         painter.setPen(QPen(QColor("#3185ed"), 2))
-        painter.drawLine(x, 26, x, 60)
+        painter.drawLine(x, track_y - 4, x, track_y + 16)
 
 
 class AudioPreview(QWidget, ConfigMixin):
@@ -125,7 +127,7 @@ class AudioPreview(QWidget, ConfigMixin):
         self._source_url = ""
         self._active_row = -1
         self._loading = False
-        self._updating_slider = False
+        self._subtitle_status = ""
         self._editable = True
         self._closed = False
         self._playback_failed = False
@@ -146,18 +148,13 @@ class AudioPreview(QWidget, ConfigMixin):
     def _build_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
-        heading = QHBoxLayout()
-        self.title_label = StrongBodyLabel(self.tra("音频预览"), self)
-        self.title_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        self.count_label = CaptionLabel(self)
-        heading.addWidget(self.title_label, 1)
-        heading.addWidget(self.count_label)
-        layout.addLayout(heading)
-
+        layout.setSpacing(6)
         self.timeline = SubtitleTimeline(self)
         self.timeline.seekRequested.connect(self.seek)
-        layout.addWidget(self.timeline)
+        subtitle_panel = QWidget(self)
+        subtitle_layout = QVBoxLayout(subtitle_panel)
+        subtitle_layout.setContentsMargins(0, 0, 0, 0)
+        subtitle_layout.setSpacing(2)
         self.current_source = BodyLabel(self)
         self.current_translation = StrongBodyLabel(self)
         for label in (self.current_source, self.current_translation):
@@ -165,10 +162,8 @@ class AudioPreview(QWidget, ConfigMixin):
             label.setTextFormat(Qt.PlainText)
             label.setAlignment(Qt.AlignCenter)
             label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-            label.setMinimumHeight(25)
-        layout.addWidget(self.current_source)
-        layout.addWidget(self.current_translation)
-
+            label.setMinimumHeight(20)
+            subtitle_layout.addWidget(label)
         self.table = TableWidget(self)
         self.table.setObjectName("audioSubtitleTable")
         self.table.setColumnCount(4)
@@ -190,6 +185,8 @@ class AudioPreview(QWidget, ConfigMixin):
         self.table.cellClicked.connect(self._select_cue)
         self.table.itemChanged.connect(self._edit_translation)
         layout.addWidget(self.table, 1)
+        layout.addWidget(self.timeline)
+        layout.addWidget(subtitle_panel)
 
         self.status_label = CaptionLabel(self)
         self.status_label.setWordWrap(True)
@@ -197,7 +194,7 @@ class AudioPreview(QWidget, ConfigMixin):
         layout.addWidget(self.status_label)
         bar = QFrame(self)
         bar_layout = QHBoxLayout(bar)
-        bar_layout.setContentsMargins(0, 6, 0, 0)
+        bar_layout.setContentsMargins(0, 0, 0, 0)
         self.play_button = PushButton(FluentIcon.PLAY, self.tra("播放"), bar)
         self.play_button.setAccessibleName(self.tra("播放或暂停音频"))
         self.play_button.clicked.connect(self.toggle_playback)
@@ -205,11 +202,10 @@ class AudioPreview(QWidget, ConfigMixin):
         self.position_label = CaptionLabel("00:00 / 00:00", bar)
         self.position_label.setMinimumWidth(112)
         bar_layout.addWidget(self.position_label)
-        self.position_slider = Slider(Qt.Horizontal, bar)
-        self.position_slider.setRange(0, 10000)
-        self.position_slider.setAccessibleName(self.tra("播放进度"))
-        self.position_slider.valueChanged.connect(self._slider_seek)
-        bar_layout.addWidget(self.position_slider, 1)
+        bar_layout.addStretch(1)
+        self.translation_progress_label = CaptionLabel(bar)
+        self.translation_progress_label.setAccessibleName(self.tra("字幕翻译进度"))
+        bar_layout.addWidget(self.translation_progress_label)
         bar_layout.addWidget(CaptionLabel(self.tra("音量"), bar))
         self.volume_slider = Slider(Qt.Horizontal, bar)
         self.volume_slider.setRange(0, 100)
@@ -272,9 +268,10 @@ class AudioPreview(QWidget, ConfigMixin):
         if not isinstance(duration, (int, float)) or not math.isfinite(duration):
             duration = 0
         self._duration_ms = max(0, int(duration), max((segment["end_ms"] for segment in self.segments), default=0))
-        self.title_label.setText(str(file.get("storage_path") or self.tra("音频预览")) if file else self.tra("音频预览"))
-        self.title_label.setToolTip(self.title_label.text())
-        self.count_label.setText(self.tra("{0} 条字幕").format(len(self.segments)))
+        items = file.get("items", []) if file else []
+        completed = sum(isinstance(item, dict) and item.get("translation_status") in (1, 2)
+                        and bool(item.get("translated_text")) for item in items)
+        self.set_translation_progress(completed, len(items))
         self._loading = True
         try:
             self.table.setRowCount(len(self.segments))
@@ -292,32 +289,41 @@ class AudioPreview(QWidget, ConfigMixin):
         finally:
             self._loading = False
         self.timeline.set_segments(self.segments, self._duration_ms)
-        self.status_label.setText(self.tra("点击字幕或时间轴可定位；双击译文可编辑。") if self.segments else
-                                  self.tra("转录完成后将在这里显示时间轴与字幕。") if file else self.tra("从左侧选择一个音频文件。"))
+        self._subtitle_status = ("" if self.segments else self.tra("转录完成后将在这里显示时间轴与字幕。")
+                                 if file else self.tra("从左侧选择一个音频文件。"))
         if invalid:
-            self.status_label.setText(self.tra("{0} 条字幕时间信息无效，已跳过预览。").format(invalid))
+            self._subtitle_status = self.tra("{0} 条字幕时间信息无效，已跳过预览。").format(invalid)
+        self._set_status(self._subtitle_status)
         if file and source_url and not same_media:
             self._load_media(source_url, headers or {})
         elif file and not source_url:
-            self.status_label.setText(self.tra("音频预览地址不可用，仍可查看和编辑字幕。"))
-        self.position_slider.setEnabled(bool(file and self._duration_ms))
+            self._set_status(self.tra("音频预览地址不可用，仍可查看和编辑字幕。"))
         self.volume_slider.setEnabled(self._player_available())
         self.play_button.setEnabled(bool(file and source_url and self._player_available()
                                          and not self._playback_failed and not self._downloading))
         self._active_row = None
         self._on_position_changed(self._position_ms if same_media else 0)
 
+    def set_translation_progress(self, completed, total):
+        total = max(0, int(total))
+        completed = max(0, min(int(completed), total))
+        self.translation_progress_label.setText(self.tra("已译 {0} / {1} 条").format(completed, total))
+
+    def _set_status(self, message):
+        self.status_label.setText(message)
+        self.status_label.setVisible(bool(message))
+
     def _player_available(self):
         return self.player is not None and self.player.isAvailable()
 
     def _load_media(self, source_url, headers):
         if not self._player_available():
-            self.status_label.setText(self.tra("当前系统没有可用音频播放器，字幕预览和编辑仍可使用。"))
+            self._set_status(self.tra("当前系统没有可用音频播放器，字幕预览和编辑仍可使用。"))
             return
         url = QUrl(source_url)
         if not url.isValid() or url.scheme().lower() not in ("http", "https", "file"):
             self._playback_failed = True
-            self.status_label.setText(self.tra("音频预览地址无效。"))
+            self._set_status(self.tra("音频预览地址无效。"))
             return
         request = QNetworkRequest(url)
         for name, value in headers.items():
@@ -333,7 +339,7 @@ class AudioPreview(QWidget, ConfigMixin):
             self.player.setMedia(QMediaContent(request))
         except (RuntimeError, OSError):
             self._playback_failed = True
-            self.status_label.setText(self.tra("音频无法加载，请检查连接或系统音频解码器。"))
+            self._set_status(self.tra("音频无法加载，请检查连接或系统音频解码器。"))
 
     def _start_authenticated_download(self, request):
         suffix = PurePosixPath(str(self.file.get("storage_path", "")).replace("\\", "/")).suffix.lower()
@@ -343,12 +349,12 @@ class AudioPreview(QWidget, ConfigMixin):
             temporary = NamedTemporaryFile(prefix="ainiee-audio-", suffix=suffix, delete=False)
         except OSError:
             self._playback_failed = True
-            self.status_label.setText(self.tra("无法创建音频预览缓存，请检查临时目录可用空间。"))
+            self._set_status(self.tra("无法创建音频预览缓存，请检查临时目录可用空间。"))
             return
         self._download_file = temporary
         self._download_path = Path(temporary.name)
         self._downloading = True
-        self.status_label.setText(self.tra("正在下载音频供本地预览…"))
+        self._set_status(self.tra("正在下载音频供本地预览…"))
         request.setAttribute(QNetworkRequest.RedirectPolicyAttribute, QNetworkRequest.ManualRedirectPolicy)
         reply = self._network.get(request)
         self._reply = reply
@@ -373,7 +379,7 @@ class AudioPreview(QWidget, ConfigMixin):
             progress = f"{received / 1048576:.1f} MB"
             if total > 0:
                 progress += f" / {total / 1048576:.1f} MB"
-            self.status_label.setText(self.tra("正在下载音频供本地预览：{0}").format(progress))
+            self._set_status(self.tra("正在下载音频供本地预览：{0}").format(progress))
 
     def _download_finished(self, reply):
         if reply is not self._reply:
@@ -396,7 +402,7 @@ class AudioPreview(QWidget, ConfigMixin):
         except OSError:
             self._remove_cache(path)
             self._playback_failed = True
-            self.status_label.setText(self.tra("音频预览缓存写入失败，请检查磁盘空间。"))
+            self._set_status(self.tra("音频预览缓存写入失败，请检查磁盘空间。"))
             return
         self._media_path = path
         self._pending_seek = self._position_ms
@@ -404,16 +410,16 @@ class AudioPreview(QWidget, ConfigMixin):
             self.player.setMedia(QMediaContent(QUrl.fromLocalFile(str(path))))
         except (RuntimeError, OSError):
             self._playback_failed = True
-            self.status_label.setText(self.tra("音频无法加载，请检查系统音频解码器。"))
+            self._set_status(self.tra("音频无法加载，请检查系统音频解码器。"))
         self.play_button.setEnabled(not self._playback_failed)
         if not self._playback_failed:
-            self.status_label.setText(self.tra("音频已就绪。点击字幕或时间轴可定位；双击译文可编辑。"))
+            self._set_status(self._subtitle_status)
 
     def _download_failed(self, message):
         self._cancel_download()
         self._playback_failed = True
         self.play_button.setEnabled(False)
-        self.status_label.setText(message)
+        self._set_status(message)
 
     def _cancel_download(self):
         reply, self._reply = self._reply, None
@@ -469,14 +475,11 @@ class AudioPreview(QWidget, ConfigMixin):
         self.translationEdited.emit(identity, cell.text())
         if self._active_row == cell.row():
             self.current_translation.setText(cell.text())
+            self._fit_current_subtitles()
 
     def _select_cue(self, row, column):
         if 0 <= row < len(self.segments):
             self.seek(self.segments[row]["start_ms"])
-
-    def _slider_seek(self, value):
-        if not self._updating_slider:
-            self.seek(round(self._duration_ms * value / 10000))
 
     def seek(self, milliseconds):
         if not self.file:
@@ -514,21 +517,12 @@ class AudioPreview(QWidget, ConfigMixin):
         if self.file and duration > 0:
             self._duration_ms = max(int(duration), max((s["end_ms"] for s in self.segments), default=0))
             self.timeline.set_segments(self.segments, self._duration_ms)
-            self.position_slider.setEnabled(True)
             self._on_position_changed(self._position_ms)
 
     def _on_position_changed(self, position):
         self._position_ms = max(0, min(int(position), self._duration_ms))
         self.timeline.set_position(self._position_ms)
         self.position_label.setText(f"{format_time(self._position_ms)} / {format_time(self._duration_ms)}")
-        if not self.position_slider.isSliderDown():
-            # Fluent Slider also consumes valueChanged to move its thumb.
-            # Suppress our seek callback, not the widget's internal signal.
-            self._updating_slider = True
-            try:
-                self.position_slider.setValue(round(10000 * self._position_ms / self._duration_ms) if self._duration_ms else 0)
-            finally:
-                self._updating_slider = False
         upper = bisect_right(self._starts, self._position_ms)
         row = next((i for i in range(upper - 1, -1, -1) if self._position_ms < self.segments[i]["end_ms"]), -1)
         if row == self._active_row:
@@ -536,12 +530,25 @@ class AudioPreview(QWidget, ConfigMixin):
         self._active_row = row
         self.current_source.setText(self.segments[row]["source_text"] if row >= 0 else "")
         self.current_translation.setText(self.segments[row]["translated_text"] if row >= 0 else "")
+        self._fit_current_subtitles()
         if self.table.state() != QAbstractItemView.EditingState:
             if row >= 0:
                 self.table.selectRow(row)
                 self.table.scrollToItem(self.table.item(row, 0), QAbstractItemView.EnsureVisible)
             else:
                 self.table.clearSelection()
+
+    def _fit_current_subtitles(self):
+        width = max(1, self.contentsRect().width())
+        for label in (self.current_source, self.current_translation):
+            # QLabel's heightForWidth includes its previous minimum height.
+            # Reset that floor so shorter cues can return to a compact line.
+            label.setMinimumHeight(20)
+            label.setMinimumHeight(max(20, label.heightForWidth(width)))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._fit_current_subtitles()
 
     def _on_media_status(self, status):
         if QMediaPlayer is not None and status == QMediaPlayer.InvalidMedia:
@@ -558,7 +565,7 @@ class AudioPreview(QWidget, ConfigMixin):
             return
         self._playback_failed = True
         self.play_button.setEnabled(False)
-        self.status_label.setText(self.tra("音频无法播放，请检查后端连接和系统音频解码器；字幕仍可预览、编辑和导出。"))
+        self._set_status(self.tra("音频无法播放，请检查后端连接和系统音频解码器；字幕仍可预览、编辑和导出。"))
 
     def clear(self):
         self.set_file(None)

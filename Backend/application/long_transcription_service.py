@@ -85,6 +85,8 @@ def _checkpoint(cache_file, prepared, resolved):
         "vad_threshold": resolved.vad_threshold,
         "duration_ms": prepared.duration_ms, "sample_rate": prepared.sample_rate,
     }
+    if resolved.api_format == "VolcengineASRFast":
+        identity["resource_id"] = resolved.resource_id
     previous = cache_file.extra.get(CHECKPOINT_KEY)
     completed = {}
     reusable = (not resolved.retranscribe and isinstance(previous, dict)

@@ -7,13 +7,20 @@ from uuid import uuid4
 
 from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (QAbstractItemView, QFileDialog, QFrame, QHeaderView, QHBoxLayout,
-    QListWidgetItem, QProgressBar, QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
-from qfluentwidgets import (BodyLabel, CaptionLabel, CardWidget, CheckBox, ComboBox,
-    ListWidget, PlainTextEdit, PrimaryPushButton, PushButton, TitleLabel, TreeWidget)
+    QProgressBar, QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+from qfluentwidgets import (BodyLabel, CaptionLabel, ComboBox, FluentIcon, IconWidget,
+    MessageBox, PrimaryPushButton, SearchLineEdit, SimpleCardWidget,
+    SingleDirectionScrollArea, StrongBodyLabel, TransparentPushButton, TreeWidget)
 
 from Frontend.core.config import ConfigMixin
+from Frontend.core.media_task_config import read_media_export_settings
 from Frontend.components.toast import ToastMixin
 from Frontend.services.media_client import MediaClient
+from Frontend.pages.media.start_page import MediaStartPage
+from Frontend.pages.media.monitoring_panel import MediaMonitoringPanel
+from Frontend.pages.media.workflow_header import MediaWorkflowHeader
+from Frontend.pages.media.workflow_selector import MediaWorkflowSelector
+from Frontend.pages.media.workflow_state import prerequisite_message, workflow_states
 from Frontend.pages.workspace.translation.language_settings_card import LanguageSettingsCard
 
 
@@ -22,6 +29,7 @@ class MediaWorker(QThread):
     failed = pyqtSignal(str)
     workspaceReady = pyqtSignal(object)
     stageChanged = pyqtSignal(str)
+    stageFinished = pyqtSignal(str, object)
 
     def __init__(self, action, parent=None):
         super().__init__(parent)
@@ -38,35 +46,6 @@ class MediaWorker(QThread):
             self.operation_id = None
 
 
-class MediaDropCard(CardWidget):
-    pathsDropped = pyqtSignal(list)
-
-    def __init__(self, kind, parent=None):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-        self.setMinimumHeight(190)
-        layout = QVBoxLayout(self)
-        title = TitleLabel("将图片、文件夹或 ZIP 拖到这里" if kind == "image" else "将音频、文件夹或 ZIP 拖到这里", self)
-        title.setAlignment(Qt.AlignCenter)
-        title.setWordWrap(True)
-        layout.addStretch()
-        layout.addWidget(title)
-        description = BodyLabel("PNG · JPG · WebP" if kind == "image" else "MP3 · WAV · FLAC · M4A · OGG", self)
-        description.setAlignment(Qt.AlignCenter)
-        layout.addWidget(description)
-        layout.addStretch()
-
-    def dragEnterEvent(self, event):
-        if self.isEnabled() and event.mimeData().hasUrls() and all(u.isLocalFile() for u in event.mimeData().urls()):
-            event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        paths = [u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile()]
-        if self.isEnabled() and paths:
-            self.pathsDropped.emit(paths)
-            event.acceptProposedAction()
-
-
 class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
     def __init__(self, name, kind, parent=None, backend=None):
         super().__init__(parent)
@@ -76,6 +55,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.workspace = None
         self._worker = None
         self._aux_workers = []
+        self._history_worker = None
+        self._history_revision = 0
+        self._disposed = False
         self._dirty = False
         self._pending_edits = {}
         self._pending_image_extra = {}
@@ -83,10 +65,16 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._updating_image_options = False
         self._file_rows = {}
         self._selected_id = None
-        self._initialized = False
         self._selecting = False
         self._polling = False
         self._stage_label = ""
+        self._active_stage = ""
+        self._live_progress = {}
+        self._run_started = None
+        self._run_elapsed = 0
+        self._run_state = ""
+        self._stage_results = {}
+        self._planned_stages = []
         self._build_ui()
         self._save_timer = QTimer(self)
         self._save_timer.setSingleShot(True)
@@ -94,160 +82,243 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._progress_timer = QTimer(self)
         self._progress_timer.setInterval(1200)
         self._progress_timer.timeout.connect(self._poll_operation)
+        self._metrics_timer = QTimer(self)
+        self._metrics_timer.setInterval(1000)
+        self._metrics_timer.timeout.connect(self._refresh_metrics)
 
     @property
     def busy(self):
         return self._worker is not None
 
+    @staticmethod
+    def _brief_message(text):
+        text = " ".join(str(text).split())
+        return text if len(text) <= 180 else text[:177] + "…"
+
+    def _set_status(self, text):
+        summary = self._brief_message(text)
+        self.status_label.setText(summary)
+        self.status_label.setToolTip(text if summary != text else "")
+        self.status_label.setVisible(bool(text))
+
     def _build_ui(self):
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(24, 18, 24, 16)
-        self.title = TitleLabel(self.tra("图片翻译" if self.kind == "image" else "音频翻译"), self)
-        outer.addWidget(self.title)
-        self.description = CaptionLabel(self.tra("读取 → 文字识别 → 翻译 → 图片对照与导出" if self.kind == "image"
-                                                 else "读取 → 转录 → 翻译 → 字幕试听与导出"), self)
-        outer.addWidget(self.description)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
         self.stack = QStackedWidget(self)
         outer.addWidget(self.stack, 1)
-        self.start_page = QWidget(self)
-        start = QVBoxLayout(self.start_page)
-        start.setContentsMargins(0, 16, 0, 0)
-        self.drop_card = MediaDropCard(self.kind, self.start_page)
+        self.start_page = MediaStartPage(self.kind, self)
+        self.start_page.layout().setContentsMargins(24, 24, 24, 20)
+        self.drop_card = self.start_page.drop_card
+        self.pick_files = self.start_page.pick_files
+        self.pick_folder = self.start_page.pick_folder
+        self.pick_zip = self.start_page.pick_zip
+        self.history_list = self.start_page.history_list
         self.drop_card.pathsDropped.connect(self.import_paths)
-        start.addWidget(self.drop_card)
-        buttons = QHBoxLayout()
-        self.pick_files = PrimaryPushButton(self.tra("选择图片" if self.kind == "image" else "选择音频"), self)
-        self.pick_folder = PushButton(self.tra("选择文件夹"), self)
-        self.pick_zip = PushButton(self.tra("选择 ZIP"), self)
         self.pick_files.clicked.connect(self._choose_files)
         self.pick_folder.clicked.connect(self._choose_folder)
         self.pick_zip.clicked.connect(self._choose_zip)
-        buttons.addStretch()
-        for button in (self.pick_files, self.pick_folder, self.pick_zip):
-            buttons.addWidget(button)
-        buttons.addStretch()
-        start.addLayout(buttons)
-        note = CaptionLabel(self.tra("读取不会调用在线识别服务。项目进度自动保存，可从最近项目继续。"), self)
-        note.setAlignment(Qt.AlignCenter)
-        start.addWidget(note)
-        row = QHBoxLayout()
-        row.addWidget(BodyLabel(self.tra("最近项目"), self))
-        row.addStretch()
-        self.refresh_history_button = PushButton(self.tra("刷新"), self)
-        self.refresh_history_button.clicked.connect(self.refresh_history)
-        row.addWidget(self.refresh_history_button)
-        start.addLayout(row)
-        self.history_list = ListWidget(self)
         self.history_list.itemDoubleClicked.connect(lambda item: self.load_workspace(item.data(Qt.UserRole)))
-        self.history_list.setMinimumHeight(100)
-        start.addWidget(self.history_list, 1)
-        self.open_history = PushButton(self.tra("打开选中项目"), self)
-        self.open_history.clicked.connect(self._open_history)
-        start.addWidget(self.open_history, 0, Qt.AlignRight)
+        self.start_page.deleteRequested.connect(self._delete_workspace)
         self.stack.addWidget(self.start_page)
 
         self.work_page = QWidget(self)
         work = QVBoxLayout(self.work_page)
-        work.setContentsMargins(0, 6, 0, 0)
-        header = QHBoxLayout()
-        self.back_button = PushButton(self.tra("返回项目列表"), self)
-        self.back_button.clicked.connect(self._back)
-        header.addWidget(self.back_button)
-        self.project_label = BodyLabel(self)
-        header.addWidget(self.project_label, 1)
-        self.save_button = PushButton(self.tra("保存项目"), self)
-        self.save_button.clicked.connect(self.save_workspace)
-        header.addWidget(self.save_button)
-        work.addLayout(header)
+        work.setContentsMargins(0, 0, 0, 0)
+        work.setSpacing(0)
+        self.workflow_header = MediaWorkflowHeader(self.work_page)
+        self.back_button = self.workflow_header.back_button
+        self.save_button = self.workflow_header.save_button
+        self.export_button = self.workflow_header.export_button
+        self.workflow_header.backRequested.connect(self._back)
+        self.workflow_header.saveRequested.connect(self.save_workspace)
+        self.workflow_header.exportRequested.connect(self._export)
+        self.workflow_header.stepChanged.connect(self._switch_workflow_page)
+        work.addWidget(self.workflow_header)
+        self.workflow_stack = QStackedWidget(self.work_page)
+        work.addWidget(self.workflow_stack, 1)
+        self._build_translation_page()
+        self._build_proofreading_page()
+        self.workflow_stack.addWidget(self.translation_page)
+        self.workflow_stack.addWidget(self.proofreading_page)
+        self.workflow_header.set_current_step("translation")
+        self.stack.addWidget(self.work_page)
+
+        self.status_label = CaptionLabel("", self)
+        self.status_label.setWordWrap(True)
+        self.status_label.setContentsMargins(24, 6, 24, 8)
+        self.status_label.hide()
+        outer.addWidget(self.status_label)
+        self.progress = QProgressBar(self)
+        self.progress.setMaximumHeight(3)
+        self.progress.setTextVisible(False)
+        self.progress.hide()
+        outer.addWidget(self.progress)
         if self.kind == "image":
-            self._build_image_options(work)
-        settings = QHBoxLayout()
-        self.source_combo, self.target_combo = ComboBox(self), ComboBox(self)
+            self._update_image_controls()
+        self._refresh_metrics()
+
+    def _build_translation_page(self):
+        self.translation_page = QWidget(self.work_page)
+        layout = QVBoxLayout(self.translation_page)
+        layout.setContentsMargins(0, 12, 0, 20)
+        layout.setSpacing(16)
+        scroller = SingleDirectionScrollArea(self.translation_page, orient=Qt.Vertical)
+        scroller.setWidgetResizable(True)
+        scroller.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroller.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+        content = QWidget(scroller)
+        content.setObjectName("mediaTranslationContent")
+        content.setStyleSheet("QWidget#mediaTranslationContent { background: transparent; }")
+        body = QVBoxLayout(content)
+        body.setContentsMargins(24, 12, 24, 8)
+        body.setSpacing(16)
+        self.monitoring = MediaMonitoringPanel(content)
+        body.addWidget(self.monitoring)
+
+        options_card = SimpleCardWidget(content)
+        options_card.setBorderRadius(12)
+        options = QVBoxLayout(options_card)
+        options.setContentsMargins(18, 14, 18, 14)
+        options.setSpacing(12)
+        if self.kind == "image":
+            self._build_image_options(options)
+        self.workflow_selector = MediaWorkflowSelector(self.kind, options_card)
+        options.addWidget(self.workflow_selector)
+        body.addWidget(options_card)
+        body.addStretch(1)
+        scroller.setWidget(content)
+        layout.addWidget(scroller, 1)
+
+        bottom = QHBoxLayout()
+        bottom.setContentsMargins(24, 0, 24, 0)
+        bottom.setSpacing(12)
+        bottom.addStretch(1)
+        self.command_card = SimpleCardWidget(self.translation_page)
+        self.command_card.setBorderRadius(18)
+        commands = QHBoxLayout(self.command_card)
+        commands.setContentsMargins(18, 16, 18, 16)
+        commands.setSpacing(12)
+        self.translate_button = PrimaryPushButton(FluentIcon.PLAY, self.tra("开始翻译"), self.command_card)
+        self.translate_button.clicked.connect(self._run_primary)
+        self.stop_button = TransparentPushButton(FluentIcon.CANCEL_MEDIUM, self.tra("停止"), self.command_card)
+        self.stop_button.setEnabled(False)
+        self.stop_button.clicked.connect(self.stop_operation)
+        commands.addWidget(self.translate_button)
+        commands.addWidget(self.stop_button)
+        bottom.addWidget(self.command_card)
+
+        self.language_card = SimpleCardWidget(self.translation_page)
+        self.language_card.setBorderRadius(18)
+        languages = QHBoxLayout(self.language_card)
+        languages.setContentsMargins(18, 16, 18, 16)
+        languages.setSpacing(8)
+        self.source_combo, self.target_combo = ComboBox(self.language_card), ComboBox(self.language_card)
         for text, value in LanguageSettingsCard.SOURCE_LANGUAGE_PAIRS:
             self.source_combo.addItem(self.tra(text), userData=value)
         for text, value in LanguageSettingsCard.TARGET_LANGUAGE_PAIRS:
             self.target_combo.addItem(self.tra(text), userData=value)
-        settings.addWidget(BodyLabel(self.tra("原文"), self))
-        settings.addWidget(self.source_combo)
-        settings.addWidget(BodyLabel("→", self))
-        settings.addWidget(self.target_combo)
-        self.retranslate_check = CheckBox(self.tra("重译已完成内容"), self)
-        settings.addWidget(self.retranslate_check)
-        settings.addStretch()
-        self.format_combo = ComboBox(self)
-        self.format_combo.addItems(["PNG", "JPEG", "WEBP"] if self.kind == "image" else ["SRT", "VTT", "ASS", "LRC"])
-        settings.addWidget(BodyLabel(self.tra("导出格式"), self))
-        settings.addWidget(self.format_combo)
-        self.subtitle_mode = ComboBox(self)
-        for label, mode in (("双语字幕", "bilingual"), ("仅译文", "translated"), ("仅原文", "source")):
-            self.subtitle_mode.addItem(self.tra(label), userData=mode)
-        self.subtitle_mode.setVisible(self.kind == "audio")
-        settings.addWidget(self.subtitle_mode)
-        work.addLayout(settings)
+        self.source_combo.setMinimumWidth(108)
+        self.target_combo.setMinimumWidth(100)
+        self.source_combo.setAccessibleName(self.tra("原文语言"))
+        self.target_combo.setAccessibleName(self.tra("译文语言"))
+        languages.addWidget(self.source_combo)
+        arrow = IconWidget(FluentIcon.RIGHT_ARROW, self.language_card)
+        arrow.setFixedSize(16, 16)
+        languages.addWidget(arrow)
+        languages.addWidget(self.target_combo)
+        bottom.addWidget(self.language_card)
+        bottom.addStretch(1)
+        layout.addLayout(bottom)
+        self.workflow_selector.selectionChanged.connect(self._refresh_metrics)
         if self.kind == "image":
             self.source_combo.currentIndexChanged.connect(self._generation_preferences_changed)
             self.target_combo.currentIndexChanged.connect(self._generation_preferences_changed)
-        actions = QHBoxLayout()
-        self.recognize_button = PushButton(self.tra("识别原文" if self.kind == "image" else "转录字幕"), self)
-        self.translate_button = PrimaryPushButton(self.tra("开始 / 继续翻译"), self)
-        self.preview_button = PushButton(self.tra("更新译图预览"), self)
-        self.preview_button.setVisible(self.kind == "image")
-        self.stop_button = PushButton(self.tra("停止"), self)
-        self.stop_button.setEnabled(False)
-        self.export_button = PushButton(self.tra("导出结果"), self)
-        self.recognize_button.clicked.connect(lambda: self.run_stages(["recognize"]))
-        self.translate_button.clicked.connect(self._run_primary)
-        self.preview_button.clicked.connect(lambda: self.run_stages(["preview"]))
-        self.stop_button.clicked.connect(self.stop_operation)
-        self.export_button.clicked.connect(self._export)
-        for button in (self.recognize_button, self.translate_button, self.preview_button, self.stop_button):
-            actions.addWidget(button)
-        actions.addStretch()
-        actions.addWidget(self.export_button)
-        work.addLayout(actions)
-        splitter = QSplitter(Qt.Horizontal, self)
-        self.file_tree = TreeWidget(splitter)
+
+    def _build_proofreading_page(self):
+        self.proofreading_page = QWidget(self.work_page)
+        layout = QVBoxLayout(self.proofreading_page)
+        layout.setContentsMargins(0, 12, 0, 0)
+        layout.setSpacing(0)
+        splitter = QSplitter(Qt.Horizontal, self.proofreading_page)
+        splitter.setChildrenCollapsible(False)
+        splitter.setHandleWidth(8)
+        splitter.setStyleSheet("QSplitter::handle { width: 8px; background: transparent; }")
+        sidebar = QWidget(splitter)
+        side = QVBoxLayout(sidebar)
+        side.setContentsMargins(0, 0, 0, 0)
+        side.setSpacing(10)
+        files_card = SimpleCardWidget(sidebar)
+        files_card.setBorderRadius(12)
+        files = QVBoxLayout(files_card)
+        files.setContentsMargins(10, 14, 10, 12)
+        files.setSpacing(10)
+        title = StrongBodyLabel(self.tra("项目文件"), files_card)
+        title.setAlignment(Qt.AlignCenter)
+        files.addWidget(title)
+        self.file_tree = TreeWidget(files_card)
         self.file_tree.setHeaderLabels([self.tra("文件"), self.tra("已译/条目")])
+        self.file_tree.setHeaderHidden(True)
         self.file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.file_tree.header().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.file_tree.setMinimumWidth(190)
+        self.file_tree.header().setSectionResizeMode(1, QHeaderView.Fixed)
+        self.file_tree.setColumnWidth(1, 60)
+        self.file_tree.setColumnHidden(1, True)
+        self.file_tree.setMinimumWidth(200)
         self.file_tree.setIndentation(16)
         self.file_tree.setSelectionMode(QAbstractItemView.SingleSelection)
         self.file_tree.currentItemChanged.connect(self._file_selected)
+        files.addWidget(self.file_tree, 1)
+        self.file_search = SearchLineEdit(files_card)
+        self.file_search.setPlaceholderText(self.tra("搜索文件"))
+        self.file_search.textChanged.connect(self._filter_files)
+        files.addWidget(self.file_search)
+        side.addWidget(files_card, 1)
+
+        editor_card = SimpleCardWidget(splitter)
+        editor_card.setBorderRadius(12)
+        editor = QVBoxLayout(editor_card)
+        editor.setContentsMargins(16, 14, 16, 16)
+        editor.setSpacing(12)
         if self.kind == "image":
             from Frontend.pages.media.image_preview import ImagePreview
-            self.preview = ImagePreview(splitter)
+            self.preview = ImagePreview(editor_card)
+            self.preview_button = self.preview.refresh_button
+            self.preview_button.clicked.connect(lambda: self.run_stages(["preview"]))
         else:
             from Frontend.pages.media.audio_preview import AudioPreview
-            self.preview = AudioPreview(splitter)
+            self.preview = AudioPreview(editor_card)
+            self.preview_button = TransparentPushButton(editor_card)
+            self.preview_button.hide()
         self.preview.translationEdited.connect(self._translation_edited)
-        splitter.addWidget(self.file_tree)
-        splitter.addWidget(self.preview)
+        editor.addWidget(self.preview, 1)
+        splitter.addWidget(sidebar)
+        splitter.addWidget(editor_card)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([280 if self.kind == "image" else 240, 1000])
-        work.addWidget(splitter, 1)
-        self.stack.addWidget(self.work_page)
-        footer = QHBoxLayout()
-        self.status_label = CaptionLabel(self.tra("等待导入文件"), self)
-        self.status_label.setWordWrap(True)
-        footer.addWidget(self.status_label, 1)
-        self.details_button = PushButton(self.tra("处理详情"), self)
-        self.details_button.clicked.connect(lambda: self.details.setVisible(not self.details.isVisible()))
-        footer.addWidget(self.details_button)
-        outer.addLayout(footer)
-        self.progress = QProgressBar(self)
-        self.progress.setMaximumHeight(5)
-        self.progress.setTextVisible(False)
-        self.progress.hide()
-        outer.addWidget(self.progress)
-        self.details = PlainTextEdit(self)
-        self.details.setReadOnly(True)
-        self.details.setMaximumHeight(125)
-        self.details.hide()
-        outer.addWidget(self.details)
-        if self.kind == "image":
-            self._update_image_controls()
+        splitter.setSizes([250, 1000])
+        layout.addWidget(splitter, 1)
+
+    def _switch_workflow_page(self, route):
+        page = {"translation": self.translation_page, "proofreading": self.proofreading_page}.get(route)
+        if page is None:
+            return
+        self.workflow_header.set_current_step(route)
+        self.workflow_stack.setCurrentWidget(page)
+
+    def _filter_files(self, text=None):
+        query = self.file_search.text().strip().casefold()
+
+        def visit(row):
+            if row.data(0, Qt.UserRole):
+                visible = not query or query in row.toolTip(0).casefold()
+            else:
+                visible = any([visit(row.child(index)) for index in range(row.childCount())])
+            row.setHidden(not visible)
+            return visible
+
+        root = self.file_tree.invisibleRootItem()
+        for index in range(root.childCount()):
+            visit(root.child(index))
 
     def _build_image_options(self, layout):
         row = QHBoxLayout()
@@ -257,26 +328,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.image_mode_combo.addItem(self.tra("图像模型直接翻译"), userData="generation")
         self.image_mode_combo.setMinimumWidth(210)
         row.addWidget(self.image_mode_combo)
-        self.generation_text_combo = ComboBox(self)
-        self.generation_text_combo.addItem(self.tra("由图像模型翻译"), userData="direct")
-        self.generation_text_combo.addItem(self.tra("按已有原文译文换字"), userData="specified")
-        row.addWidget(self.generation_text_combo)
         row.addStretch()
-        self.generation_prompt_button = PushButton(self.tra("补充要求"), self)
-        self.generation_prompt_button.setCheckable(True)
-        row.addWidget(self.generation_prompt_button)
         layout.addLayout(row)
-        self.generation_help = CaptionLabel(self)
-        self.generation_help.setWordWrap(True)
-        layout.addWidget(self.generation_help)
-        self.generation_prompt = PlainTextEdit(self)
-        self.generation_prompt.setPlaceholderText(self.tra("可补充排版或画面保留要求；留空使用接口默认要求。最终结果仍需对照原图复核。"))
-        self.generation_prompt.setMaximumHeight(76)
-        layout.addWidget(self.generation_prompt)
         self.image_mode_combo.currentIndexChanged.connect(self._image_mode_changed)
-        self.generation_text_combo.currentIndexChanged.connect(self._generation_preferences_changed)
-        self.generation_prompt.textChanged.connect(self._generation_preferences_changed)
-        self.generation_prompt_button.toggled.connect(self._update_image_controls)
 
     def _image_mode(self):
         return self.image_mode_combo.currentData() if self.kind == "image" else "ocr"
@@ -285,36 +339,25 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if self.kind != "image":
             return
         generation = self._image_mode() == "generation"
-        specified = self.generation_text_combo.currentData() == "specified"
-        self.generation_text_combo.setVisible(generation)
-        self.generation_prompt_button.setVisible(generation)
-        self.generation_prompt.setVisible(generation and self.generation_prompt_button.isChecked())
-        self.generation_help.setVisible(generation)
-        if specified:
-            self.generation_help.setText(self.tra(
-                "按中间模型已有原文和译文换字，不会自动识别文字。请先在识别翻译流程中准备并校对条目；生成结果仍需人工复核。"))
-        else:
-            self.generation_help.setText(self.tra(
-                "图像模型直接生成整页译图，不会自动产生逐条原文和译文。请对照原图检查错字、漏字和画面变化。"))
-        self.recognize_button.setVisible(not generation)
+        self.workflow_selector.configure("generation" if generation else "ocr")
         self.preview_button.setVisible(not generation)
-        self.translate_button.setText(self.tra("开始 / 继续生成" if generation else "开始 / 继续翻译"))
-        self.retranslate_check.setText(self.tra("重新生成全部页面" if generation else "重译已完成内容"))
-        self.description.setText(self.tra("读取 → 图像模型生成 → 原图对照与导出" if generation
-                                         else "读取 → 文字识别 → 翻译 → 图片对照与导出"))
         self.file_tree.setHeaderLabels([self.tra("文件"), self.tra("生成状态" if generation else "已译/条目")])
+        self.file_tree.setColumnWidth(1, 88 if generation else 60)
+        self.file_tree.setColumnHidden(1, not generation)
         update_preview = getattr(self.preview, "set_generation_mode", None)
         if update_preview:
-            update_preview(generation, specified=specified)
+            update_preview(generation)
+        self._refresh_metrics()
 
     def _image_mode_changed(self, *unused):
         if self._updating_image_options or self.busy or not self.workspace:
             return
         mode = self._image_mode()
+        self._run_state = ""
+        self._live_progress = {}
         extra = self.workspace["model"].setdefault("extra", {})
         extra["image_translation_mode"] = mode
         self._pending_image_extra["image_translation_mode"] = mode
-        self.retranslate_check.setChecked(False)
         self._updating_image_options = True
         try:
             options = extra.get("image_generation_options", {})
@@ -332,8 +375,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
 
     def _record_generation_options(self):
         options = self.workspace["model"].setdefault("extra", {}).setdefault("image_generation_options", {})
-        values = {"text_mode": self.generation_text_combo.currentData(),
-                  "prompt": self.generation_prompt.toPlainText(),
+        values = {"text_mode": "direct", "prompt": "",
                   "source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData()}
         for key, value in values.items():
             if options.get(key) != value:
@@ -350,22 +392,25 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
 
     def _mark_options_dirty(self):
         self._dirty = True
-        self.status_label.setText(self.tra("流程设置已修改，正在自动保存…"))
+        self._run_state = ""
+        self._stage_results.pop("generate", None)
+        self._set_status(self.tra("流程设置已修改，正在自动保存…"))
         self._save_timer.start(800)
         self._refresh_tree_progress()
         self._file_selected(self._file_rows.get(self._selected_id) or self.file_tree.currentItem())
 
     def _run_primary(self):
-        if self.kind == "image" and self._image_mode() == "generation":
-            self.run_stages(["generate"])
-        else:
-            self.run_stages(["recognize", "translate"] + (["preview"] if self.kind == "image" else []))
+        if self.busy or not self.workspace:
+            return
+        stages = self.workflow_selector.selected_stages()
+        if not stages:
+            return
+        self.run_stages(stages)
 
     def showEvent(self, event):
         super().showEvent(event)
-        if not self._initialized:
-            self._initialized = True
-            QTimer.singleShot(0, self.refresh_history)
+        if self.stack.currentWidget() is self.start_page and not self.busy:
+            QTimer.singleShot(0, self._load_history)
 
     def _choose_files(self):
         filter_ = "图片 (*.png *.jpg *.jpeg *.webp)" if self.kind == "image" else "音频 (*.mp3 *.wav *.flac *.m4a *.ogg *.aac *.opus)"
@@ -383,23 +428,16 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if paths:
             self.import_paths(paths)
 
-    def _open_history(self):
-        item = self.history_list.currentItem()
-        if item:
-            self.load_workspace(item.data(Qt.UserRole))
-
     def _set_busy(self, value, *, cancellable=False):
         for widget in (self.drop_card, self.pick_files, self.pick_folder, self.pick_zip,
-                       self.refresh_history_button, self.open_history, self.history_list, self.back_button,
-                       self.save_button, self.recognize_button, self.translate_button,
-                       self.preview_button, self.export_button, self.source_combo, self.target_combo,
-                       self.retranslate_check, self.format_combo, self.subtitle_mode):
+                       self.history_list, self.back_button,
+                       self.save_button, self.translate_button,
+                       self.preview_button, self.export_button, self.source_combo, self.target_combo):
             widget.setEnabled(not value)
         self.preview.set_editable(not value)
+        self.workflow_selector.set_busy(value)
         if self.kind == "image":
-            for widget in (self.image_mode_combo, self.generation_text_combo,
-                           self.generation_prompt_button, self.generation_prompt):
-                widget.setEnabled(not value)
+            self.image_mode_combo.setEnabled(not value)
         self.stop_button.setEnabled(value and cancellable)
         self.progress.setRange(0, 0 if value else 100)
         self.progress.setVisible(value)
@@ -407,13 +445,23 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
     def _start_worker(self, action, completed, label, *, cancellable=False):
         if self.busy:
             return False
+        self._history_revision += 1
         self._save_timer.stop()
         worker = MediaWorker(action, self)
         self._worker = worker
+        if cancellable:
+            self._run_started = time.monotonic()
+            self._run_elapsed = 0
+            self._run_state = "准备中"
+            self._active_stage = ""
+            self._live_progress = {}
+            self._metrics_timer.start()
         self._set_busy(True, cancellable=cancellable)
-        self.status_label.setText(label)
+        self._set_status(label)
+        self._refresh_metrics()
         worker.workspaceReady.connect(self._apply_workspace)
         worker.stageChanged.connect(self._stage_changed)
+        worker.stageFinished.connect(self._stage_finished)
         worker.completed.connect(completed)
         worker.failed.connect(self._request_failed)
         worker.finished.connect(lambda: self._finish_worker(worker))
@@ -424,22 +472,59 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
 
     def _finish_worker(self, worker):
         if self._worker is worker:
+            if self._run_started is not None:
+                self._run_elapsed = time.monotonic() - self._run_started
+                self._run_started = None
+                self._metrics_timer.stop()
+                self._live_progress = {}
             self._worker = None
             self._progress_timer.stop()
             self._set_busy(False)
+            self._refresh_metrics()
+            if self.isVisible() and self.stack.currentWidget() is self.start_page:
+                QTimer.singleShot(0, self._load_history)
         worker.deleteLater()
 
     def _request_failed(self, message):
-        self.status_label.setText(self.tra("操作未完成，未保存的修改仍保留在页面" if self._dirty
+        if self._run_started is not None:
+            self._run_state = "未完成"
+            if self._active_stage:
+                self._stage_results[self._active_stage] = {"status": "未完成", "detail": self._brief_message(message)}
+        self._set_status(self.tra("操作未完成，未保存的修改仍保留在页面" if self._dirty
                                          else "请求未完成，可重新打开项目读取后端已保存的进度"))
-        self.details.appendPlainText(message)
-        self.details.show()
         self.error_toast(self.tra("操作失败"), message)
 
-    def _stage_changed(self, text):
-        self._stage_label = text
-        self.status_label.setText(text)
+    def _stage_changed(self, stage):
+        self._active_stage = stage
+        self._live_progress = {}
+        labels = {"recognize": "正在识别原文…" if self.kind == "image" else "正在转录字幕…",
+                  "translate": "正在翻译…", "preview": "正在生成译图预览…",
+                  "generate": "正在生成图片译文…", "export": "正在导出…"}
+        self._stage_label = self.tra(labels.get(stage, "正在处理…"))
+        self._run_state = {"recognize": "识别中" if self.kind == "image" else "转录中",
+                           "translate": "翻译中", "preview": "回填中", "generate": "生成中",
+                           "export": "导出中"}.get(stage, "处理中")
+        self._set_status(self._stage_label)
         self.progress.setRange(0, 0)
+        self._refresh_metrics()
+
+    def _stage_finished(self, stage, result):
+        status = result.get("status", "failed")
+        report = result.get("report", {})
+        if report.get("operation_errors") or not result.get("workspace", {}).get("persisted", True):
+            status = "failed"
+        if status != "success":
+            detail = next((str(entry.get("message") or entry.get("reason"))
+                           for key in ("operation_errors", "errors", "failed_items", "warnings")
+                           for entry in report.get(key, []) if isinstance(entry, dict)
+                           and (entry.get("message") or entry.get("reason"))), "")
+            self._stage_results[stage] = {
+                "status": self.tra({"partial": "部分完成", "cancelled": "已停止"}.get(status, "未完成")),
+                "detail": self._brief_message(detail),
+            }
+        else:
+            self._stage_results.pop(stage, None)
+        self._refresh_metrics()
 
     def _poll_operation(self):
         owner = self._worker
@@ -454,6 +539,11 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             if (status.get("operation") or {}).get("id") != identifier:
                 return
             progress = status.get("pipeline_progress", {})
+            if (not self.workspace or progress.get("workspace_id") != self.workspace["workspace_id"]
+                    or progress.get("stage") != self._active_stage):
+                return
+            self._live_progress = progress
+            self._refresh_metrics()
             if self.kind == "image" and self._image_mode() == "generation":
                 row = self._file_rows.get(progress.get("file_id"))
                 if row:
@@ -464,7 +554,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 if isinstance(current, (int, float)) and isinstance(total, (int, float)) and total > 0:
                     self.progress.setRange(0, int(total))
                     self.progress.setValue(int(current))
-                    self.status_label.setText(f"{self._stage_label} {int(current)} / {int(total)}")
+                    self._set_status(f"{self._stage_label} {int(current)} / {int(total)}")
                     break
         def finished():
             self._polling = False
@@ -474,25 +564,51 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         worker.finished.connect(finished)
         worker.start()
 
-    def refresh_history(self):
+    def _load_history(self):
+        if (self._disposed or self.busy or self._history_worker is not None
+                or not self.isVisible() or self.stack.currentWidget() is not self.start_page):
+            return
+        revision = self._history_revision
+
         def fetch(worker):
             return self.client.history(self.kind), self.client.backend.load_config()
+
+        worker = MediaWorker(fetch, self)
+        self._history_worker = worker
+        self._aux_workers.append(worker)
+
+        def current():
+            return (not self._disposed and self._history_worker is worker
+                    and revision == self._history_revision and not self.busy
+                    and self.isVisible() and self.stack.currentWidget() is self.start_page)
+
         def completed(result):
+            if not current():
+                return
             history, config = result
             rows = history if isinstance(history, list) else history.get("workspaces", history.get("items", []))
-            self.history_list.clear()
-            for row in rows:
-                item = QListWidgetItem(str(row.get("project_name") or row.get("name") or "未命名项目"))
-                item.setData(Qt.UserRole, row["workspace_id"])
-                item.setToolTip(str(row.get("updated_at", "")))
-                self.history_list.addItem(item)
+            self.start_page.set_history(rows)
             if not self.workspace:
                 for combo, key in ((self.source_combo, "source_language"), (self.target_combo, "target_language")):
                     index = combo.findData(config.get(key))
                     if index >= 0:
                         combo.setCurrentIndex(index)
-            self.status_label.setText(self.tra("选择文件或打开最近项目") if rows else self.tra("等待导入文件"))
-        self._start_worker(fetch, completed, self.tra("读取最近项目…"))
+
+        def failed(message):
+            if current():
+                self.error_toast(self.tra("读取项目失败"), self._brief_message(message))
+
+        def finished():
+            if self._history_worker is worker:
+                self._history_worker = None
+            self._finish_aux(worker)
+            if revision != self._history_revision:
+                QTimer.singleShot(0, self._load_history)
+
+        worker.completed.connect(completed)
+        worker.failed.connect(failed)
+        worker.finished.connect(finished)
+        worker.start()
 
     def import_paths(self, paths):
         if paths:
@@ -502,19 +618,59 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
     def load_workspace(self, identifier):
         self._start_worker(lambda worker: self.client.load(identifier), self._loaded, self.tra("正在恢复项目…"))
 
+    def _delete_workspace(self, identifier, title):
+        if self.busy:
+            return
+        content = self.tra("删除项目“{}”？").format(title)
+        content += "\n" + self.tra("项目进度、预览和缓存将被删除，无法恢复。原始文件和已导出的文件会保留。")
+        dialog = MessageBox(self.tra("删除项目"), content, self.window())
+        dialog.yesButton.setText(self.tra("删除"))
+        dialog.cancelButton.setText(self.tra("取消"))
+        if not dialog.exec() or self.busy:
+            return
+        if self.workspace and self.workspace["workspace_id"] == identifier:
+            # Release a cached audio file before Windows removes its workspace.
+            self.preview.clear()
+
+        def completed(result):
+            if not isinstance(result, dict) or result.get("status") != "deleted" or result.get("workspace_id") != identifier:
+                self._request_failed(self.tra("未能确认项目删除结果，请重新进入页面查看。"))
+                return
+            self.start_page.remove_history(identifier)
+            if self.workspace and self.workspace["workspace_id"] == identifier:
+                self.workspace = None
+                self._dirty = False
+                self._clear_pending_changes()
+                self._selected_id = None
+                self._file_rows.clear()
+                self.file_tree.clear()
+            self._set_status("")
+            self.success_toast(self.tra("项目已删除"), title)
+
+        self._start_worker(lambda worker: self.client.delete(identifier), completed, self.tra("正在删除项目…"))
+
     def _loaded(self, workspace):
         self._selected_id = None
         self._dirty = False
+        self._run_elapsed = 0
+        self._run_state = ""
+        self._live_progress = {}
+        self._stage_results.clear()
+        self._planned_stages = []
+        self.file_search.clear()
         self._apply_workspace(workspace)
+        self._switch_workflow_page("translation")
         self.stack.setCurrentWidget(self.work_page)
-        self._show_report(workspace.get("status", "success"), workspace.get("report", {}))
+        self._set_status("")
+        if workspace.get("status") in ("partial", "failed", "cancelled") or not workspace.get("persisted", True):
+            self._show_report(workspace.get("status", "success"), workspace.get("report", {}))
 
     def _apply_workspace(self, workspace):
         self.workspace = copy.deepcopy(workspace)
+        self._live_progress = {}
         self._dirty = not workspace.get("persisted", True)
         self._clear_pending_changes()
         model = workspace["model"]
-        self.project_label.setText(f"{model.get('project_name', '')} · {len(model['files'])} 个文件")
         self._updating_image_options = True
         try:
             languages = model.get("translation_context", {})
@@ -523,8 +679,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 mode = extra.get("image_translation_mode", "ocr")
                 self.image_mode_combo.setCurrentIndex(max(0, self.image_mode_combo.findData(mode)))
                 options = extra.get("image_generation_options", {})
-                self.generation_text_combo.setCurrentIndex(max(0, self.generation_text_combo.findData(options.get("text_mode", "direct"))))
-                self.generation_prompt.setPlainText(str(options.get("prompt", "")))
                 if self._image_mode() == "generation":
                     languages = {**languages, **{key: options[key] for key in ("source_language", "target_language") if key in options}}
             for combo, key in ((self.source_combo, "source_language"), (self.target_combo, "target_language")):
@@ -558,6 +712,11 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._selecting = False
         if selected or first:
             self.file_tree.setCurrentItem(selected or first)
+        else:
+            self._selected_id = None
+            self.preview.clear()
+        self._filter_files()
+        self._refresh_metrics()
 
     @staticmethod
     def _generation_status_label(status):
@@ -568,17 +727,18 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
 
     def _file_progress(self, file):
         if self.kind == "image" and self._image_mode() == "generation":
-            asset = next((entry for entry in self.workspace.get("files", []) if entry["file_id"] == file["file_id"]), {})
-            state = file.get("extra", {}).get("image_generation", {})
-            status = asset.get("generation_status") or state.get("status")
-            edits_affect_file = any(item.get("item_id") in self._pending_edits for item in file.get("items", []))
-            if status == "complete" and (self._pending_generation_options or
-                    (self.generation_text_combo.currentData() == "specified" and edits_affect_file)):
-                status = "stale"
-            return self.tra(self._generation_status_label(status))
+            return self.tra(self._generation_status_label(self._generation_status(file)))
         items = file.get("items", [])
         translated = sum(i.get("translation_status") in (1, 2) and bool(i.get("translated_text")) for i in items)
         return f"{translated}/{len(items)}" if items else self.tra("待读取原文")
+
+    def _generation_status(self, file):
+        asset = next((entry for entry in self.workspace.get("files", []) if entry["file_id"] == file["file_id"]), {})
+        state = file.get("extra", {}).get("image_generation", {})
+        status = asset.get("generation_status") or state.get("status")
+        if status == "complete" and self._pending_generation_options:
+            status = "stale"
+        return status
 
     def _refresh_tree_progress(self):
         if not self.workspace:
@@ -587,6 +747,91 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             row = self._file_rows.get(file["file_id"])
             if row:
                 row.setText(1, self._file_progress(file))
+            if file["file_id"] == self._selected_id:
+                items = file.get("items", [])
+                translated = sum(item.get("translation_status") in (1, 2)
+                                 and bool(str(item.get("translated_text") or "").strip()) for item in items)
+                self.preview.set_translation_progress(translated, len(items))
+        self._refresh_metrics()
+
+    def _refresh_metrics(self, *unused):
+        files = list((self.workspace or {}).get("model", {}).get("files", {}).values())
+        generation = self.kind == "image" and self._image_mode() == "generation"
+        completed = total = recognized = attention = 0
+        for file in files:
+            extra = file.get("extra", {})
+            items = file.get("items", [])
+            recognition = extra.get("ocr" if self.kind == "image" else "transcription", {})
+            identified = recognition.get("status") == "complete"
+            if self.kind == "audio" and not extra.get("transcription_checkpoint"):
+                identified = identified or any(str(item.get("source_text", "")).strip() for item in items)
+            recognized += bool(identified)
+            needs_review = any(item.get("translation_status") == 8 or
+                item.get("extra", {}).get("ocr", {}).get("refinement", {}).get("status") in ("failed", "rejected")
+                for item in items)
+            if generation:
+                state = self._generation_status(file)
+                total += 1
+                completed += state == "complete"
+                needs_review = needs_review or state in ("unknown", "download_failed", "failed", "stale", "unavailable")
+            else:
+                candidates = [item for item in items if item.get("translation_status", 0) in (0, 1, 2)]
+                total += len(candidates)
+                completed += sum(item.get("translation_status") in (1, 2)
+                                 and bool(str(item.get("translated_text") or "").strip()) for item in candidates)
+            attention += bool(needs_review)
+        running = self._run_started is not None
+        if running and self._active_stage == "translate":
+            # Only media stage progress is admitted by _poll_operation.
+            live_total, live_done = self._live_progress.get("total_line"), self._live_progress.get("line")
+            if isinstance(live_total, (int, float)) and isinstance(live_done, (int, float)) and live_total > 0:
+                total, completed = int(live_total), min(int(live_total), max(0, int(live_done)))
+        stage = self._run_state
+        if not stage:
+            stage = "已完成" if total and completed == total else "待继续" if completed else "待开始"
+        elapsed = time.monotonic() - self._run_started if running else self._run_elapsed
+        self.monitoring.set_metrics(completed=completed, total=total, files=len(files), recognized=recognized,
+                                    attention=attention, elapsed=elapsed, stage=self.tra(stage),
+                                    running=running, generation=generation)
+        self._refresh_workflow()
+
+    def _refresh_workflow(self):
+        mode = self._image_mode()
+        generation = self.kind == "image" and mode == "generation"
+        generation_states = ({file["file_id"]: self._generation_status(file)
+                              for file in self.workspace["model"]["files"].values()}
+                             if generation and self.workspace else None)
+        states = workflow_states(self.workspace, self.kind, mode, generation_states)
+        if not generation and (self._pending_edits or self._pending_image_extra) and "preview" in states:
+            states["preview"] = {"status": self.tra("待更新"), "detail": self.tra("译文已修改，需重新回填"), "active": False}
+        for key, value in self._stage_results.items():
+            if key in states:
+                states[key] = {**states[key], **value}
+        running = self._run_started is not None
+        if running:
+            for key in self._planned_stages:
+                if key in states and key not in self._stage_results and key != self._active_stage:
+                    if self._planned_stages.index(key) > (self._planned_stages.index(self._active_stage)
+                                                         if self._active_stage in self._planned_stages else -1):
+                        states[key] = {**states[key], "status": self.tra("等待执行")}
+            if self._active_stage in states:
+                states[self._active_stage] = {**states[self._active_stage],
+                                             "status": self.tra("停止中" if self._worker.cancelled.is_set() else "处理中"),
+                                             "active": True}
+        self.workflow_selector.set_states(states)
+
+        selected = self.workflow_selector.selected_stages()
+        available = ["generate"] if generation else ["recognize", "translate"] + (["preview"] if self.kind == "image" else [])
+        labels = {"recognize": "开始转录" if self.kind == "audio" else "开始识别",
+                  "translate": "开始翻译", "preview": "生成译图", "generate": "生成译图"}
+        caption = ("请选择步骤" if not selected else labels[selected[0]] if len(selected) == 1
+                   else "一键翻译" if selected == available else "执行所选步骤")
+        self.translate_button.setText(self.tra(caption))
+        hint = prerequisite_message(self.workspace, self.kind, mode, selected) if self.workspace else ""
+        if not selected:
+            hint = self.tra("请至少选择一个执行步骤")
+        self.workflow_selector.set_hint("" if running else self.tra(hint))
+        self.translate_button.setEnabled(bool(self.workspace and selected) and not self.busy and not hint)
 
     def _file_selected(self, row, previous=None):
         if self._selecting or not row or not self.workspace:
@@ -600,9 +845,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         source = self.client.asset_url(asset.get("source_url"))
         if self.kind == "image":
             pending_mode = bool(self._pending_image_extra) or bool(self._pending_generation_options)
-            pending_text = self._image_mode() == "generation" and self.generation_text_combo.currentData() == "specified" and any(
-                item.get("item_id") in self._pending_edits for item in (file or {}).get("items", []))
-            translated = "" if pending_mode or pending_text else self.client.asset_url(asset.get("translated_url"))
+            translated = "" if pending_mode else self.client.asset_url(asset.get("translated_url"))
             self.preview.set_file(file, source_url=source, translated_url=translated, headers=self.client.headers)
         else:
             self.preview.set_file(file, source_url=source, headers=self.client.headers)
@@ -620,14 +863,12 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                     self._pending_edits[identifier] = {"source_text": item.get("source_text", ""),
                         "translated_text": text, "translation_status": item["translation_status"], "model": item["model"]}
                     self.workspace["model"]["stats_data"] = None
+                    self._run_state = ""
+                    for stage in ("translate", "preview", "generate"):
+                        self._stage_results.pop(stage, None)
                     self._dirty = True
-                    self.status_label.setText(self.tra("译文已修改，保存后请重新生成图片" if self.kind == "image" and self._image_mode() == "generation"
-                                                     else "译文已修改，正在自动保存…"))
+                    self._set_status(self.tra("译文已修改，正在自动保存…"))
                     self._refresh_tree_progress()
-                    if self.kind == "image" and self._image_mode() == "generation" and self.generation_text_combo.currentData() == "specified" and file["file_id"] == self._selected_id:
-                        invalidate = getattr(self.preview, "invalidate_translated", None)
-                        if invalidate:
-                            invalidate()
                     self._save_timer.start(800)
                     return
 
@@ -684,16 +925,27 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             else:
                 # A refresh may recover newer server checkpoints after a lost response.
                 self._apply_workspace(workspace)
-            self.status_label.setText(self.tra("项目已保存") + (self.tra("；修改译文后请更新译图预览") if self.kind == "image" else ""))
-            if self.kind == "image" and self._image_mode() == "generation":
-                self.status_label.setText(self.tra("项目已保存；文字或生成要求有变化时请重新生成译图"))
+            self._set_status("")
             if not workspace.get("persisted", True):
-                self.status_label.setText(self.tra("结果已保留在页面，但未能写入项目文件，请查看详情并重试保存"))
+                self._set_status(self.tra("结果已保留在页面，但未能写入项目文件，请重试保存"))
+            self._refresh_metrics()
         self._start_worker(lambda worker: prepare(),
                            done, self.tra("正在保存项目…"))
 
+    def _audio_recognition_config(self):
+        try:
+            current = self.client.backend.load_config()
+            provider_id = current.get("active_transcription_platform")
+        except Exception:
+            self.error_toast(self.tra("读取失败"), self.tra("无法读取转录接口配置，请检查后端连接后重试。"))
+            return None
+        return {"provider_id": provider_id} if isinstance(provider_id, str) and provider_id else {}
+
     def run_stages(self, stages, options=None):
         if not self.workspace or self.busy:
+            return
+        stages = list(stages)
+        if not stages:
             return
         generation = self.kind == "image" and self._image_mode() == "generation"
         if generation and any(stage in ("recognize", "translate", "preview") for stage in stages):
@@ -702,75 +954,95 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if not generation and "generate" in stages:
             self.warning_toast(self.tra("请切换流程"), self.tra("请先选择“图像模型直接翻译”。"))
             return
+        hint = prerequisite_message(self.workspace, self.kind, self._image_mode(), stages)
+        if hint:
+            self.workflow_selector.set_hint(self.tra(hint))
+            self.warning_toast(self.tra("缺少前置结果"), self.tra(hint))
+            return
         workspace_id = self.workspace["workspace_id"]
+        recognition_config = {"reocr": True} if self.kind == "image" else {"retranscribe": True}
+        if self.kind == "audio" and "recognize" in stages:
+            provider_config = self._audio_recognition_config()
+            if provider_config is None:
+                return
+            recognition_config.update(provider_config)
         prepare = self._prepare_checkpoint()
         config = {"source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData(),
-                  "retranslate": self.retranslate_check.isChecked()}
+                  "retranslate": True}
         generation_config = {"source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData(),
-                             "regenerate": self.retranslate_check.isChecked()}
-        if generation:
-            generation_config["text_mode"] = self.generation_text_combo.currentData()
-            prompt = self.generation_prompt.toPlainText()
-            if prompt.strip():
-                generation_config["prompt"] = prompt
+                             "regenerate": True, "text_mode": "direct", "prompt": "", "replacements": []}
         export_options = copy.deepcopy(options or {})
         if self.kind == "image":
             export_options["mode"] = self._image_mode()
-        labels = {"recognize": self.tra("正在识别原文…" if self.kind == "image" else "正在转录字幕…"),
-                  "translate": self.tra("正在翻译…"), "preview": self.tra("正在生成译图预览…"),
-                  "generate": self.tra("正在生成图片译文…"), "export": self.tra("正在导出…")}
+        mode = self._image_mode()
         def action(worker):
+            if "export" in stages:
+                settings = read_media_export_settings(self.client.backend.load_config(), self.kind)
+                for key, value in settings.items():
+                    export_options.setdefault(key, value)
             # A lost HTTP response does not mean the paid call was lost. Load
             # server checkpoints unless the user actually changed local text.
             checkpoint = prepare()
             worker.workspaceReady.emit(checkpoint)
-            if generation and "generate" in stages and generation_config["text_mode"] == "specified":
-                pairs = [item for file in checkpoint["model"]["files"].values() for item in file.get("items", [])
-                         if str(item.get("source_text", "")).strip() and str(item.get("translated_text", "")).strip()]
-                if not pairs:
-                    raise ValueError("缺少原文译文：请先切回识别翻译流程准备并校对条目，或通过接口传入替换清单；此模式不会自动调用OCR。")
             results = []
             for stage in stages:
                 if worker.cancelled.is_set():
                     break
+                worker.stageChanged.emit(stage)
+                missing = prerequisite_message(checkpoint, self.kind, mode, [stage])
+                if missing:
+                    raise ValueError(missing)
                 worker.operation_id = uuid4().hex
                 if worker.cancelled.is_set():
                     worker.operation_id = None
                     break
-                worker.stageChanged.emit(labels[stage])
                 result = self.client.run(workspace_id, stage, worker.operation_id,
-                                         config=generation_config if stage == "generate" else config if stage == "translate" else {},
+                                         config=generation_config if stage == "generate" else config if stage == "translate" else recognition_config if stage == "recognize" else {},
                                          options=export_options if stage == "export" else {})
                 worker.operation_id = None
-                results.append(result)
-                worker.workspaceReady.emit(result["workspace"])
-                if result["status"] in ("failed", "cancelled") or result["report"].get("operation_errors"):
+                results.append({**result, "stage": stage})
+                checkpoint = result["workspace"]
+                worker.workspaceReady.emit(checkpoint)
+                worker.stageFinished.emit(stage, result)
+                if (result["status"] in ("failed", "cancelled") or result["report"].get("operation_errors")
+                        or not checkpoint.get("persisted", True)):
                     break
             return {"results": results, "cancelled": worker.cancelled.is_set()}
         def done(payload):
             results = payload["results"]
-            self.details.clear()
-            for result in results:
-                self._append_details(result["report"])
             if payload["cancelled"]:
-                self.status_label.setText(self.tra("已停止，进度已保存，可继续处理"))
+                self._run_state = "已停止"
+                self._set_status(self.tra("已停止，当前结果已保存"))
             elif results:
-                status = "failed" if any(r["status"] == "failed" or r["report"].get("operation_errors") for r in results) else "cancelled" if any(r["status"] == "cancelled" for r in results) else "partial" if any(r["status"] == "partial" for r in results) else "success"
-                self._show_report(status, results[-1]["report"], append=False)
-                if stages == ["export"] and results[-1].get("files"):
-                    self.details.appendPlainText("\n".join(f["path"] for f in results[-1]["files"]))
-                    self.details.show()
+                status = "failed" if any(r["status"] == "failed" or r["report"].get("operation_errors") or not r["workspace"].get("persisted", True) for r in results) else "cancelled" if any(r["status"] == "cancelled" for r in results) else "partial" if any(r["status"] == "partial" for r in results) else "success"
+                self._run_state = {"success": "", "partial": "部分完成", "failed": "未完成", "cancelled": "已停止"}[status]
+                report = {key: [entry for result in results for entry in result["report"].get(key, [])]
+                          for key in ("operation_errors", "errors", "failed_items", "warnings")}
+                self._show_report(status, report)
+                if results[-1]["stage"] == "export" and results[-1]["status"] == "success" and results[-1].get("files"):
+                    count = len(results[-1]["files"])
+                    self.success_toast(self.tra("导出完成"), f"{count} " + self.tra("个文件已导出至")
+                                       + " " + str(export_options.get("output_dir", "")))
             if self.workspace and not self.workspace.get("persisted", True):
-                self.status_label.setText(self.tra("结果已保留在页面，但未能写入项目文件，请查看详情并重试保存"))
-            self.retranslate_check.setChecked(False)
+                self._set_status(self.tra("结果已保留在页面，但未能写入项目文件，请重试保存"))
+        self._planned_stages = stages
+        invalidated = set(stages)
+        if "recognize" in stages:
+            invalidated.update(("translate", "preview", "generate"))
+        elif "translate" in stages:
+            invalidated.update(("preview", "generate"))
+        for stage in invalidated:
+            self._stage_results.pop(stage, None)
         self._start_worker(action, done, self.tra("准备处理…"), cancellable=True)
 
     def stop_operation(self):
         if not self._worker:
             return
         self._worker.cancelled.set()
+        self._run_state = "停止中"
+        self._refresh_metrics()
         self.stop_button.setEnabled(False)
-        self.status_label.setText(self.tra("正在停止，等待在途请求完成并保存结果…"))
+        self._set_status(self.tra("正在停止，等待在途请求完成并保存结果…"))
         identifier = self._worker.operation_id
         if identifier:
             owner = self._worker
@@ -786,7 +1058,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                     time.sleep(0.1)
             worker = MediaWorker(cancel, self)
             self._aux_workers.append(worker)
-            worker.failed.connect(lambda message: self.details.appendPlainText(message))
+            worker.failed.connect(lambda message: self.warning_toast(self.tra("停止请求未完成"), message))
             worker.finished.connect(lambda: self._finish_aux(worker))
             worker.start()
 
@@ -795,32 +1067,27 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             self._aux_workers.remove(worker)
         worker.deleteLater()
 
-    def _append_details(self, report):
-        for key in ("operation_errors", "errors", "failed_items", "warnings"):
-            for entry in report.get(key, [])[:100]:
-                self.details.appendPlainText(f"{entry.get('path', '')} {entry.get('message', entry.get('reason', ''))}".strip())
-
-    def _show_report(self, status, report, *, append=True):
-        if append:
-            self.details.clear()
-            self._append_details(report)
-        messages = {"success": "处理完成，项目已保存", "partial": "部分完成，部分内容需要复核；已保存可用结果",
-                    "failed": "处理未完成，请查看详情；已有进度已保留", "cancelled": "已停止，进度已保存，可继续处理"}
-        self.status_label.setText(self.tra(messages.get(status, "项目已读取")))
+    def _show_report(self, status, report):
+        messages = {"failed": "处理未完成，已有进度已保留",
+                    "cancelled": "已停止，当前结果已保存"}
+        issue = next((str(entry.get("message") or entry.get("reason"))
+                      for key in ("operation_errors", "errors", "failed_items", "warnings")
+                      for entry in report.get(key, []) if isinstance(entry, dict)
+                      and (entry.get("message") or entry.get("reason"))), "")
+        text = self.tra(messages.get(status, ""))
+        self._set_status(text + ("；" + issue if text and issue else ""))
         if self.workspace and not self.workspace.get("persisted", True):
-            self.status_label.setText(self.tra("结果已保留在页面，但未能写入项目文件，请查看详情并重试保存"))
-        if status in ("failed", "partial"):
-            self.details.show()
-        else:
-            self.details.hide()
+            self._set_status(self.tra("结果已保留在页面，但未能写入项目文件，请重试保存"))
+        if issue:
+            if status == "failed":
+                self.error_toast(self.tra("处理未完成"), self._brief_message(issue))
+            elif status != "cancelled":
+                self.warning_toast(self.tra("处理提示"), self._brief_message(issue))
 
     def _export(self):
         directory = QFileDialog.getExistingDirectory(self, self.tra("选择导出目录"))
         if directory:
-            options = {"output_dir": directory, "format": self.format_combo.currentText().lower()}
-            if self.kind == "audio":
-                options["mode"] = self.subtitle_mode.currentData()
-            self.run_stages(["export"], options)
+            self.run_stages(["export"], {"output_dir": directory})
 
     def _back(self):
         if self.busy:
@@ -829,9 +1096,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             self.save_workspace()
             return
         self.prepare_to_leave()
-        self.details.hide()
+        self._set_status("")
         self.stack.setCurrentWidget(self.start_page)
-        self.refresh_history()
+        self._load_history()
 
     def prepare_to_leave(self):
         stop = getattr(self.preview, "stop_playback", None)
@@ -850,8 +1117,11 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         return self.prepare_to_leave()
 
     def cleanup(self):
+        self._disposed = True
+        self._history_revision += 1
         self._save_timer.stop()
         self._progress_timer.stop()
+        self._metrics_timer.stop()
         self.preview.clear()
 
 

@@ -21,6 +21,27 @@ MAX_REQUEST_TIMEOUT = 3600
 MAX_SEED = 2147483647
 
 
+def normalize_generation_size(value, api_format=None):
+    """Validate a shared size, or restrict it to one provider protocol."""
+    if not isinstance(value, str):
+        raise ValueError("输出尺寸必须是文本。")
+    value = value.strip().lower()
+    if value == "auto":
+        return value
+    if api_format != "DashScope" and value.upper() in ("1K", "1.5K", "2K"):
+        return value.upper()
+    if len(value) > 32 or not re.fullmatch(r"[1-9]\d*\s*[x*]\s*[1-9]\d*", value, flags=re.ASCII):
+        raise ValueError("输出尺寸需为 auto 或 宽*高；Seedream 另支持 1K、1.5K、2K。")
+    width, height = (int(part.strip()) for part in re.split(r"[x*]", value))
+    pixels, ratio = width * height, max(width, height) / min(width, height)
+    dashscope = width % 16 == height % 16 == 0 and 512 ** 2 <= pixels <= 2048 ** 2 and ratio <= 8
+    ark = 921600 <= pixels <= 4624220 and ratio <= 16
+    allowed = dashscope if api_format == "DashScope" else ark if api_format == "VolcengineArk" else dashscope or ark
+    if not allowed:
+        raise ValueError("输出尺寸超出模型支持范围，请使用 auto 或调整宽高。")
+    return f"{width}*{height}"
+
+
 def normalize_image_generation_platform(data=None):
     if data is not None and not isinstance(data, dict):
         raise ValueError("生图接口配置必须是对象。")
@@ -43,8 +64,8 @@ def validate_image_generation_platform(data, *, require_api_key=False):
     result = normalize_image_generation_platform(data)
     if not result["name"]:
         raise ValueError("请输入生图接口名称。")
-    if result["api_format"] != "DashScope":
-        raise ValueError("目前仅支持 DashScope 图像编辑接口。")
+    if result["api_format"] not in ("DashScope", "VolcengineArk"):
+        raise ValueError("请选择 DashScope 或 VolcengineArk 图像编辑接口。")
     try:
         parsed = urlsplit(result["api_url"])
         valid_url = (parsed.scheme in ("http", "https") and bool(parsed.hostname)
@@ -68,15 +89,7 @@ def validate_image_generation_platform(data, *, require_api_key=False):
     seed = result["seed"]
     if seed is not None and (type(seed) is not int or not 0 <= seed <= MAX_SEED):
         raise ValueError("随机种子必须留空或填写 0 至 2147483647 的整数。")
-    size = result["size"]
-    if size != "auto":
-        if len(size) > 32 or not re.fullmatch(r"[1-9]\d*\s*\*\s*[1-9]\d*", size, flags=re.ASCII):
-            raise ValueError("输出尺寸必须为 auto 或 WIDTH*HEIGHT（宽高均为正整数）。")
-        width, height = (int(part.strip()) for part in size.split("*"))
-        if (width % 16 or height % 16 or not 512 ** 2 <= width * height <= 2048 ** 2
-                or max(width, height) / min(width, height) > 8):
-            raise ValueError("输出宽高需为16的倍数，总像素为512²至2048²，宽高比不超过8。")
-        result["size"] = f"{width}*{height}"
+    result["size"] = normalize_generation_size(result["size"], result["api_format"])
     return result
 
 

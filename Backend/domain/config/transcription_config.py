@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass, field
 from urllib.parse import urlsplit
 
 from Backend.application.pipeline_common import PipelineError
+from Backend.domain.config.media_task_config import migrate_media_task_settings
 
 
 DEFAULT_TRANSCRIPTION_PROVIDER_ID = "bailian_asr"
@@ -18,8 +19,15 @@ DEFAULT_TRANSCRIPTION_PLATFORM = {
     "chunk_concurrency": 3, "vad_threshold": 0.35,
 }
 LANGUAGE_HINTS = frozenset("zh en ja ko vi th id ms tl hi ar fr de es pt ru it nl sv da fi no el pl cs hu ro bg hr sk".split())
+VOLCENGINE_LANGUAGES = {
+    "zh": "zh-CN", "en": "en-US", "ja": "ja-JP", "id": "id-ID", "es": "es-MX",
+    "pt": "pt-BR", "de": "de-DE", "fr": "fr-FR", "ko": "ko-KR", "tl": "fil-PH",
+    "ms": "ms-MY", "th": "th-TH", "ar": "ar-SA", "it": "it-IT", "el": "el-GR",
+    "nl": "nl-NL", "ru": "ru-RU", "vi": "vi-VN", "pl": "pl-PL", "ro": "ro-RO",
+}
 _OVERRIDE_FIELDS = frozenset({
     "provider_id", "api_url", "api_key", "model", "api_format", "request_timeout", "timeout",
+    "app_id", "resource_id",
     "language_hints", "speaker_diarization_enabled", "keep_dialect", "stream", "max_retries", "retranscribe",
     "chunk_duration_seconds", "chunk_overlap_seconds", "chunk_concurrency", "vad_threshold",
 })
@@ -32,6 +40,8 @@ class TranscriptionConfig:
     api_key: str = field(default="", repr=False)
     model: str = "qwen-audio-3.1-asr-flash"
     api_format: str = "DashScope"
+    app_id: str = ""
+    resource_id: str = ""
     request_timeout: float = 300
     language_hints: tuple[str, ...] = ()
     speaker_diarization_enabled: bool = False
@@ -46,13 +56,14 @@ class TranscriptionConfig:
 
     @classmethod
     def read_snapshot(cls) -> dict:
-        """No migration, backup, normalization write, or translation credentials."""
+        """Read and complete legacy task values without writes or translation credentials."""
         from Backend.core.paths import config_path
         from Backend.infrastructure.config.store import ConfigStore
 
         result = {
             "transcription_platforms": {DEFAULT_TRANSCRIPTION_PROVIDER_ID: copy.deepcopy(DEFAULT_TRANSCRIPTION_PLATFORM)},
             "active_transcription_platform": DEFAULT_TRANSCRIPTION_PROVIDER_ID,
+            "audio_translation_settings": {},
         }
         try:
             with ConfigStore.CONFIG_FILE_LOCK:
@@ -62,9 +73,11 @@ class TranscriptionConfig:
                         saved = json.load(reader)
                     if not isinstance(saved, dict):
                         raise ValueError("invalid root")
+                    migrate_media_task_settings(saved)
                     for key in result:
                         if key in saved:
                             result[key] = copy.deepcopy(saved[key])
+                migrate_media_task_settings(result)
         except (OSError, ValueError, TypeError) as error:
             raise PipelineError("ASR_CONFIG_ERROR", "无法读取转录接口配置", 400) from error
         return result
@@ -77,6 +90,7 @@ class TranscriptionConfig:
 
 
 def resolve_transcription_config(config=None) -> TranscriptionConfig:
+    explicit_hints = isinstance(config, dict) and "language_hints" in config
     if isinstance(config, TranscriptionConfig):
         # Validate manually constructed objects as rigorously as API overrides.
         values = asdict(config)
@@ -99,7 +113,14 @@ def resolve_transcription_config(config=None) -> TranscriptionConfig:
         if not isinstance(platform, dict):
             raise PipelineError("ASR_CONFIG_ERROR", "所选转录接口不存在", 400)
         values = asdict(TranscriptionConfig())
-        values.update({key: copy.deepcopy(value) for key, value in platform.items() if key in values and key != "provider_id"})
+        values.update({key: copy.deepcopy(value) for key, value in platform.items()
+                       if key in values and key != "provider_id"})
+        task_settings = snapshot.get("audio_translation_settings")
+        if not isinstance(task_settings, dict):
+            raise PipelineError("ASR_CONFIG_ERROR", "音译设置必须为对象", 400)
+        values.update({key: copy.deepcopy(value) for key, value in task_settings.items()
+                       if key in ("language_hints", "speaker_diarization_enabled", "chunk_duration_seconds",
+                                  "chunk_overlap_seconds", "chunk_concurrency", "vad_threshold")})
         values.update(overrides)
         values["provider_id"] = provider_id
 
@@ -119,9 +140,28 @@ def resolve_transcription_config(config=None) -> TranscriptionConfig:
         raise PipelineError("ASR_CONFIG_ERROR", "转录接口必须为不含凭证或查询参数的 HTTP(S) 地址", 400)
     if any(char in values["api_key"] for char in "\r\n"):
         raise PipelineError("ASR_CONFIG_ERROR", "转录接口 API Key 格式无效", 400)
-    if not isinstance(values["api_format"], str) or values["api_format"].lower() != "dashscope":
-        raise PipelineError("ASR_CONFIG_ERROR", "当前转录接口仅支持 DashScope 格式", 400)
-    values["api_format"] = "DashScope"
+    formats = {"dashscope": "DashScope", "volcengineasrfast": "VolcengineASRFast"}
+    api_format = values["api_format"]
+    if not isinstance(api_format, str) or api_format.lower() not in formats:
+        raise PipelineError("ASR_CONFIG_ERROR", "转录格式仅支持 DashScope 或 VolcengineASRFast", 400)
+    values["api_format"] = formats[api_format.lower()]
+    for key in ("app_id", "resource_id"):
+        if not isinstance(values[key], str) or any(ord(char) < 32 for char in values[key]):
+            raise PipelineError("ASR_CONFIG_ERROR", "火山应用 ID 和资源 ID 必须为单行文本", 400)
+        values[key] = values[key].strip()
+    if values["api_format"] == "VolcengineASRFast":
+        expected_path = "/api/v3/auc/bigmodel/recognize/flash"
+        if not url.path.rstrip("/").endswith(expected_path):
+            raise PipelineError("ASR_CONFIG_ERROR", "火山接口地址与极速版协议不匹配", 400)
+        values["api_url"] = values["api_url"].rstrip("/")
+        if values["model"] != "bigmodel":
+            raise PipelineError("ASR_CONFIG_ERROR", "火山录音识别的模型名称必须为 bigmodel", 400)
+        values["resource_id"] = values["resource_id"] or "volc.bigasr.auc_turbo"
+        if values["resource_id"] != "volc.bigasr.auc_turbo":
+            raise PipelineError("ASR_CONFIG_ERROR", "火山资源 ID 与极速版协议不匹配", 400)
+        if any(not values[key].isascii() or any(char.isspace() for char in values[key])
+               for key in ("api_key", "app_id", "resource_id") if values[key]):
+            raise PipelineError("ASR_CONFIG_ERROR", "火山鉴权与资源 ID 必须为不含空白的 ASCII 文本", 400)
     timeout = values["request_timeout"]
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or not 0 < timeout <= 3600:
         raise PipelineError("ASR_CONFIG_ERROR", "转录超时必须为 0 至 3600 秒之间的正数", 400)
@@ -135,6 +175,9 @@ def resolve_transcription_config(config=None) -> TranscriptionConfig:
     if not isinstance(hints, (list, tuple)) or len(hints) > 4 or any(not isinstance(hint, str) or hint not in LANGUAGE_HINTS for hint in hints):
         raise PipelineError("ASR_CONFIG_ERROR", "language_hints 最多包含 4 个受支持的语言代码", 400)
     values["language_hints"] = tuple(dict.fromkeys(hints))
+    if values["api_format"] == "VolcengineASRFast":
+        if explicit_hints and (len(hints) > 1 or any(hint not in VOLCENGINE_LANGUAGES for hint in hints)):
+            raise PipelineError("ASR_CONFIG_ERROR", "火山录音识别只接受一种受支持的语言提示，例如 zh、en、ja；也可留空", 400)
     for key, lower, upper in (("chunk_duration_seconds", 30, 290), ("chunk_concurrency", 1, 8)):
         value = values[key]
         if type(value) is not int or not lower <= value <= upper:

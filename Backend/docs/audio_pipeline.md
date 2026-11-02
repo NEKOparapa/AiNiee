@@ -2,13 +2,21 @@
 
 接口按“读取 → 转录 → 翻译 → 字幕写出”串行执行，翻译阶段复用现有多线程批量翻译服务。可以逐步调用，也可以一次调用 `POST /api/v2/audio/translate`。整个流程只占用一个顶层操作，不创建 Job，不改变桌面当前项目。
 
-桌面“接口管理”下有“翻译接口”和“转录接口”。翻译接口沿用原设置；转录接口单独保存多个服务配置，并选择当前使用的服务。暂不增加音频翻译工作区。
+桌面“接口管理”下有“翻译接口”和“转录接口”。翻译接口沿用原设置；转录接口单独保存多个服务配置，并选择当前使用的服务。“任务配置 → 音译设置”展示说话人分离、切片时长、并发数及字幕导出格式和内容，修改后自动保存。
 
 ## 配置与环境
 
 转录配置保存在 `transcription_platforms` 和 `active_transcription_platform`，与翻译的 `platforms`、接口绑定分别管理。默认提供阿里云百炼配置，密钥默认为空。请在转录接口页填写自己的密钥。API 调用可用 `config.provider_id` 选择已保存服务，也可通过本次调用覆盖配置；覆盖不回写设置。
 
-首版请求协议为百炼 DashScope 原生语音识别 HTTP API，默认模型 `qwen-audio-3.1-asr-flash`，默认请求地址：
+接口页管理名称、地址、密钥、协议、模型和请求超时；火山豆包另有资源 ID 和可选的旧版应用 ID。任务参数保存于全局 `audio_translation_settings`：`language_hints`、`speaker_diarization_enabled`、`chunk_duration_seconds`、`chunk_overlap_seconds`、`chunk_concurrency`、`vad_threshold`。这些设置按所选协议的能力应用；保存任务设置不要求先填写 API Key。
+
+桌面音译设置不提供语言提示、切片重叠时长或 VAD 阈值控件；已有配置值保持不变，仍可通过配置/API 使用这些参数。
+
+桌面导出选项保存为 `audio_translation_settings.export`，默认 `{ "format": "srt", "mode": "bilingual" }`。格式支持 `srt/vtt/ass/lrc`，内容支持 `bilingual/translated/source`；点击工作区顶部“导出结果”时读取最新设置并选择输出目录，处理完成后不自动导出。
+
+配置优先级从低到高为接口保存值、全局音译设置、本次请求的显式覆盖。首次升级在合并默认配置之前，将当前激活转录接口的旧任务字段补入全局设置；没有激活接口时使用默认值。已有全局字段不会被覆盖，旧接口字段保留用于兼容。配置读取和保存会将迁移结果写入配置文件；运行期快照只读补全，手动构造 `TranscriptionConfig` 仍按对象自身值执行。
+
+百炼 DashScope 使用原生语音识别 HTTP API，默认模型 `qwen-audio-3.1-asr-flash`，默认请求地址：
 
 ```text
 https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation
@@ -19,6 +27,18 @@ https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/genera
 读取 MP3 等格式需要后端机器可执行 `ffprobe`（安装 FFmpeg 并加入 PATH）；PCM WAV 在缺少 ffprobe 时可用 Python 标准库读取。输入是后端可访问的本地文件或目录，目录递归读取，`exclude_rule` 为逗号分隔的文件匹配规则。不会在中间模型中保存音频 Base64 或密钥。
 
 `qwen-audio-3.1-asr-flash` 单次请求音频最长 5 分钟。超过 5 分钟的本地音频会自动通过 VAD 选择切点，分片批量转录后恢复原始时间轴。长音频需要后端可用的 FFmpeg；每个提交给百炼的切片仍不超过接口上限。模型限制见[百炼语音识别模型列表](https://help.aliyun.com/zh/model-studio/asr-model)。
+
+## 火山豆包（极速）
+
+火山豆包转录使用 `VolcengineASRFast` 协议，将本地音频以 Base64 提交，一次请求返回识别结果。地址为 `https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash`，模型名称为 `bigmodel`，资源 ID 为 `volc.bigasr.auc_turbo`。
+
+新版控制台填写 `api_key`，发送 `X-Api-Key`；旧版填写 `app_id` 和对应的 Access Token（保存在 `api_key`），发送 `X-Api-App-Key` 与 `X-Api-Access-Key`。资源 ID 保存为 `resource_id`。参见[极速版协议](https://docs.volcengine.com/docs/doubao-voice/large-model-recording-file-lite-recognition-api?lang=zh)和[旧版鉴权说明](https://docs.volcengine.com/docs/doubao-voice/old-version-console-authentication-reference-example?lang=zh)。
+
+官方单次限制为 100 MB、2 小时，支持 WAV、MP3、OGG OPUS。本地超过 5 分钟的音频继续复用现有 VAD 切片与恢复流程；短音频格式不直接受支持或文件过大时也先通过 FFmpeg 转成有界 WAV 切片。每片按极速版协议提交。接口不自动重发失败的 POST，避免网络中断后重复扣量；`max_retries` 不会开启火山音频提交重试。官方按音频时长计费，参见[计费概述](https://docs.volcengine.com/docs/doubao-voice/billing-overview?lang=zh)。
+
+请求开启 `show_utterances`，将分句毫秒时间和 `additions.speaker` 转成统一字幕条目。火山仅支持单一语言提示。历史全局多选或不受支持的提示会退回服务默认识别，并在报告中说明；本次 API 显式传入不受支持的提示会被拒绝。指定非中文语种时，接口不支持说话人分离，本次只识别文本并返回提示。百炼特有的 `keep_dialect` 不发送给火山；协议固定为 HTTP JSON，已有 `stream` 设置不会把火山调用改成 SSE。
+
+桌面工作区以箭头连接“转录字幕”和“翻译字幕”步骤，可分别勾选执行。每次执行选中的转录步骤都会发送 `retranscribe: true`，选中的翻译步骤发送 `retranslate: true`，重新处理已完成内容，不再提供独立重译开关；重复转录会重新发送音频并可能再次计费。只需翻译已有字幕时取消勾选转录。API 的默认复用行为不变：通过 `/api/v2/transcribe` 或 `/api/v2/media/{workspace_id}/run` 传入已有模型并设置 `retranscribe: false`，仍可跳过完整结果或恢复未完成切片。
 
 ## 分步调用
 
@@ -67,9 +87,9 @@ with httpx.Client(base_url="http://127.0.0.1:3389", headers=headers,
 
 转录前验证源文件指纹。转录结果写入条目的 `source_text`，`locator` 为 `{kind: "audio", index, start_ms, end_ms, speaker_id?}`，时间统一为毫秒。只处理音频文件，其他文件保持不变；有原文的音频默认跳过，显式 `retranscribe: true` 才重新识别。重转录成功后清除该文件的旧译文，失败时保留原内容。批量处理逐文件保留成功结果，报告包含失败文件。
 
-默认使用 SSE 收集最终句子及时间戳，保留服务器提供的说话人标签。若响应只有全文而没有完整有效的分句时间轴，使用整段音频时长输出一个条目并在报告中说明降级，不把全文错误地绑定到最后一句的时间戳。
+百炼默认使用 SSE 收集最终句子及时间戳，火山使用各自的 JSON 响应，均保留服务器提供的说话人标签。若响应只有全文而没有分句时间轴，使用整段音频时长输出一个条目并在报告中说明降级，不把全文错误地绑定到最后一句的时间戳。
 
-转录覆盖项包括 `provider_id`、`api_url`、`api_key`、`model`、`api_format`（`DashScope`）、`request_timeout`、`language_hints`、`speaker_diarization_enabled`、`keep_dialect`、`stream`、`max_retries`、`retranscribe`。详细类型及默认值以运行中的 `/docs` 和配置页为准。
+转录覆盖项包括 `provider_id`、`api_url`、`api_key`、`app_id`、`resource_id`、`model`、`api_format`（`DashScope`、`VolcengineASRFast`）、`request_timeout`、`language_hints`、`speaker_diarization_enabled`、`keep_dialect`、`stream`、`max_retries`、`retranscribe`。详细类型及默认值以运行中的 `/docs` 和配置页为准。
 
 ## 一次执行全流程
 
@@ -123,7 +143,7 @@ with httpx.Client(base_url="http://127.0.0.1:3389", headers=headers,
 }
 ```
 
-桌面转录接口页可设置切片目标长度和并发数。顶层流程仍然串行、仍只允许一个活动操作；并发仅发生在当前文件的切片请求中，不创建 Job。取消后停止提交新片，并等待已经发出的请求结束。
+桌面“任务配置 → 音译设置”可调整切片目标长度和并发数，并自动保存；重叠时长与 VAD 阈值继续沿用已保存配置或本次 API 覆盖。顶层流程仍然串行、仍只允许一个活动操作；并发仅发生在当前文件的切片请求中，不创建 Job。取消后停止提交新片，并等待已经发出的请求结束。
 
 所有切片成功且源文件复验通过后，才原子替换该音频的字幕条目。请求失败或取消时，已成功片的纯文本和时间结果保存在返回模型的文件 `extra.transcription_checkpoint`，不会存储音频内容、密钥或临时路径。保存这个模型，使用 `retranscribe: false` 再调用 `/transcribe`，即可只请求缺失片。恢复时会核对源文件、模型、接口地址及相关切片/识别参数；这些参数变化或显式重转录会重新识别。不要用 `/audio/translate` 从原路径重新开始来代替中间模型恢复。
 

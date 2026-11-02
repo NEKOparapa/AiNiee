@@ -56,6 +56,56 @@ def _atomic_json(path, value):
             temporary.unlink(missing_ok=True)
 
 
+def _delete_guard(path, root, identities):
+    """Check the complete ancestor chain without following directory links."""
+    if not path.is_relative_to(root) or root.resolve(strict=True) != root:
+        raise PipelineError("MEDIA_WORKSPACE_DELETE_UNSAFE", "项目目录路径已改变，无法安全删除", 409)
+    current = root
+    for part in (None, *path.relative_to(root).parts):
+        if part is not None:
+            current = current / part
+        info = current.lstat()
+        if (stat.S_ISLNK(info.st_mode)
+                or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+                or not (stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode))
+                or (current != path and not stat.S_ISDIR(info.st_mode))):
+            raise PipelineError("MEDIA_WORKSPACE_DELETE_UNSAFE", "项目目录包含链接或特殊文件，无法安全删除", 409)
+        identity = (info.st_dev, info.st_ino, stat.S_IFMT(info.st_mode))
+        if current in identities and identities[current] != identity:
+            raise PipelineError("MEDIA_WORKSPACE_DELETE_UNSAFE", "项目目录在删除期间已改变，请重试", 409)
+        identities[current] = identity
+    return info
+
+
+def _delete_plan(root, directory, workspace_id):
+    """Preflight an ID-owned tree and return children before their parents."""
+    if not _ID.fullmatch(workspace_id) or directory.parent != root or directory.name != workspace_id:
+        raise PipelineError("MEDIA_WORKSPACE_DELETE_UNSAFE", "项目删除路径无效", 409)
+    identities, ordered = {}, []
+    try:
+        root.lstat()
+    except FileNotFoundError:
+        return ordered, identities
+    _delete_guard(root, root, identities)
+    try:
+        directory.lstat()
+    except FileNotFoundError:
+        return ordered, identities
+    pending = [(directory, False)]
+    while pending:
+        path, visited = pending.pop()
+        info = _delete_guard(path, root, identities)
+        is_directory = stat.S_ISDIR(info.st_mode)
+        if path == directory and not is_directory:
+            raise PipelineError("MEDIA_WORKSPACE_DELETE_UNSAFE", "项目删除路径不是目录", 409)
+        if is_directory and not visited:
+            pending.append((path, True))
+            pending.extend((child, False) for child in path.iterdir())
+        else:
+            ordered.append((path, is_directory))
+    return ordered, identities
+
+
 def _stamp(path):
     info = path.stat()
     return {"size": info.st_size, "mtime_ns": info.st_mtime_ns}
@@ -206,7 +256,7 @@ class MediaWorkspaceStore:
             document = json.loads((directory / "workspace.json").read_text(encoding="utf-8"))
         except (OSError, ValueError) as error:
             raise PipelineError("MEDIA_WORKSPACE_NOT_FOUND", "媒体工作区不存在或无法读取", 404) from error
-        if document.get("workspace_id") != workspace_id:
+        if not isinstance(document, dict) or document.get("workspace_id") != workspace_id:
             raise PipelineError("MEDIA_WORKSPACE_INVALID", "媒体工作区信息不匹配", 409)
         return directory, document
 
@@ -237,6 +287,59 @@ class MediaWorkspaceStore:
         # and registered previews. model.json is a plain interchange copy.
         _atomic_json(directory / "workspace.json", document)
         _atomic_json(directory / "model.json", document["model"])
+
+    def delete(self, workspace_id):
+        """Delete owned storage only; callers reserve runtime.operation first."""
+        with self.lock:
+            try:
+                directory = self._directory(workspace_id)
+                generation_root = project_cache_root().resolve() / "ImageGeneration"
+                generation_directory = generation_root / workspace_id
+                if directory.is_relative_to(generation_directory) or generation_directory.is_relative_to(directory):
+                    raise PipelineError("MEDIA_WORKSPACE_DELETE_UNSAFE", "工作区与生图缓存目录重叠，无法安全删除", 409)
+                workspace_plan, workspace_ids = _delete_plan(self.root, directory, workspace_id)
+                _, document = self._read(workspace_id)
+                if (not isinstance(document.get("model"), dict)
+                        or document["model"].get("project_id") != workspace_id):
+                    raise PipelineError("MEDIA_WORKSPACE_INVALID", "媒体工作区项目标识不匹配", 409)
+                generation_plan, generation_ids = _delete_plan(generation_root, generation_directory, workspace_id)
+            except (OSError, RuntimeError) as error:
+                raise PipelineError("MEDIA_WORKSPACE_DELETE_FAILED", "无法检查项目目录，请关闭占用文件后重试", 500) from error
+
+            # Keep the history manifest until every other owned item is gone,
+            # so an interrupted cleanup remains visible and can be retried.
+            manifest = directory / "workspace.json"
+            workspace_plan = [(path, is_dir) for path, is_dir in workspace_plan
+                              if path not in (manifest, directory)] + [(manifest, False), (directory, True)]
+            plans = [("image_generation_cache", generation_root, generation_plan, generation_ids),
+                     ("workspace", self.root, workspace_plan, workspace_ids)]
+            completed, removed = [], 0
+            manifest_removed = False
+            try:
+                for label, root, plan, identities in plans:
+                    for path, is_directory in plan:
+                        _delete_guard(path, root, identities)
+                        if is_directory:
+                            path.rmdir()
+                        else:
+                            path.unlink()
+                        removed += 1
+                        manifest_removed = manifest_removed or path == manifest
+                    completed.append(label)
+            except (OSError, RuntimeError, PipelineError) as error:
+                # A final rmdir may fail (e.g. a newly created or locked file).
+                # Restore only this known manifest inside the unchanged tree.
+                if manifest_removed:
+                    try:
+                        _delete_guard(directory, self.root, workspace_ids)
+                        if not manifest.exists():
+                            _atomic_json(manifest, document)
+                    except (OSError, RuntimeError, PipelineError):
+                        pass
+                raise PipelineError("MEDIA_WORKSPACE_DELETE_FAILED", "项目数据未能全部删除，请关闭占用文件后重试", 500,
+                    {"workspace_id": workspace_id, "partial": removed > 0, "deleted": completed,
+                     "pending": [label for label, *_ in plans if label not in completed]}) from error
+            return {"status": "deleted", "workspace_id": workspace_id}
 
     def import_media(self, kind, paths, exclude_rule=""):
         if kind not in ("image", "audio") or not isinstance(paths, list) or not 1 <= len(paths) <= 100:
