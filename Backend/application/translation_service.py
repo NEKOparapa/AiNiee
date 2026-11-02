@@ -163,6 +163,10 @@ def translate_model(model, config=None, context=None) -> dict:
     if previous_target and previous_target != resolved.target_language and not retranslate:
         raise PipelineError("TARGET_LANGUAGE_CONFLICT", "目标语言发生变化，请显式设置 retranslate=true 全量重译")
 
+    if resolved.source_language == "auto" or getattr(resolved, "language_filter_switch", True):
+        from Backend.application.read_service import ensure_media_language_metadata
+        ensure_media_language_metadata(project)
+
     all_items = list(project.items_iter())
     valid_statuses = (TranslationStatus.TRANSLATED, TranslationStatus.POLISHED)
     for item in all_items:

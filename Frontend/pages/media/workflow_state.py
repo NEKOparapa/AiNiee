@@ -144,11 +144,12 @@ def workflow_states(workspace, kind, mode="ocr", generation_states=None):
     if resumable:
         recognition_detail += "；未完成的音频分片可继续处理"
     items = [item for file in files for item in _items(file)]
-    candidates = [item for item in items if _text(item.get("source_text"))
-                  and item.get("translation_status", 0) in (0, 1, 2)]
+    source_items = [item for item in items if _text(item.get("source_text"))]
+    candidates = [item for item in source_items if item.get("translation_status", 0) in (0, 1, 2)]
     completed = sum(_translated(item) for item in candidates)
     review = sum(item.get("translation_status") == 8 for item in items)
     excluded = sum(item.get("translation_status") == 7 for item in items)
+    all_excluded = bool(source_items) and all(item.get("translation_status") == 7 for item in source_items)
     unread = sum(not _recognized(file, kind) and not any(_text(item.get("source_text")) for item in _items(file))
                  for file in files)
     if review:
@@ -157,7 +158,7 @@ def workflow_states(workspace, kind, mode="ocr", generation_states=None):
         translation_status = ("已完成" if completed == len(candidates) and not unread else
                               "部分完成" if completed else "待翻译")
     else:
-        translation_status = "待识别" if unread else "无需翻译"
+        translation_status = "待识别" if unread else "全部已排除" if all_excluded else "无需翻译"
     translation_detail = f"已完成 {completed} / {len(candidates)} 条"
     if excluded:
         translation_detail += f"；已排除 {excluded} 条"
@@ -166,7 +167,8 @@ def workflow_states(workspace, kind, mode="ocr", generation_states=None):
     if unread:
         translation_detail += f"；{unread} 个文件尚无识别结果"
     elif not candidates and not review:
-        translation_detail += "；没有待翻译原文"
+        translation_detail += ("；已有原文，但全部已排除，当前无可翻译条目" if all_excluded
+                               else "；没有待翻译原文")
     assets = _assets(workspace)
     return {
         "recognize": _step(recognition_status, recognition_detail),

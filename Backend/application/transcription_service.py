@@ -204,6 +204,15 @@ def transcribe_model(model, config=None, context=None) -> dict:
                 break
     if changed:
         project.stats_data = None
+    if not context.is_cancelled() and not report["operation_errors"]:
+        from Backend.application.read_service import ensure_media_language_metadata
+        try:
+            # Include reused transcripts; short and merged long recordings both
+            # reach this boundary before their final model is saved or returned.
+            ensure_media_language_metadata(project, media_types=("audio",))
+        except PipelineError as error:
+            # Local postprocessing must retain paid subtitles and provider usage.
+            report["operation_errors"].append({"code": error.code, "message": error.message})
     report["cancelled"] = context.is_cancelled() and not report["operation_errors"]
     if report["operation_errors"]:
         status = "partial" if report["succeeded"] else "failed"

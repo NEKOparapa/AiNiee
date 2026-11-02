@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (QAbstractItemView, QFileDialog, QFrame, QHeaderView, QHBoxLayout,
-    QProgressBar, QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
+    QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 from qfluentwidgets import (BodyLabel, CaptionLabel, ComboBox, FluentIcon, IconWidget,
     MessageBox, PrimaryPushButton, SearchLineEdit, SimpleCardWidget,
     SingleDirectionScrollArea, StrongBodyLabel, TransparentPushButton, TreeWidget)
@@ -73,6 +73,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._run_started = None
         self._run_elapsed = 0
         self._run_state = ""
+        self._status_message = ""
         self._stage_results = {}
         self._planned_stages = []
         self._build_ui()
@@ -96,10 +97,17 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         return text if len(text) <= 180 else text[:177] + "…"
 
     def _set_status(self, text):
-        summary = self._brief_message(text)
+        self._status_message = str(text or "")
+        summary = self._brief_message(self._status_message)
         self.status_label.setText(summary)
-        self.status_label.setToolTip(text if summary != text else "")
-        self.status_label.setVisible(bool(text))
+        self.status_label.setToolTip(self._status_message if summary != self._status_message else "")
+        self.monitoring.set_status(self._status_message)
+        self._refresh_status_visibility()
+
+    def _refresh_status_visibility(self, *unused):
+        in_translation = (self.stack.currentWidget() is self.work_page
+                          and self.workflow_stack.currentWidget() is self.translation_page)
+        self.status_label.setVisible(bool(self._status_message) and not in_translation)
 
     def _build_ui(self):
         outer = QVBoxLayout(self)
@@ -149,11 +157,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.status_label.setContentsMargins(24, 6, 24, 8)
         self.status_label.hide()
         outer.addWidget(self.status_label)
-        self.progress = QProgressBar(self)
-        self.progress.setMaximumHeight(3)
-        self.progress.setTextVisible(False)
-        self.progress.hide()
-        outer.addWidget(self.progress)
+        self.stack.currentChanged.connect(self._refresh_status_visibility)
+        self.workflow_stack.currentChanged.connect(self._refresh_status_visibility)
         if self.kind == "image":
             self._update_image_controls()
         self._refresh_metrics()
@@ -324,8 +329,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         row = QHBoxLayout()
         row.addWidget(BodyLabel(self.tra("翻译流程"), self))
         self.image_mode_combo = ComboBox(self)
-        self.image_mode_combo.addItem(self.tra("识别、翻译与回填"), userData="ocr")
-        self.image_mode_combo.addItem(self.tra("图像模型直接翻译"), userData="generation")
+        self.image_mode_combo.addItem(self.tra("OCR翻译"), userData="ocr")
+        self.image_mode_combo.addItem(self.tra("生图直译"), userData="generation")
         self.image_mode_combo.setMinimumWidth(210)
         row.addWidget(self.image_mode_combo)
         row.addStretch()
@@ -439,8 +444,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if self.kind == "image":
             self.image_mode_combo.setEnabled(not value)
         self.stop_button.setEnabled(value and cancellable)
-        self.progress.setRange(0, 0 if value else 100)
-        self.progress.setVisible(value)
 
     def _start_worker(self, action, completed, label, *, cancellable=False):
         if self.busy:
@@ -495,6 +498,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.error_toast(self.tra("操作失败"), message)
 
     def _stage_changed(self, stage):
+        if self._worker and self._worker.cancelled.is_set():
+            return
         self._active_stage = stage
         self._live_progress = {}
         labels = {"recognize": "正在识别原文…" if self.kind == "image" else "正在转录字幕…",
@@ -505,7 +510,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                            "translate": "翻译中", "preview": "回填中", "generate": "生成中",
                            "export": "导出中"}.get(stage, "处理中")
         self._set_status(self._stage_label)
-        self.progress.setRange(0, 0)
         self._refresh_metrics()
 
     def _stage_finished(self, stage, result):
@@ -552,8 +556,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                                            ("current", "total"), ("completed_files", "total_files")):
                 current, total = progress.get(current_key), progress.get(total_key)
                 if isinstance(current, (int, float)) and isinstance(total, (int, float)) and total > 0:
-                    self.progress.setRange(0, int(total))
-                    self.progress.setValue(int(current))
                     self._set_status(f"{self._stage_label} {int(current)} / {int(total)}")
                     break
         def finished():
@@ -653,7 +655,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._selected_id = None
         self._dirty = False
         self._run_elapsed = 0
-        self._run_state = ""
+        self._run_state = {"partial": "部分完成", "failed": "未完成", "cancelled": "已停止"}.get(workspace.get("status"), "")
         self._live_progress = {}
         self._stage_results.clear()
         self._planned_stages = []
@@ -757,7 +759,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
     def _refresh_metrics(self, *unused):
         files = list((self.workspace or {}).get("model", {}).get("files", {}).values())
         generation = self.kind == "image" and self._image_mode() == "generation"
-        completed = total = recognized = attention = 0
+        completed = total = recognized = 0
         for file in files:
             extra = file.get("extra", {})
             items = file.get("items", [])
@@ -766,20 +768,15 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             if self.kind == "audio" and not extra.get("transcription_checkpoint"):
                 identified = identified or any(str(item.get("source_text", "")).strip() for item in items)
             recognized += bool(identified)
-            needs_review = any(item.get("translation_status") == 8 or
-                item.get("extra", {}).get("ocr", {}).get("refinement", {}).get("status") in ("failed", "rejected")
-                for item in items)
             if generation:
                 state = self._generation_status(file)
                 total += 1
                 completed += state == "complete"
-                needs_review = needs_review or state in ("unknown", "download_failed", "failed", "stale", "unavailable")
             else:
                 candidates = [item for item in items if item.get("translation_status", 0) in (0, 1, 2)]
                 total += len(candidates)
                 completed += sum(item.get("translation_status") in (1, 2)
                                  and bool(str(item.get("translated_text") or "").strip()) for item in candidates)
-            attention += bool(needs_review)
         running = self._run_started is not None
         if running and self._active_stage == "translate":
             # Only media stage progress is admitted by _poll_operation.
@@ -791,7 +788,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             stage = "已完成" if total and completed == total else "待继续" if completed else "待开始"
         elapsed = time.monotonic() - self._run_started if running else self._run_elapsed
         self.monitoring.set_metrics(completed=completed, total=total, files=len(files), recognized=recognized,
-                                    attention=attention, elapsed=elapsed, stage=self.tra(stage),
+                                    elapsed=elapsed, stage=self.tra(stage), status=self._status_message,
                                     running=running, generation=generation)
         self._refresh_workflow()
 
@@ -949,10 +946,10 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             return
         generation = self.kind == "image" and self._image_mode() == "generation"
         if generation and any(stage in ("recognize", "translate", "preview") for stage in stages):
-            self.warning_toast(self.tra("请切换流程"), self.tra("当前使用图像生成流程；识别和逐条翻译请切回“识别、翻译与回填”。"))
+            self.warning_toast(self.tra("请切换流程"), self.tra("当前使用生图直译流程；识别和逐条翻译请切回“OCR翻译”。"))
             return
         if not generation and "generate" in stages:
-            self.warning_toast(self.tra("请切换流程"), self.tra("请先选择“图像模型直接翻译”。"))
+            self.warning_toast(self.tra("请切换流程"), self.tra("请先选择“生图直译”。"))
             return
         hint = prerequisite_message(self.workspace, self.kind, self._image_mode(), stages)
         if hint:
@@ -1015,7 +1012,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 self._set_status(self.tra("已停止，当前结果已保存"))
             elif results:
                 status = "failed" if any(r["status"] == "failed" or r["report"].get("operation_errors") or not r["workspace"].get("persisted", True) for r in results) else "cancelled" if any(r["status"] == "cancelled" for r in results) else "partial" if any(r["status"] == "partial" for r in results) else "success"
-                self._run_state = {"success": "", "partial": "部分完成", "failed": "未完成", "cancelled": "已停止"}[status]
+                self._run_state = {"success": "已完成", "partial": "部分完成", "failed": "未完成", "cancelled": "已停止"}[status]
                 report = {key: [entry for result in results for entry in result["report"].get(key, [])]
                           for key in ("operation_errors", "errors", "failed_items", "warnings")}
                 self._show_report(status, report)

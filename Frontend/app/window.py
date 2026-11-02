@@ -311,10 +311,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.navigationInterface.addItemHeader(self.tra("任务配置"), NavigationItemPosition.SCROLL)
         self.add_task_setting_pages()
 
-        # ===== 提示词管理 =====
-        self.navigationInterface.addItemHeader(self.tra("提示词管理"), NavigationItemPosition.SCROLL)
-        self.add_prompt_setting_pages()
-
         # ===== 公共表格 =====
         self.navigationInterface.addItemHeader(self.tra("公共表格"), NavigationItemPosition.SCROLL)
         self.add_table_pages()
@@ -395,8 +391,33 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 添加任务设置
     def add_task_setting_pages(self) -> None:
+        self.text_translation_settings_navigation = "text_translation_settings_navigation"
+        self.text_translation_settings_item = self.navigationInterface.addItem(
+            routeKey=self.text_translation_settings_navigation,
+            icon=FluentIcon.DOCUMENT,
+            text=self.tra("文译设置"),
+            onClick=self._open_text_translation_settings,
+            position=NavigationItemPosition.SCROLL,
+        )
         self.task_settings_page = TaskSettingsPage("task_settings_page", self)
-        self.addSubInterface(self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(
+            self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"),
+            parent=self.text_translation_settings_navigation,
+        )
+
+        self.output_settings_page = OutputSettingsPage("output_settings_page", self)
+        self.addSubInterface(
+            self.output_settings_page, FluentIcon.ALBUM, self.tra("输出设置"),
+            parent=self.text_translation_settings_navigation,
+        )
+
+        self.advanced_settings_page = AdvancedSettingsPage("advanced_settings_page", self)
+        self.TranslationSettings = self.advanced_settings_page.translation_settings_page
+        self.addSubInterface(
+            self.advanced_settings_page, FluentIcon.TILES, self.tra("高级设置"),
+            parent=self.text_translation_settings_navigation,
+        )
+        self.add_prompt_setting_pages()
 
         self.audio_translation_settings_page = AudioTranslationSettingsPage("audio_translation_settings_page", self)
         self.addSubInterface(
@@ -409,12 +430,9 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             self.tra("图译设置"), NavigationItemPosition.SCROLL,
         )
 
-        self.output_settings_page = OutputSettingsPage("output_settings_page", self)
-        self.addSubInterface(self.output_settings_page, FluentIcon.ALBUM, self.tra("输出设置"), NavigationItemPosition.SCROLL)
-
-        self.advanced_settings_page = AdvancedSettingsPage("advanced_settings_page", self)
-        self.TranslationSettings = self.advanced_settings_page.translation_settings_page
-        self.addSubInterface(self.advanced_settings_page,FluentIcon.TILES,self.tra("高级设置"),NavigationItemPosition.SCROLL)
+    def _open_text_translation_settings(self) -> None:
+        self.text_translation_settings_item.setExpanded(True)
+        self.switchTo(self.task_settings_page)
 
     # 添加提示词设置
     def add_prompt_setting_pages(self) -> None:
@@ -425,6 +443,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             FluentIcon.SEARCH,
             self.tra("提取提示词"),
             NavigationItemPosition.SCROLL,
+            parent=self.text_translation_settings_navigation,
         )
         self.extraction_system_prompt_page = ExtractionPromptPage(
             "extraction_system_prompt_page", self, PromptBuilderExtraction.BASIC
@@ -451,6 +470,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             FluentIcon.BOOK_SHELF,
             self.tra("翻译提示词"),
             NavigationItemPosition.SCROLL,
+            parent=self.text_translation_settings_navigation,
         )
 
         # 翻译提示词

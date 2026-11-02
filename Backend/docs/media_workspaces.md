@@ -93,7 +93,7 @@ workspace = client.post(f"/api/v2/media/{workspace_id}/model", json={
 
 步骤按固定顺序执行，每步保存后再继续；部分完成可沿用有效结果，失败、停止或保存失败时不再启动后续步骤。翻译仍使用原有线程池，两页不会并行启动多个顶层任务。停止会等待在途请求结束并保存有效结果。完成后不自动导出，点击顶部“导出结果”并选择目录时读取最新任务设置；支持 PNG/JPEG/WebP 和 SRT/VTT/ASS/LRC，音频支持原文、译文和双语。
 
-图片页的“图像模型直接翻译”使用独立生图接口，桌面固定请求 `text_mode=direct`，不展示文字模式切换或补充要求输入。OCR 与生图流程保留各自预览。后端/API 仍支持 `text_mode=specified`、`replacements`、`prompt` 等参数，详见[生图流程](image_generation.md)。
+图片页的“生图直译”使用独立生图接口，桌面固定请求 `text_mode=direct`，不展示文字模式切换或补充要求输入。OCR 与生图流程保留各自预览。后端/API 仍支持 `text_mode=specified`、`replacements`、`prompt` 等参数，详见[生图流程](image_generation.md)。
 
 远程后端需要能访问所选路径。预览通过鉴权资源接口读取；在 Windows 上，带鉴权的音频先由 Qt 网络层下载到临时文件后播放，以避免系统媒体后端丢失鉴权头。切换文件或退出会清理临时文件。
 

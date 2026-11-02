@@ -14,7 +14,7 @@ class ImageTranslationSettingsPage(MediaSettingsPage):
         super().__init__(text, parent)
 
     def _build_fields(self):
-        recognition = self._add_section("识别参数", FluentIcon.DOCUMENT, "用于识别、翻译与回填流程")
+        recognition = self._add_section("识别参数", FluentIcon.DOCUMENT, "用于OCR翻译流程")
         self.reading_combo = ComboBox(self.editor)
         for label, value in (("自动判断", "auto"), ("从左向右", "ltr"), ("漫画从右向左", "manga_rtl")):
             self.reading_combo.addItem(self.tra(label), userData=value)

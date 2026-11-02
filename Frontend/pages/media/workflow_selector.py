@@ -30,6 +30,7 @@ class _WorkflowStep(SimpleCardWidget, ConfigMixin):
     def set_state(self, state):
         active = bool(state.get("active", False))
         self.status_label.setText(str(state.get("status") or self.tra("待开始")))
+        self.status_label.setToolTip(str(state.get("detail") or ""))
         self.status_label.setTextColor(
             themeColor() if active else "#707070",
             themeColor() if active else "#b0b0b0")

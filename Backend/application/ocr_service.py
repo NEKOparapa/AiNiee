@@ -12,6 +12,7 @@ from PIL import Image, ImageOps
 
 from Backend.application.execution_context import ExecutionContext
 from Backend.application.pipeline_common import PipelineError
+from Backend.application.read_service import ensure_media_language_metadata
 from Backend.domain.config.ocr_config import resolve_ocr_config
 from Backend.domain.models.cache_item import CacheItem, TranslationStatus
 from Backend.domain.models.intermediate import parse_model
@@ -493,6 +494,14 @@ def ocr_model(model, config=None, context=None):
                 context.cancel()
                 report["cancelled_files"] = len(files) - ordinal - 1
                 break
+    if not context.is_cancelled():
+        try:
+            # Detect the final source text, including reused OCR and refinements.
+            # Returning the model lets callers save paid OCR results even if
+            # local language detection fails and blocks the next stage.
+            ensure_media_language_metadata(project, media_types=("image",))
+        except PipelineError as error:
+            report["operation_errors"].append({"code": error.code, "message": error.message})
     if changed:
         project.stats_data = None
     report["cancelled"] = context.is_cancelled() and not report["operation_errors"]

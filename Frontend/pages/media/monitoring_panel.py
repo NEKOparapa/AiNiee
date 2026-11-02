@@ -21,6 +21,8 @@ class MediaMonitoringPanel(QWidget, ConfigMixin):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self._columns = 0
         self._rows = 2
+        self._status_text = ""
+        self._stage_text = self.tra("待开始")
         self.grid = QGridLayout(self)
         self.grid.setContentsMargins(0, 0, 0, 0)
         self.grid.setSpacing(self.SPACING)
@@ -42,10 +44,24 @@ class MediaMonitoringPanel(QWidget, ConfigMixin):
         self.files_card = self._dashboard("项目文件数", FluentIcon.FOLDER)
         self.elapsed_card = self._dashboard("本次用时", FluentIcon.STOP_WATCH)
         self.recognized_card = self._dashboard("已识别文件", FluentIcon.COMPLETED)
-        self.attention_card = self._dashboard("待复核文件", FluentIcon.INFO)
+        self.status_card = DashboardCard(self.tra("任务状态"), "", "", FluentIcon.INFO, self)
+        self.status_card.unitLabel.hide()
+        while self.status_card.valueLayout.count():
+            self.status_card.valueLayout.takeAt(0)
+        self.status_card.valueLayout.setAlignment(Qt.Alignment())
+        self.status_card.valueLayout.addWidget(self.status_card.valueLabel, 1)
+        self.status_card.valueLabel.setAlignment(Qt.AlignCenter)
+        self.status_card.valueLabel.setTextFormat(Qt.PlainText)
+        self.status_card.valueLabel.setWordWrap(True)
+        self.status_card.valueLabel.setMinimumWidth(0)
+        self.status_card.valueLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+        status_font = self.status_card.valueLabel.font()
+        status_font.setPixelSize(15)
+        status_font.setBold(False)
+        self.status_card.valueLabel.setFont(status_font)
         self._cards = (
             self.progress_card, self.counts_card, self.files_card,
-            self.elapsed_card, self.recognized_card, self.attention_card,
+            self.elapsed_card, self.recognized_card, self.status_card,
         )
         for card in self._cards:
             card.setFixedHeight(self.CARD_HEIGHT)
@@ -102,7 +118,7 @@ class MediaMonitoringPanel(QWidget, ConfigMixin):
         card.setToolTip(f"{value:,}{self.tra(' 个文件')}")
 
     def set_metrics(self, *, completed=0, total=0, files=0, recognized=0,
-                    attention=0, elapsed=0, stage="", running=False, generation=False):
+                    elapsed=0, stage="", status="", running=False, generation=False):
         """Apply observed counts and elapsed seconds without starting any work."""
         total = self._count(total)
         completed = min(self._count(completed), total) if total else 0
@@ -115,7 +131,6 @@ class MediaMonitoringPanel(QWidget, ConfigMixin):
             f"{self.tra('已完成')} {completed:,} / {total:,} {self.tra(unit)}")
         self._set_count(self.files_card, self._count(files))
         self._set_count(self.recognized_card, self._count(recognized))
-        self._set_count(self.attention_card, self._count(attention))
 
         try:
             seconds = float(elapsed)
@@ -131,20 +146,35 @@ class MediaMonitoringPanel(QWidget, ConfigMixin):
         self._font_size(self.elapsed_card.valueLabel, 26 if hours else 32)
 
         if stage:
-            status = " ".join(str(stage).split())
+            stage_text = " ".join(str(stage).split())
         elif not total:
-            status = self.tra("待开始")
+            stage_text = self.tra("待开始")
         elif running:
-            status = self.tra("处理中")
+            stage_text = self.tra("处理中")
         elif completed == total:
-            status = self.tra("已完成")
+            stage_text = self.tra("已完成")
         else:
-            status = self.tra("待继续" if completed else "待开始")
-        short_status = self.progress_card.ring.fontMetrics().elidedText(status, Qt.ElideRight, 84)
+            stage_text = self.tra("待继续" if completed else "待开始")
+        self._stage_text = stage_text or self.tra("待开始")
+        if str(status or "").strip():
+            self._status_text = str(status).strip()
+        self._update_status()
+        short_status = self.progress_card.ring.fontMetrics().elidedText(self._stage_text, Qt.ElideRight, 84)
         progress = completed * 10000 // total if total else 0
         self.progress_card.set_value(progress)
         self.progress_card.set_format("%p%\n" + short_status if total else short_status)
-        self.progress_card.setToolTip(status)
+        self.progress_card.setToolTip(self._stage_text)
+
+    def set_status(self, text):
+        """Keep detailed status across metric refreshes; empty text restores the stage."""
+        self._status_text = str(text or "").strip()
+        self._update_status()
+
+    def _update_status(self):
+        text = self._status_text or self._stage_text or self.tra("待开始")
+        self.status_card.set_value(text)
+        self.status_card.setToolTip(text)
+        self.status_card.valueLabel.setToolTip(text)
 
     @staticmethod
     def _column_count(width):
@@ -164,7 +194,7 @@ class MediaMonitoringPanel(QWidget, ConfigMixin):
             positions = (
                 (self.progress_card, 0, 0, 1), (self.counts_card, 0, 1, 2),
                 (self.files_card, 0, 3, 1), (self.elapsed_card, 1, 0, 1),
-                (self.recognized_card, 1, 1, 1), (self.attention_card, 1, 2, 2),
+                (self.recognized_card, 1, 1, 1), (self.status_card, 1, 2, 2),
             )
             self._rows = 2
         else:

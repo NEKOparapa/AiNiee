@@ -3,6 +3,7 @@ import fnmatch
 from collections import defaultdict
 from contextlib import ExitStack
 from datetime import datetime
+import math
 from pathlib import Path
 
 from Backend.application.pipeline_common import PipelineError
@@ -65,14 +66,61 @@ def _language_stats(cache_file):
             count >= low_threshold and confidence >= 0.96]
     high_languages = {value[0] for value in high}
     if not high and texts:
-        language, confidence, _ = reader_util.detect_language_with_mediapipe(
+        languages, confidence, _ = reader_util.detect_language_with_mediapipe(
             [CacheItem(source_text="\n".join(texts))], 0, None,
         )[0]
-        if confidence >= 0.82:
+        if languages and confidence >= 0.82:
+            language = languages[0]
             high = [(language, len(texts), confidence)]
             high_languages.add(language)
     cache_file.language_stats = high or [("un", 0, -1.0)]
     cache_file.lc_language_stats = [value for value in ordered if value[0] not in high_languages]
+
+
+def ensure_media_language_metadata(project, *, media_types=("audio", "image")):
+    """Fill missing OCR/ASR language metadata without changing text or statuses.
+
+    Unlike document readers, recognition creates items after the read stage.
+    The shared language filter must not mistake their absent metadata for a
+    negative detection. Run after recognition and before filtering old models.
+    Recognition callers select their media type to preserve unrelated files.
+    """
+    pending = []
+    for file in project.files.values():
+        if file.media_type not in ("audio", "image") or file.media_type not in media_types:
+            continue
+        text_items = [item for item in file.items if isinstance(item.source_text, str) and item.source_text.strip()]
+        missing = [item for item in text_items if not item.lang_code]
+        if text_items and (missing or not file.language_stats):
+            pending.append((file, missing))
+    if not pending:
+        return 0
+    try:
+        from Backend.infrastructure.files.readers import reader_util
+        try:
+            for file, missing in pending:
+                for start in range(0, len(missing), 128):
+                    batch = missing[start:start + 128]
+                    results = reader_util.detect_language_with_mediapipe(batch, start, file)
+                    if len(results) != len(batch):
+                        raise ValueError("incomplete language detection results")
+                    for item, (languages, confidence, _) in zip(batch, results):
+                        if (not isinstance(languages, list) or not languages
+                                or any(not isinstance(language, str) or not language for language in languages)
+                                or isinstance(confidence, bool) or not isinstance(confidence, (int, float))
+                                or not math.isfinite(confidence) or not -1 <= confidence <= 1):
+                            raise ValueError("invalid language detection result")
+                        item.lang_code = (languages[0], float(confidence), list(languages[1:]))
+                _language_stats(file)
+        finally:
+            reader_util.close_lang_detector()
+    except (ImportError, FileNotFoundError, OSError) as error:
+        raise PipelineError("MEDIA_LANGUAGE_DETECTOR_UNAVAILABLE",
+            "无法加载媒体原文语言检测器，请检查本地 MediaPipe 依赖和 language_detector.tflite 模型；已有识别结果会保留", 500) from error
+    except Exception as error:
+        raise PipelineError("MEDIA_LANGUAGE_DETECTION_FAILED",
+            "媒体原文语言检测失败，请检查本地语言检测环境；已有原文、译文和翻译状态会保留", 500) from error
+    return len(pending)
 
 
 def _read(path, options, *, kind):
