@@ -53,16 +53,29 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 | 接口 | 主要参数与用途 |
 | --- | --- |
-| `POST /api/v2/read/image` | `path`、可选 `options.exclude_rule`；读取图片或目录，返回图片模型 |
-| `POST /api/v2/ocr` | `model`、可选 `config`；识别原文、文字位置与阅读顺序 |
-| `POST /api/v2/write/image` | `model`、`options.output_dir`；擦除原文并回填译文，可设置字体、方向、擦除方式及图片格式 |
-| `POST /api/v2/image/translate` | `path`、`output.output_dir`；可选 `read_options/ocr/translation`，执行读取 → OCR → 翻译 → 图片导出 |
+| `POST /api/v2/read/image` | `path`、可选 `options.exclude_rule`；读取图片或目录并完成本地文本检测，返回检测区域与待识别条目，不调用在线 OCR |
+| `POST /api/v2/image/detect` | `model`；对已导入图片补做或重新执行本地文本检测 |
+| `POST /api/v2/ocr` | `model`、可选 `config`；复用检测区域识别原文，再按阅读顺序合并对白 |
+| `POST /api/v2/image/repair` | `model`、`options.output_dir`；按可安全回填的文字区域擦除原文，保存修复图和排版计划 |
+| `POST /api/v2/image/render` | `model`、`options.output_dir`；复用有效修复图，将译文排入原文位置 |
+| `POST /api/v2/image/export` | `model`、`options.output_dir`；复制或转码有效译图，不重新修复或渲染 |
+| `POST /api/v2/write/image` | `model`、`options.output_dir`；兼容的一键修复 → 渲染 → 导出，可设置字体、方向、擦除方式及图片格式 |
+| `POST /api/v2/image/translate` | `path`、`output.output_dir`；可选 `read_options/ocr/translation`，顺序执行完整七步并保存检查点 |
 | `POST /api/v2/image/generate-translation` | `model`、可选 `config/operation_id`；调用生图接口生成译图，返回含产物引用的模型 |
 | `POST /api/v2/write/generated-image` | `model`、`options.output_dir`；导出生图产物及可选中间模型 |
 | `POST /api/v2/image/generate-pipeline` | `path`、`output.output_dir`；可选 `read_options/generation/operation_id`，执行读取 → 生图翻译 → 导出 |
 | `POST /api/v2/image/operations/{operation_id}/stop` | 按提交时的操作 ID 停止对应 API 任务；也可使用通用任务取消接口 |
 
 OCR 使用独立的 OCR 平台配置，生图使用独立的生图平台配置。图片写出、完整流程及生图处理返回 `status/model/files/report`；支持的图片输出格式为 `png`、`jpeg`、`webp`。
+
+图片 OCR 翻译按 [Saber-Translator](https://github.com/MashiroSaber03/Saber-Translator#readme) 的七步组织：**导入图片 → 文本检测 → OCR 识别 → AI 翻译 → 图像修复 → 文字渲染 → 导出**。读取接口一次完成前两步，并在 `file.extra.text_detection` 保存源文件指纹、检测版本、原图坐标及空白页标记；读取结果已包含带定位的待识别条目。检测失败和取消会保留已读取图片并返回对应状态，不将其伪装为无文字图片。
+
+OCR 默认 `recognition_mode: "regions"`：复用读取时的本地检测区域 → 按区域裁切识别原文 → 合并对白。局部处理思路也参考 [manga-image-translator](https://github.com/zyddnys/manga-image-translator)，检测使用已有 RapidOCR，文字识别继续使用配置的 OCR 接口。`recognition_mode: "page"` 可切回接口整页识别。未保存检测记录的旧模型可在 OCR 时补检；失败或失效的检测需显式重做。
+
+- 分区识别每个文字区域分别请求接口，每页最多 128 区；坐标来自本地检测，接口返回值只用于原文。区域结果及用量随检查点保存，失败或取消后可继续；已完成页面显式 `reocr: true` 会重新识别。
+- `group_lines: true` 将同气泡中的文字行合并成翻译条目，避免将一句对白拆开翻译。新配置默认开启，已有显式关闭的设置保留。`refine_text` 仍表示可选的额外气泡原文复核，默认关闭。
+- 检测、OCR 和回填仍可能漏掉手写字或无法可靠分离的线稿。未完成的识别区域保留定位且不翻译半句；回填报告区分实际写入、主动保留和跳过，并保存具体原因。完整气泡可利用内部空白排版，自定义布局保持原样。
+- 修复、渲染分别保存产物及校验指纹；源图、文字、定位或排版设置改变后，需要重新执行受影响步骤。独立导出接口遇到缺失或过期译图会明确报错。各步应传递上一步返回的完整 `model`；修复/渲染使用相同排版选项，导出仅改变目录、格式等输出选项。
 
 ## 音频接口
 
@@ -87,11 +100,11 @@ OCR 使用独立的 OCR 平台配置，生图使用独立的生图平台配置�
 | `POST /api/v2/media/{workspace_id}/model` | `model`、可选 `preview_files`；保存编辑后的模型 |
 | `POST /api/v2/media/{workspace_id}/run` | `stage`、`operation_id`，可选 `config/options`；运行一个处理阶段并保存结果 |
 | `DELETE /api/v2/media/{workspace_id}` | 删除工作区 |
-| `GET /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 预览 `source` 或 `translated` 文件，支持 Range 请求 |
+| `GET /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 预览 `source`、`repaired` 或 `translated` 文件，支持 Range 请求 |
 | `HEAD /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 获取预览文件响应头 |
 | `POST /api/v2/media/operations/{operation_id}/stop` | 停止指定 API 媒体任务 |
 
-`stage` 支持 `recognize`（OCR/转录）、`translate`、`generate`（仅图片）、`preview`（仅图片）、`export`。识别/翻译/生图阶段传 `config`；预览/导出阶段传 `options`。`operation_id` 必须为 16–80 位字母、数字、下划线或连字符。
+`stage` 支持 `detect`（仅图片）、`recognize`（OCR/转录）、`translate`、`repair`、`render`、`generate`（仅图片）、兼容的 `preview`（修复并渲染）、`export`。导入图片自动完成 `read` 与 `detect`，无需再提交检测步骤。识别/翻译/生图阶段传 `config`；修复/渲染/预览/导出阶段传 `options`。修复和渲染目录由工作区管理；OCR 导出要求已有有效译图。`operation_id` 必须为 16–80 位字母、数字、下划线或连字符。
 
 ## 桌面当前项目接口
 

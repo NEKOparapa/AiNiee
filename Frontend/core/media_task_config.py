@@ -18,8 +18,9 @@ DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
 }
 DEFAULT_IMAGE_TRANSLATION_SETTINGS = {
     "ocr": {
+        "recognition_mode": "regions",
         "reading_order": "auto",
-        "group_lines": False,
+        "group_lines": True,
         "refine_text": False,
     },
     "generation": {
@@ -152,6 +153,8 @@ def normalize_image_translation_settings(values):
     _require_object(values, "图片翻译设置必须是对象。")
     result = _merge_image_settings(copy.deepcopy(DEFAULT_IMAGE_TRANSLATION_SETTINGS), values)
     ocr = result["ocr"]
+    if ocr["recognition_mode"] not in ("page", "regions"):
+        raise ValueError("请选择本地定位分区识别或整页识别。")
     if not isinstance(ocr["reading_order"], str):
         raise ValueError("阅读顺序必须是文本。")
     ocr["reading_order"] = ocr["reading_order"].strip()

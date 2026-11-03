@@ -1,6 +1,7 @@
 from google.genai import types
 from google.genai.types import Content, HarmCategory, Part
 from Backend.core.base import Base
+from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 from Backend.infrastructure.llm.request_control import request_cancelled
 from Backend.core.log import LogMixin
 from Backend.infrastructure.llm.llm_client_factory import LLMClientFactory
@@ -45,6 +46,9 @@ class GoogleRequester(LogMixin, Base):
 
             # 构建基础配置
             gen_config = types.GenerateContentConfig(
+                http_options=types.HttpOptions(
+                    timeout=int(platform_config.get("request_timeout", REQUEST_TIMEOUT_SECONDS) * 1000),
+                ),
                 system_instruction=system_prompt,
                 max_output_tokens=ModelConfigHelper.get_google_max_output_tokens(model_name),
                 safety_settings=[

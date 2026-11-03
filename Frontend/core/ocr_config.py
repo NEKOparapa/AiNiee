@@ -7,11 +7,9 @@ DEFAULT_OCR_PLATFORM = {
     "name": "百炼文字识别",
     "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
     "api_key": "", "model": "qwen-vl-ocr", "api_format": "DashScope",
-    "request_timeout": 180, "max_pixels": 8388608, "max_tokens": 4096,
-    "reading_order": "auto", "group_lines": False, "refine_text": False, "max_retries": 0,
+    "request_timeout": 300, "max_pixels": 8388608, "max_tokens": 4096,
+    "reading_order": "auto", "group_lines": True, "refine_text": False, "max_retries": 0,
 }
-MIN_REQUEST_TIMEOUT = 10
-MAX_REQUEST_TIMEOUT = 3600
 READING_ORDERS = ("auto", "ltr", "manga_rtl")
 MODEL_TOKEN_LIMITS = {"qwen-vl-ocr": 4096, "qwen-vl-ocr-2025-11-20": 8192}
 
@@ -25,9 +23,7 @@ def normalize_ocr_platform(data=None):
         if not isinstance(result[key], str):
             raise ValueError("OCR 接口名称、地址、密钥、模型、格式和阅读顺序必须是文本。")
         result[key] = result[key].strip()
-    timeout = result["request_timeout"]
-    if isinstance(timeout, float) and timeout.is_integer():
-        result["request_timeout"] = int(timeout)
+    result["request_timeout"] = 300
     return result
 
 
@@ -54,8 +50,7 @@ def validate_ocr_platform(data, *, require_api_key=False):
         raise ValueError("OCR 接口密钥不能包含换行。")
     if require_api_key and not result["api_key"]:
         raise ValueError("请先填写并保存接口密钥，再激活此 OCR 接口。")
-    for key, lower, upper in (("request_timeout", MIN_REQUEST_TIMEOUT, MAX_REQUEST_TIMEOUT),
-                              ("max_pixels", 3136, 23520000), ("max_tokens", 1, 32768),
+    for key, lower, upper in (("max_pixels", 3136, 23520000), ("max_tokens", 1, 32768),
                               ("max_retries", 0, 5)):
         if type(result[key]) is not int or not lower <= result[key] <= upper:
             raise ValueError(f"OCR 配置 {key} 必须是 {lower} 至 {upper} 的整数。")

@@ -17,6 +17,7 @@ class MediaImportRequest(RequestModel):
     kind: Literal["image", "audio"]
     paths: list[str] = Field(min_length=1, max_length=100)
     exclude_rule: str = ""
+    operation_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{16,80}$")
 
 
 class MediaSaveRequest(RequestModel):
@@ -31,7 +32,8 @@ def create_media_router(runtime, authorized):
     @router.post("/import")
     async def import_media(body: MediaImportRequest, prefer: str | None = Header(default=None)):
         return await run_queued(runtime, "media/import", lambda context: store.import_media(
-            body.kind, body.paths, body.exclude_rule), lane=body.kind, prefer=prefer)
+            body.kind, body.paths, body.exclude_rule, context=context), lane=body.kind, prefer=prefer,
+            operation_id=body.operation_id)
 
     @router.get("")
     def history(kind: Literal["image", "audio"] | None = None, limit: int = Query(default=20, ge=1, le=100)):
@@ -66,7 +68,7 @@ def create_media_router(runtime, authorized):
 
     @router.get("/{workspace_id}/files/{file_id}/{variant}")
     @router.head("/{workspace_id}/files/{file_id}/{variant}")
-    def preview(workspace_id: str, file_id: str, variant: Literal["source", "translated"]):
+    def preview(workspace_id: str, file_id: str, variant: Literal["source", "translated", "repaired"]):
         path = store.asset(workspace_id, file_id, variant)
         # Starlette's FileResponse handles byte ranges and HEAD for QMediaPlayer.
         return FileResponse(path, filename=path.name, content_disposition_type="inline", headers={"Cache-Control": "no-cache"})

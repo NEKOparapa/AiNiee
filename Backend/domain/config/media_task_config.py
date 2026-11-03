@@ -13,7 +13,7 @@ DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
     "export": {"format": "srt", "mode": "bilingual"},
 }
 DEFAULT_IMAGE_TRANSLATION_SETTINGS = {
-    "ocr": {"reading_order": "auto", "group_lines": False, "refine_text": False},
+    "ocr": {"recognition_mode": "regions", "reading_order": "auto", "group_lines": True, "refine_text": False},
     "generation": {
         "size": "auto", "seed": None, "prompt_extend": True, "prompt": "", "watermark": False,
     },
@@ -127,6 +127,8 @@ def validate_image_translation_settings(settings):
 
     groups = _settings_object(settings, DEFAULT_IMAGE_TRANSLATION_SETTINGS, "图译设置")
     ocr = _settings_object(groups["ocr"], DEFAULT_IMAGE_TRANSLATION_SETTINGS["ocr"], "图片识别设置")
+    if ocr["recognition_mode"] not in ("page", "regions"):
+        raise ValueError("图片识别方式必须为 page 或 regions")
     if ocr["reading_order"] not in ("auto", "ltr", "manga_rtl"):
         raise ValueError("阅读顺序必须为 auto、ltr 或 manga_rtl")
     for key in ("group_lines", "refine_text"):

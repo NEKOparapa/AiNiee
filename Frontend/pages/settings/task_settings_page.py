@@ -36,7 +36,6 @@ class TaskSettingsPage(QFrame, ConfigMixin, Base):
         self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_04(self.vbox, config)
         self.vbox.addWidget(HorizontalSeparator())
-        self.add_widget_request_timeout(self.vbox, config)
         self.add_widget_06(self.vbox, config)
 
         # 根据初始模式设置可见性
@@ -171,26 +170,6 @@ class TaskSettingsPage(QFrame, ConfigMixin, Base):
             )
         )
 
-
-    # 请求超时时间
-    def add_widget_request_timeout(self, parent, config) -> None:
-        def init(widget) -> None:
-            widget.set_range(0, 9999999)
-            widget.set_value(config.get("request_timeout"))
-
-        def value_changed(widget, value: int) -> None:
-            config = self.load_config()
-            config["request_timeout"] = value
-            self.save_config(config)
-
-        parent.addWidget(
-            SpinCard(
-                self.tra("请求超时时间(s)"),
-                self.tra("单元任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败"),
-                init = init,
-                value_changed = value_changed,
-            )
-        )
 
     # 任务流程的最大轮次
     def add_widget_06(self, parent, config) -> None:

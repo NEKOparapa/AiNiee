@@ -6,14 +6,14 @@ from PyQt5.QtCore import QSize, Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLineEdit, QStackedWidget, QVBoxLayout, QWidget
 from qfluentwidgets import (
     CaptionLabel, ComboBox, FluentIcon, FlowLayout, LineEdit, MessageBoxBase,
-    PillPushButton, SingleDirectionScrollArea, SpinBox, StrongBodyLabel,
+    PillPushButton, SingleDirectionScrollArea, StrongBodyLabel,
     SubtitleLabel, TransparentToolButton,
 )
 
 from Frontend.components.toast import ToastMixin
 from Frontend.core.config import ConfigMixin
 from Frontend.core.media_provider_config import (
-    MAX_REQUEST_TIMEOUT, MIN_REQUEST_TIMEOUT, PROVIDER_FORMATS,
+    PROVIDER_FORMATS,
     get_media_provider_presets, normalize_media_provider, validate_media_provider,
 )
 
@@ -52,17 +52,11 @@ class MediaProviderForm(QWidget, ConfigMixin):
         self.model_edit = LineEdit(self)
         self.model_edit.setPlaceholderText(self.tra("请输入模型名称或 Endpoint ID"))
         self._add_field("模型名称", self.model_edit)
-        self.timeout_spin = SpinBox(self)
-        self.timeout_spin.setRange(MIN_REQUEST_TIMEOUT, MAX_REQUEST_TIMEOUT)
-        self.timeout_spin.setSuffix(self.tra(" 秒"))
-        self._add_field("请求超时", self.timeout_spin)
         self.fields.addStretch(1)
         for editor in (self.name_edit, self.url_edit, self.key_edit, self.app_id_edit,
                        self.resource_id_edit, self.model_edit):
             editor.textChanged.connect(self._changed)
             editor.editingFinished.connect(self._editing_finished)
-        self.timeout_spin.valueChanged.connect(self._changed)
-        self.timeout_spin.editingFinished.connect(self._editing_finished)
         self.format_combo.currentIndexChanged.connect(self._format_changed)
         self._sync_format_fields()
 
@@ -122,7 +116,6 @@ class MediaProviderForm(QWidget, ConfigMixin):
             self.app_id_edit.setText(values.get("app_id", ""))
             self.resource_id_edit.setText(values.get("resource_id", ""))
             self.model_edit.setText(values["model"])
-            self.timeout_spin.setValue(values["request_timeout"])
             self._sync_format_fields()
         finally:
             self._loading = False
@@ -131,7 +124,7 @@ class MediaProviderForm(QWidget, ConfigMixin):
         values = {
             "name": self.name_edit.text(), "api_format": self.format_combo.currentText(),
             "api_url": self.url_edit.text(), "api_key": self.key_edit.text(),
-            "model": self.model_edit.text(), "request_timeout": self.timeout_spin.value(),
+            "model": self.model_edit.text(),
         }
         if self.kind == "transcription" and values["api_format"] == "VolcengineASRFast":
             values.update(app_id=self.app_id_edit.text(), resource_id=self.resource_id_edit.text())

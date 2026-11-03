@@ -112,7 +112,7 @@ def create_mcp_server(runtime):
 
     @server.tool(title="提交图片 OCR 翻译", annotations=submit_hints)
     async def submit_image_translation(request: MCPImageTranslationRequest) -> CallToolResult:
-        """Queue image read → OCR → translation → render/export on the shared image queue.
+        """Queue image import → detect → OCR → translate → repair → render → export.
 
         Supply a backend-local path and output.output_dir. OCR and translation inherit
         backend settings; optional request_id identifies this submission.

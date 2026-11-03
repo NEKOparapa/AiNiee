@@ -22,7 +22,7 @@ def pyinstaller_command(arch=None):
         "--copy-metadata=pymupdf",
         "--collect-submodules=mcp", "--copy-metadata=mcp", "--copy-metadata=mcp-types",
     ]
-    for package in ("babeldoc", "mediapipe", "chardet", "sklearn", "rich", "bitstring", "magika"):
+    for package in ("babeldoc", "mediapipe", "chardet", "sklearn", "rich", "bitstring", "magika", "rapidocr_onnxruntime"):
         command.append(f"--collect-all={package}")
     for package in ("Frontend", "PyQt5", "PyQt6", "PySide2", "PySide6", "tkinter",
                     "IPython", "pytest", "jax", "jaxlib", "torch", "tensorflow", "skimage", "hyperscan"):

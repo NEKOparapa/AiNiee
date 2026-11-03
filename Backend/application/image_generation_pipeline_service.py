@@ -70,15 +70,20 @@ def translate_image_generation(path, *, read_options=None, generation=None, outp
     prompt_is_explicit = (isinstance(generation, ImageGenerationConfig)
                           or isinstance(generation, dict) and "prompt" in generation)
     options = validate_generated_image_options(output)
-    read = read_image(path, read_options)
+    read = read_image(path, read_options, context=context)
     project = read["model"]
-    options = validate_generated_image_targets(project, options)
     reports, statuses = {"read": read["report"]}, {"read": read["status"]}
     files, model_path = [], _checkpoint(project)
 
     def response(status, stage):
         return {"status": status, "model": project, "files": files, "model_path": model_path,
                 "report": {"stage": stage, "stage_status": statuses, **reports}}
+
+    if read["status"] == "cancelled":
+        return response("cancelled", "read")
+    if read["report"].get("operation_errors") or not project.files:
+        return response("failed", "read")
+    options = validate_generated_image_targets(project, options)
 
     for stage in ("generation", "write"):
         if context.is_cancelled():

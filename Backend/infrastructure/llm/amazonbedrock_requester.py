@@ -1,4 +1,5 @@
 from Backend.core.base import Base
+from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 from Backend.infrastructure.llm.request_control import request_cancelled
 from Backend.core.log import LogMixin
 from Backend.infrastructure.llm.model_config_helper import ModelConfigHelper
@@ -22,7 +23,7 @@ class AmazonbedrockRequester(LogMixin, Base):
     def request_amazonbedrock_anthropic(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
         try:
             model_name:str = platform_config.get("model_name")
-            request_timeout = platform_config.get("request_timeout", 60)
+            request_timeout = platform_config.get("request_timeout", REQUEST_TIMEOUT_SECONDS)
 
             # 从工厂获取客户端
             client = LLMClientFactory().get_anthropic_bedrock(platform_config)

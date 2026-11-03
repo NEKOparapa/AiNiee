@@ -32,7 +32,6 @@
     "请输入生图模型名称。": {"简中": "请输入生图模型名称。", "繁中": "請輸入生圖模型名稱。", "English": "Enter an image model name.", "日本語": "画像モデル名を入力してください。"},
     "生图接口密钥不能包含换行。": {"简中": "生图接口密钥不能包含换行。", "繁中": "生圖介面金鑰不能包含換行。", "English": "The API key must not contain line breaks.", "日本語": "API キーに改行を含めることはできません。"},
     "请先填写并保存接口密钥，再激活此生图接口。": {"简中": "请先填写并保存接口密钥，再激活此生图接口。", "繁中": "請先填寫並儲存介面金鑰，再啟用此生圖介面。", "English": "Enter and save an API key before activating this image generation provider.", "日本語": "API キーを入力して保存してから、画像生成 API を有効にしてください。"},
-    "生图请求超时必须是 10 至 3600 的整数。": {"简中": "生图请求超时必须是 10 至 3600 的整数。", "繁中": "生圖請求逾時必須是 10 至 3600 的整數。", "English": "The timeout must be an integer from 10 to 3600 seconds.", "日本語": "タイムアウトは 10〜3600 秒の整数で指定してください。"},
     "自动改写必须是开启或关闭。": {"简中": "自动改写必须是开启或关闭。", "繁中": "自動改寫必須是開啟或關閉。", "English": "Automatic prompt rewriting must be on or off.", "日本語": "自動書き換えはオンまたはオフで指定してください。"},
     "随机种子必须留空或填写 0 至 2147483647 的整数。": {"简中": "随机种子必须留空或填写 0 至 2147483647 的整数。", "繁中": "隨機種子必須留空或填寫 0 至 2147483647 的整數。", "English": "Leave the seed blank or enter an integer from 0 to 2147483647.", "日本語": "シードは空欄にするか、0〜2147483647 の整数を入力してください。"},
     "输出尺寸必须为 auto 或 WIDTH*HEIGHT（宽高均为正整数）。": {"简中": "输出尺寸必须为 auto 或 WIDTH*HEIGHT（宽高均为正整数）。", "繁中": "輸出尺寸必須為 auto 或 WIDTH*HEIGHT（寬高均為正整數）。", "English": "Output size must be auto or WIDTH*HEIGHT, with positive integer dimensions.", "日本語": "出力サイズは auto、または正の整数による WIDTH*HEIGHT で指定してください。"}

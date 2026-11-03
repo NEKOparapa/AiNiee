@@ -3,7 +3,7 @@
 from qfluentwidgets import FluentIcon
 
 from Frontend.core.media_provider_config import (
-    DEFAULT_TRANSCRIPTION_PLATFORM, MAX_REQUEST_TIMEOUT, MIN_REQUEST_TIMEOUT,
+    DEFAULT_TRANSCRIPTION_PLATFORM,
     SUPPORTED_LANGUAGE_HINTS, build_media_provider_update, normalize_media_provider,
     validate_media_provider,
 )

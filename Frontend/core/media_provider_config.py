@@ -7,8 +7,6 @@ from Frontend.core.image_generation_config import DEFAULT_IMAGE_GENERATION_PLATF
 from Frontend.core.ocr_config import DEFAULT_OCR_PLATFORM
 
 
-MIN_REQUEST_TIMEOUT = 10
-MAX_REQUEST_TIMEOUT = 3600
 DEFAULT_TRANSCRIPTION_PLATFORM = {
     "name": "阿里云百炼", "api_format": "DashScope",
     "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
@@ -57,7 +55,7 @@ def get_media_provider_presets(kind):
         presets["volcengine_seedream"] = {
             "name": "火山", "api_format": "VolcengineArk",
             "api_url": "https://ark.cn-beijing.volces.com/api/v3/images/generations",
-            "api_key": "", "model": "doubao-seedream-5-0-pro-260628", "request_timeout": 600,
+            "api_key": "", "model": "doubao-seedream-5-0-pro-260628", "request_timeout": 300,
             "group": "online", "icon": "volcengine", "description": "火山引擎 · 豆包图像编辑与图片翻译",
         }
     presets["custom"] = {
@@ -90,8 +88,8 @@ def normalize_media_provider(kind, data=None):
             if not isinstance(result[key], str):
                 raise ValueError("APP ID 和资源 ID 必须是文本。")
             result[key] = result[key].strip()
-    if type(result["request_timeout"]) is float and result["request_timeout"].is_integer():
-        result["request_timeout"] = int(result["request_timeout"])
+    # 超时不再提供编辑，旧配置也统一使用默认值。
+    result["request_timeout"] = 300
     if result.get("group") not in ("online", "custom"):
         try:
             host = urlsplit(result["api_url"]).hostname or ""
@@ -126,8 +124,6 @@ def validate_media_provider(kind, data, *, require_credentials=False):
         raise ValueError("接口密钥必须是单行文本。")
     if require_credentials and not result["api_key"]:
         raise ValueError("请先填写接口密钥，再激活此接口。")
-    if type(result["request_timeout"]) is not int or not MIN_REQUEST_TIMEOUT <= result["request_timeout"] <= MAX_REQUEST_TIMEOUT:
-        raise ValueError("请求超时必须是 10 至 3600 秒之间的整数。")
     if kind == "transcription" and result["api_format"] == "VolcengineASRFast":
         expected_path = "/api/v3/auc/bigmodel/recognize/flash"
         if not url.path.rstrip("/").endswith(expected_path):

@@ -14,6 +14,7 @@ from Backend.domain.config.media_task_config import migrate_media_task_settings,
 from Backend.domain.config.transcription_config import validate_transcription_platform
 from Backend.domain.config.ocr_config import validate_ocr_platform
 from Backend.domain.config.image_generation_config import validate_image_generation_platform
+from Backend.domain.config.request_defaults import normalize_request_timeouts
 
 
 class ConfigStore:
@@ -189,6 +190,7 @@ class ConfigStore:
             # Migrate before initialize_config merges defaults, so saved provider
             # options seed the new task settings rather than being overwritten.
             needs_write = migrate_media_task_settings(config) or needs_write
+            needs_write = normalize_request_timeouts(config) or needs_write
             if needs_write:
                 os.makedirs(os.path.dirname(ConfigStore.CONFIG_PATH), exist_ok=True)
                 tmp_path = f"{ConfigStore.CONFIG_PATH}.tmp"
@@ -252,10 +254,11 @@ class ConfigStore:
 
             self._validate_mcp_settings(old)
             media_changed = migrate_media_task_settings(old)
+            timeout_changed = normalize_request_timeouts(old)
             validate_media_task_settings(old)
             prompt_changed = TranslationPromptConfigHelper.normalize_config(old)
             project_type_changed = migrate_retired_project_type(old)
-            if unchanged and not media_changed and not prompt_changed and not project_type_changed and not retired:
+            if unchanged and not media_changed and not timeout_changed and not prompt_changed and not project_type_changed and not retired:
                 return old
 
             os.makedirs(os.path.dirname(ConfigStore.CONFIG_PATH), exist_ok=True)

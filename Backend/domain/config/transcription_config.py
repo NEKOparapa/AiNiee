@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 from Backend.application.pipeline_common import PipelineError
 from Backend.domain.config.media_task_config import migrate_media_task_settings
+from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 
 
 DEFAULT_TRANSCRIPTION_PROVIDER_ID = "bailian_asr"
@@ -14,7 +15,7 @@ DEFAULT_TRANSCRIPTION_PLATFORM = {
     "name": "百炼语音转录",
     "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
     "api_key": "", "model": "qwen-audio-3.1-asr-flash", "api_format": "DashScope",
-    "request_timeout": 300, "language_hints": [], "speaker_diarization_enabled": False,
+    "request_timeout": REQUEST_TIMEOUT_SECONDS, "language_hints": [], "speaker_diarization_enabled": False,
     "chunk_duration_seconds": 240, "chunk_overlap_seconds": 2,
     "chunk_concurrency": 3, "vad_threshold": 0.35,
 }
@@ -42,7 +43,7 @@ class TranscriptionConfig:
     api_format: str = "DashScope"
     app_id: str = ""
     resource_id: str = ""
-    request_timeout: float = 300
+    request_timeout: float = REQUEST_TIMEOUT_SECONDS
     language_hints: tuple[str, ...] = ()
     speaker_diarization_enabled: bool = False
     keep_dialect: bool = False
@@ -113,8 +114,9 @@ def resolve_transcription_config(config=None) -> TranscriptionConfig:
         if not isinstance(platform, dict):
             raise PipelineError("ASR_CONFIG_ERROR", "所选转录接口不存在", 400)
         values = asdict(TranscriptionConfig())
+        # Saved timeouts are retired; only an explicit per-call override may change the default.
         values.update({key: copy.deepcopy(value) for key, value in platform.items()
-                       if key in values and key != "provider_id"})
+                       if key in values and key not in {"provider_id", "request_timeout"}})
         task_settings = snapshot.get("audio_translation_settings")
         if not isinstance(task_settings, dict):
             raise PipelineError("ASR_CONFIG_ERROR", "音译设置必须为对象", 400)
@@ -200,9 +202,6 @@ def validate_transcription_platform(identifier: str, platform: dict) -> None:
         value = platform.get(field, "")
         if not isinstance(value, str) or any(c in value for c in "\r\n\x00"):
             raise ValueError(f"转录接口字段 {field} 必须是单行文本")
-    if "request_timeout" in platform and (isinstance(platform["request_timeout"], bool)
-            or not isinstance(platform["request_timeout"], (int, float))):
-        raise ValueError("转录接口字段 request_timeout 必须是数字")
     if "language_hints" in platform and (not isinstance(platform["language_hints"], list)
             or any(not isinstance(value, str) for value in platform["language_hints"])):
         raise ValueError("转录接口字段 language_hints 必须是字符串列表")

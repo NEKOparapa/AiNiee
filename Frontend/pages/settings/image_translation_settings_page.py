@@ -15,6 +15,11 @@ class ImageTranslationSettingsPage(MediaSettingsPage):
 
     def _build_fields(self):
         recognition = self._add_section("识别参数", FluentIcon.DOCUMENT, "用于OCR翻译流程")
+        self.recognition_mode_combo = ComboBox(self.editor)
+        for label, value in (("本地定位＋分区识别（推荐）", "regions"), ("整页识别", "page")):
+            self.recognition_mode_combo.addItem(self.tra(label), userData=value)
+        recognition.add_field("识别方式", self.recognition_mode_combo,
+                              "默认先在本地定位文字，再按文字区域分别请求 OCR 接口并保存进度，中断后可继续；整页模式由接口同时识别文字和位置。")
         self.reading_combo = ComboBox(self.editor)
         for label, value in (("自动判断", "auto"), ("从左向右", "ltr"), ("漫画从右向左", "manga_rtl")):
             self.reading_combo.addItem(self.tra(label), userData=value)
@@ -22,7 +27,7 @@ class ImageTranslationSettingsPage(MediaSettingsPage):
                               "日文漫画可选择从右向左；文字本身的横排或竖排由识别结果决定。")
         self.group_switch = SwitchButton(self.editor)
         recognition.add_field("合并相邻文字行", self.group_switch,
-                              "默认关闭。开启后尝试把同一区域中的文字行组合为翻译条目；复杂漫画建议先检查分组结果。")
+                              "识别后把同一气泡中的文字行组合为翻译条目；关闭时分别翻译每一行。")
         self.refine_switch = SwitchButton(self.editor)
         recognition.add_field("复核气泡原文", self.refine_switch,
                               "需同时开启“合并相邻文字行”。对明确封闭的气泡额外调用百炼多语言识别，改善日文识别；会增加请求次数和费用，低可信结果保留原文。")
@@ -42,6 +47,7 @@ class ImageTranslationSettingsPage(MediaSettingsPage):
             self.export_format_combo.addItem(value.upper(), userData=value)
         export.add_field("图片格式", self.export_format_combo)
 
+        self.recognition_mode_combo.currentIndexChanged.connect(self._schedule_save)
         self.reading_combo.currentIndexChanged.connect(self._schedule_save)
         self.group_switch.checkedChanged.connect(self._on_group_changed)
         self.refine_switch.checkedChanged.connect(self._schedule_save)
@@ -67,6 +73,7 @@ class ImageTranslationSettingsPage(MediaSettingsPage):
 
     def _load_fields(self, values):
         ocr, generation = values["ocr"], values["generation"]
+        self.recognition_mode_combo.setCurrentIndex(self.recognition_mode_combo.findData(ocr["recognition_mode"]))
         self.reading_combo.setCurrentIndex(self.reading_combo.findData(ocr["reading_order"]))
         self.group_switch.setChecked(ocr["group_lines"])
         self.refine_switch.setChecked(ocr["refine_text"])
@@ -78,6 +85,7 @@ class ImageTranslationSettingsPage(MediaSettingsPage):
     def _form_values(self):
         return {
             "ocr": {
+                "recognition_mode": self.recognition_mode_combo.currentData(),
                 "reading_order": self.reading_combo.currentData(),
                 "group_lines": self.group_switch.isChecked(),
                 "refine_text": self.refine_switch.isChecked(),

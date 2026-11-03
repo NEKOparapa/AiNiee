@@ -1,4 +1,45 @@
 """Conservative page reading order; panel detection never changes erase masks."""
+import unicodedata
+
+
+def _cjk_boundary(character):
+    name = unicodedata.name(character, "")
+    return (name.startswith(("CJK ", "HIRAGANA ", "KATAKANA", "HALFWIDTH KATAKANA ",
+                             "HANGUL ", "BOPOMOFO ", "IDEOGRAPHIC "))
+            or (unicodedata.category(character).startswith("P")
+                and unicodedata.east_asian_width(character) in ("W", "F")))
+
+
+def join_text_lines(lines) -> str:
+    """Join already ordered OCR lines into prose without inventing line breaks.
+
+    Detection boundaries are layout, not sentence or paragraph boundaries. CJK
+    fragments concatenate; other scripts retain a word space between fragments.
+    Only newly introduced separators are chosen here: whitespace and newlines
+    inside each provider text (including explicit blank paragraphs at its edges)
+    remain untouched. We never reorder lines, dehyphenate, normalize characters,
+    or mutate the original OCR records kept for geometry and traceability.
+    """
+    result = ""
+    for line in lines:
+        text = line.get("text", "")
+        if not isinstance(text, str):
+            raise TypeError("OCR line text must be a string")
+        if not text:
+            continue
+        if not result or result[-1].isspace() or text[0].isspace():
+            result += text
+            continue
+        # A combining accent belongs to its base letter, not a new word/script.
+        left = next((char for char in reversed(result) if not unicodedata.category(char).startswith("M")), result[-1])
+        right = next((char for char in text if not unicodedata.category(char).startswith("M")), text[0])
+        attached = (unicodedata.category(left) in ("Ps", "Pi")
+                    or unicodedata.category(right) in ("Pe", "Pf")
+                    or right in ".,;:!?%‰…،؛؟"
+                    or left in "-‐‑")
+        separator = "" if attached or _cjk_boundary(left) or _cjk_boundary(right) else " "
+        result += separator + text
+    return result
 
 
 def bounds(region):

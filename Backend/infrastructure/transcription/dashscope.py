@@ -12,6 +12,7 @@ import httpx
 
 from Backend.application.execution_context import ExecutionContext
 from Backend.application.pipeline_common import PipelineError
+from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 
 
 SUPPORTED_FORMATS = frozenset("aac amr avi flac flv m4a mkv mov mp3 mp4 mpeg ogg opus wav webm wma wmv".split())
@@ -308,7 +309,7 @@ def request_transcription(audio_bytes, *, audio_format, sample_rate, duration_ms
     headers = {"Authorization": f"Bearer {config['api_key']}", "Content-Type": "application/json",
                "X-DashScope-SSE": "enable" if config.get("stream", True) else "disable"}
     max_attempts = 1 + config.get("max_retries", 0)
-    with httpx.Client(timeout=config.get("request_timeout", 300), follow_redirects=False) as client:
+    with httpx.Client(timeout=config.get("request_timeout", REQUEST_TIMEOUT_SECONDS), follow_redirects=False) as client:
         for attempt in range(1, max_attempts + 1):
             _cancelled(context, attempts=attempt - 1)
             _cancelled(request_gate, attempts=attempt - 1)

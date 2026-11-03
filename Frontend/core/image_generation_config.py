@@ -10,14 +10,12 @@ DEFAULT_IMAGE_GENERATION_PLATFORM = {
     "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
     "api_key": "",
     "model": "qwen-image-3.0-pro",
-    "request_timeout": 600,
+    "request_timeout": 300,
     "prompt_extend": True,
     "seed": None,
     "size": "auto",
     "prompt": "",
 }
-MIN_REQUEST_TIMEOUT = 10
-MAX_REQUEST_TIMEOUT = 3600
 MAX_SEED = 2147483647
 
 
@@ -53,9 +51,7 @@ def normalize_image_generation_platform(data=None):
         if key != "prompt":
             result[key] = result[key].strip()
     result["size"] = result["size"].lower()
-    timeout = result["request_timeout"]
-    if type(timeout) is float and timeout.is_integer():
-        result["request_timeout"] = int(timeout)
+    result["request_timeout"] = 300
     return result
 
 
@@ -82,8 +78,6 @@ def validate_image_generation_platform(data, *, require_api_key=False):
         raise ValueError("生图接口密钥不能包含换行。")
     if require_api_key and not result["api_key"]:
         raise ValueError("请先填写并保存接口密钥，再激活此生图接口。")
-    if type(result["request_timeout"]) is not int or not MIN_REQUEST_TIMEOUT <= result["request_timeout"] <= MAX_REQUEST_TIMEOUT:
-        raise ValueError("生图请求超时必须是 10 至 3600 的整数。")
     if type(result["prompt_extend"]) is not bool:
         raise ValueError("自动改写必须是开启或关闭。")
     seed = result["seed"]

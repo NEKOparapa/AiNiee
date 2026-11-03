@@ -61,6 +61,36 @@ def _step(status, detail):
     return {"status": status, "detail": detail, "active": False}
 
 
+def _detected(file):
+    record = _object(_object(file.get("extra")).get("text_detection"))
+    source_hash = _object(file.get("source_ref")).get("sha256")
+    return (record.get("status") == "complete" and _text(source_hash)
+            and record.get("source_sha256") == source_hash)
+
+
+def _artifact_ready(file, assets, stage):
+    record = _object(_object(_object(file.get("extra")).get("image_pipeline")).get(stage))
+    artifact = _object(_object(record.get("artifacts")).get("image"))
+    source_hash = _object(file.get("source_ref")).get("sha256")
+    url = "repaired_url" if stage == "repair" else "translated_url"
+    return (record.get("status") in ("complete", "partial") and _text(assets.get(file.get("file_id"), {}).get(url))
+            and _text(artifact.get("path")) and _text(artifact.get("sha256"))
+            and _text(source_hash) and record.get("source_sha256") == source_hash)
+
+
+def _repair_state(files, assets):
+    ready = [file for file in files if _artifact_ready(file, assets, "repair")]
+    partial = sum(_object(_object(_object(file.get("extra")).get("image_pipeline")).get("repair")).get("status") == "partial"
+                  for file in ready)
+    detail = f"已修复 {len(ready)} / {len(files)} 个文件"
+    if partial:
+        detail += f"；{partial} 个文件仍有区域需要复核"
+    translatable = any(_empty_recognized(file, "image") or any(_renderable(item) for item in _items(file)) for file in files)
+    status = ("待复核" if partial else "已完成" if len(ready) == len(files) else "部分完成" if ready
+              else "待修复" if translatable else "待翻译")
+    return _step(status, detail)
+
+
 def _preview_states(files, assets, mode):
     if mode == "generation":
         return _step("不适用", "当前使用整图生成流程，无需 OCR 回填。")
@@ -135,14 +165,16 @@ def workflow_states(workspace, kind, mode="ocr", generation_states=None):
     files = _files(workspace, kind)
     if not files:
         return {stage: _step("待导入", "请先导入媒体文件。")
-                for stage in ("recognize", "translate", "preview", "generate")}
+                for stage in ("read", "detect", "recognize", "translate", "repair", "render", "export", "preview", "generate")}
     recognized = sum(_recognized(file, kind) for file in files)
-    resumable = kind == "audio" and any(_has_checkpoint(file) for file in files)
+    resumable = (any(_has_checkpoint(file) for file in files) if kind == "audio" else
+                 any(_object(_object(file.get("extra")).get("ocr_regions")).get("status") in ("pending", "partial", "running", "cancelled", "failed")
+                     for file in files))
     recognition_status = ("已完成" if recognized == len(files) else "部分完成" if recognized
                           else "待继续" if resumable else "待开始")
     recognition_detail = f"已识别 {recognized} / {len(files)} 个文件"
     if resumable:
-        recognition_detail += "；未完成的音频分片可继续处理"
+        recognition_detail += "；未完成的音频分片可继续处理" if kind == "audio" else "；未完成文字区域可继续识别"
     items = [item for file in files for item in _items(file)]
     source_items = [item for item in items if _text(item.get("source_text"))]
     candidates = [item for item in source_items if item.get("translation_status", 0) in (0, 1, 2)]
@@ -170,7 +202,7 @@ def workflow_states(workspace, kind, mode="ocr", generation_states=None):
         translation_detail += ("；已有原文，但全部已排除，当前无可翻译条目" if all_excluded
                                else "；没有待翻译原文")
     assets = _assets(workspace)
-    return {
+    result = {
         "recognize": _step(recognition_status, recognition_detail),
         "translate": _step(translation_status, translation_detail),
         "preview": (_preview_states(files, assets, mode) if kind == "image" else
@@ -178,6 +210,30 @@ def workflow_states(workspace, kind, mode="ocr", generation_states=None):
         "generate": (_generation_state(files, assets, generation_states) if kind == "image" else
                      _step("不适用", "音频项目不使用图像生成。")),
     }
+    if kind == "image" and mode != "generation":
+        detected = sum(_detected(file) for file in files)
+        regions = sum(len(_object(_object(file.get("extra")).get("text_detection")).get("regions", []))
+                      for file in files if _detected(file))
+        result["read"] = _step("已完成", f"已导入 {len(files)} 张图片")
+        result["detect"] = _step("已完成" if detected == len(files) else "部分完成" if detected else "待检测",
+                                  f"已检测 {detected} / {len(files)} 张图片，共 {regions} 个文字区域")
+        result["repair"] = _repair_state(files, assets)
+        result["render"] = dict(result["preview"])
+        if result["render"]["status"] in ("待回填", "待翻译"):
+            result["render"]["status"] = "待渲染" if any(_artifact_ready(file, assets, "repair") for file in files) else "待修复"
+        model = _object(_object(workspace).get("model"))
+        workflow = _object(_object(model.get("extra")).get("media_workflow"))
+        stage = _object(workflow.get("stages"))
+        for name in ("read", "detect", "recognize", "translate", "repair", "render"):
+            outcome = _object(stage.get(name)).get("status")
+            if outcome in ("failed", "cancelled", "partial") and (name == "read" or result[name]["status"] != "已完成"):
+                result[name]["status"] = {"failed": "待重试", "cancelled": "待继续", "partial": "部分完成"}[outcome]
+        exported = _object(stage.get("export")).get("status")
+        rendered = sum(_artifact_ready(file, assets, "render") for file in files)
+        status = ("已完成" if exported == "success" and rendered == len(files) else
+                  "部分完成" if exported == "partial" and rendered else "待导出" if rendered else "待渲染")
+        result["export"] = _step(status, "导出已渲染的译图；修改译文后请先重新修复和渲染。")
+    return result
 
 
 def prerequisite_message(workspace, kind, mode, stages):
@@ -189,10 +245,20 @@ def prerequisite_message(workspace, kind, mode, stages):
     items = [item for file in files for item in _items(file)]
     source_ready = any(_text(item.get("source_text")) for item in items)
     empty_ready = any(_empty_recognized(file, kind) for file in files)
+    assets = _assets(workspace)
+    if kind == "image" and mode != "generation" and "recognize" in selected and "detect" not in selected:
+        if not any(_detected(file) for file in files):
+            return "尚无文本检测结果，请勾选“文本检测”后继续；新导入图片会自动检测。"
     if "translate" in selected and "recognize" not in selected and not (source_ready or empty_ready):
         return ("尚无可翻译原文，请先识别原文或勾选“识别”步骤。" if kind == "image" else
                 "尚无可翻译字幕，请先转录字幕或勾选“转录”步骤。")
-    if kind == "image" and "preview" in selected and "translate" not in selected:
+    if kind == "image" and mode != "generation" and selected.intersection(("repair", "preview")) and "translate" not in selected:
         if not any(_renderable(item) for item in items) and not empty_ready:
-            return "尚无可回填的译文，请先完成翻译或勾选“翻译”步骤。"
+            return "尚无可处理的译文，请先完成翻译或勾选“AI 翻译”步骤。"
+    if kind == "image" and mode != "generation" and "render" in selected and "repair" not in selected:
+        if not any(_artifact_ready(file, assets, "repair") for file in files):
+            return "尚无有效修复图，请先完成图像修复或勾选“图像修复”步骤。"
+    if kind == "image" and mode != "generation" and "export" in selected and not selected.intersection(("render", "preview")):
+        if not any(_artifact_ready(file, assets, "render") for file in files):
+            return "尚无有效译图，请先完成图像修复和文字渲染，再导出。"
     return ""

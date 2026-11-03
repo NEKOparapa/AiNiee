@@ -1,4 +1,5 @@
 from Backend.core.base import Base
+from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 from Backend.infrastructure.llm.request_control import request_cancelled
 from Backend.core.log import LogMixin
 from Backend.infrastructure.llm.llm_client_factory import LLMClientFactory
@@ -13,7 +14,7 @@ class AnthropicRequester(LogMixin, Base):
     def request_anthropic(self, messages, system_prompt, platform_config) -> tuple[bool, str, str, int, int]:
         try:
             model_name = platform_config.get("model_name")
-            request_timeout = platform_config.get("request_timeout", 60)
+            request_timeout = platform_config.get("request_timeout", REQUEST_TIMEOUT_SECONDS)
             think_switch = platform_config.get("think_switch")
             think_depth = platform_config.get("think_depth") or "medium"
 

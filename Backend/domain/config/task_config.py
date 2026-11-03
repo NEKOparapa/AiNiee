@@ -9,6 +9,7 @@ from Backend.core.base import Base
 from Backend.core.config import ConfigMixin, get_config_snapshot
 from Backend.core.headers import normalize_extra_headers
 from Backend.domain.config.tables import TableConfigHelper
+from Backend.domain.config.request_defaults import normalize_request_timeouts
 from Backend.core.paths import auto_output_dir
 from Backend.core.log import LogMixin
 
@@ -195,6 +196,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         self.apikey_list = []
 
         config = self._normalize_api_settings(self.load_config(), persist=True)
+        normalize_request_timeouts(config)
         if self._snapshot_mode:
             self._source_snapshot = copy.deepcopy(config)
 
@@ -209,6 +211,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         """Read configuration without migration, normalization writes or backups."""
         snapshot = get_config_snapshot()
         if snapshot is not None:
+            normalize_request_timeouts(snapshot)
             return snapshot
 
         from Backend.core.paths import config_path
@@ -224,6 +227,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
                 if not isinstance(saved, dict):
                     raise ValueError("配置根节点必须是对象")
                 result.update(saved)
+        normalize_request_timeouts(result)
         return copy.deepcopy(result)
 
     @classmethod

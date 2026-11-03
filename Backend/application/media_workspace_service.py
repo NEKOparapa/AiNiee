@@ -149,6 +149,17 @@ def _generation_root(model, file):
     return root
 
 
+def _stage_artifact_matches(file, stage, registered):
+    try:
+        state = file["extra"]["image_pipeline"][stage]
+        artifact = state["artifacts"]["image"]
+        return (registered and state.get("status") in ("complete", "partial")
+                and str(Path(artifact["path"]).resolve()) == registered.get("path")
+                and artifact.get("sha256") == registered.get("sha256"))
+    except (AttributeError, KeyError, TypeError, OSError, ValueError):
+        return False
+
+
 def _selected_preview(document, file):
     if _image_mode(document["model"]) == "generation":
         registered = document.get("generation_previews", {}).get(file["file_id"])
@@ -156,9 +167,17 @@ def _selected_preview(document, file):
         identity = _generation_identity(file)
     else:
         registered = document.get("previews", {}).get(file["file_id"])
-        usable = bool(registered)
+        usable = _stage_artifact_matches(file, "render", registered)
         identity = _content_identity(file)
     return registered if usable and registered.get("content_identity") == identity else None
+
+
+def _selected_repair(document, file):
+    if _image_mode(document["model"]) != "ocr":
+        return None
+    registered = document.get("repaired_previews", {}).get(file["file_id"])
+    return registered if (registered and registered.get("content_identity") == _content_identity(file)
+                          and _stage_artifact_matches(file, "repair", registered)) else None
 
 
 def _preview_root(directory):
@@ -268,6 +287,7 @@ class MediaWorkspaceStore:
             entry = {"file_id": file["file_id"], "storage_path": storage_path,
                      "source_url": base + "/source", "translated_url": base + "/translated" if preview else None}
             if document["kind"] == "image":
+                entry["repaired_url"] = base + "/repaired" if _selected_repair(document, file) else None
                 state = file.get("extra", {}).get("image_generation", {})
                 state = state if isinstance(state, dict) else {}
                 status = state.get("status", "pending")
@@ -341,7 +361,9 @@ class MediaWorkspaceStore:
                      "pending": [label for label, *_ in plans if label not in completed]}) from error
             return {"status": "deleted", "workspace_id": workspace_id}
 
-    def import_media(self, kind, paths, exclude_rule=""):
+    def import_media(self, kind, paths, exclude_rule="", context=None):
+        from Backend.application.execution_context import ExecutionContext
+        context = context or ExecutionContext()
         if kind not in ("image", "audio") or not isinstance(paths, list) or not 1 <= len(paths) <= 100:
             raise PipelineError("MEDIA_INVALID_INPUT", "请选择图片或音频，以及 1 至 100 个输入路径", 422)
         if not isinstance(exclude_rule, str):
@@ -354,10 +376,12 @@ class MediaWorkspaceStore:
         directory = self._directory(workspace_id)
         directory.mkdir(parents=True, exist_ok=False)
         project = CacheProject(project_id=workspace_id, project_type=kind.title(), input_path=str(directory))
-        report = {"read_files": 0, "item_count": 0, "errors": [], "warnings": [], "skipped_files": []}
+        report = {"read_files": 0, "item_count": 0, "errors": [], "operation_errors": [], "warnings": [], "skipped_files": []}
         seen_inputs, seen_sources, used_keys = set(), set(), set()
         try:
             for ordinal, value in enumerate(paths, 1):
+                if context.is_cancelled():
+                    break
                 try:
                     if not isinstance(value, str) or not value.strip():
                         raise PipelineError("MEDIA_INVALID_INPUT", "输入路径不能为空")
@@ -372,7 +396,8 @@ class MediaWorkspaceStore:
                     if is_archive:
                         target = directory / "imports" / str(ordinal)
                         _extract_archive(source, target, extensions)
-                    result = reader(target, {"exclude_rule": exclude_rule})
+                    result = (reader(target, {"exclude_rule": exclude_rule}, context=context) if kind == "image"
+                              else reader(target, {"exclude_rule": exclude_rule}))
                     if not project.project_name:
                         project.project_name = source.stem if len(paths) == 1 else f"{len(paths)} 个媒体输入"
                     if len(paths) == 1 and not is_archive:
@@ -380,6 +405,7 @@ class MediaWorkspaceStore:
                     for entry in result["report"].get("errors", []):
                         report["errors"].append({**entry, "input": str(source)})
                     report["warnings"].extend(result["report"].get("warnings", []))
+                    report["operation_errors"].extend(result["report"].get("operation_errors", []))
                     report["skipped_files"].extend(result["report"].get("skipped_files", []))
                     for relative, file in result["model"].files.items():
                         file_source = os.path.normcase(file.source_ref["path"])
@@ -397,20 +423,49 @@ class MediaWorkspaceStore:
                         file.storage_path = storage
                         file.file_id = uuid.uuid5(uuid.NAMESPACE_URL, f"ainiee:{workspace_id}:{storage}").hex
                         project.files[storage] = file
+                    if result["report"].get("operation_errors"):
+                        break
                 except (PipelineError, OSError, ValueError) as error:
                     report["errors"].append({"path": str(value), "code": getattr(error, "code", "MEDIA_INPUT_UNAVAILABLE"),
                                              "message": str(error)})
             if not project.files:
+                if context.is_cancelled():
+                    if directory.exists() and directory.resolve().parent == self.root and directory.name == workspace_id:
+                        shutil.rmtree(directory)
+                    report["cancelled"] = True
+                    return {"status": "cancelled", "kind": kind, "report": report}
                 code = report["errors"][0]["code"] if len(report["errors"]) == 1 else "NO_READABLE_MEDIA"
                 raise PipelineError(code, "没有成功读取的媒体文件", 400, report)
             project.files = dict(sorted(project.files.items(), key=lambda pair: _natural(pair[0])))
-            model = to_wire(normalize_project(project))
             report["read_files"] = len(project.files)
+            report["item_count"] = sum(len(f.items) for f in project.files.values())
+            report["cancelled"] = context.is_cancelled()
+            status = "cancelled" if report["cancelled"] else "partial" if report["errors"] or report["operation_errors"] else "success"
+            if kind == "image":
+                detections = [f.extra.get("text_detection", {}) for f in project.files.values()]
+                report["detected_files"] = sum(d.get("status") == "complete" for d in detections)
+                report["region_count"] = sum(d.get("region_count", 0) for d in detections if d.get("status") == "complete")
+                report["empty_files"] = sum(bool(d.get("empty")) for d in detections if d.get("status") == "complete")
+                if not report["cancelled"] and report["detected_files"] < len(project.files):
+                    status = "partial" if report["detected_files"] else "failed"
+                read_errors = [error for error in report["errors"] if error.get("stage", "read") == "read"]
+                read_status = "partial" if read_errors else "success"
+                detection_errors = [error for error in report["errors"] if error.get("stage") == "detect"]
+                detect_status = ("cancelled" if report["cancelled"] else "partial" if report["detected_files"] and
+                                 (detection_errors or report["operation_errors"]) else "failed" if detection_errors or
+                                 report["operation_errors"] or report["detected_files"] < len(project.files) else "success")
+                report["stage_status"] = {"read": read_status, "detect": detect_status}
+                report["detection"] = {key: report[key] for key in ("detected_files", "region_count", "empty_files", "cancelled")}
+                report["detection"].update(status=detect_status, errors=detection_errors,
+                                           operation_errors=list(report["operation_errors"]))
+                project.extra.setdefault("media_workflow", {}).setdefault("stages", {}).update({
+                    "read": {"status": read_status}, "detect": {"status": detect_status}})
+            model = to_wire(normalize_project(project))
             report["total_duration_ms"] = sum(f.media_metadata.get("duration_ms", 0) for f in project.files.values())
             (directory / "preview").mkdir()
             timestamp = _now()
             document = {"workspace_id": workspace_id, "kind": kind, "model": model,
-                        "status": "partial" if report["errors"] else "success", "report": report,
+                        "status": status, "report": report,
                         "created_at": timestamp, "updated_at": timestamp, "previews": {},
                         "sources": {f["file_id"]: {"path": f["source_ref"]["path"], "sha256": f["source_ref"]["sha256"],
                                     "storage_path": name, "stamp": _stamp(Path(f["source_ref"]["path"]))}
@@ -464,14 +519,18 @@ class MediaWorkspaceStore:
                         if (document["kind"] != "image" or file is None or not preview.is_file()
                                 or not preview.is_relative_to(preview_root) or preview.suffix.lower() not in IMAGE_EXTENSIONS):
                             raise ValueError("not a workspace preview")
-                        render = file.get("extra", {}).get("image_pipeline", {}).get("render", {})
+                        repaired = (exported.get("variant") == "repaired"
+                                    or isinstance(report, dict) and report.get("stage") == "repair")
+                        stage = "repair" if repaired else "render"
+                        render = file.get("extra", {}).get("image_pipeline", {}).get(stage, {})
                         artifact = render.get("artifacts", {}).get("image", {})
                         digest = file_sha256(preview)
                         if str(preview) != str(Path(artifact.get("path", "")).resolve()) or digest != artifact.get("sha256"):
                             raise ValueError("not the rendered artifact")
                     except (OSError, TypeError, KeyError, ValueError) as error:
                         raise PipelineError("MEDIA_INVALID_PREVIEW", "预览图片必须是本工作区已渲染的产物", 422) from error
-                    document["previews"][file["file_id"]] = {"path": str(preview), "sha256": digest,
+                    registrations = document.setdefault("repaired_previews" if repaired else "previews", {})
+                    registrations[file["file_id"]] = {"path": str(preview), "sha256": digest,
                         "stamp": _stamp(preview), "content_identity": _content_identity(file)}
             # Canonical generation artifacts already live in a controlled cache.
             # Register each completed page during checkpoints, independent of the
@@ -520,11 +579,11 @@ class MediaWorkspaceStore:
             registered = document["sources"].get(file_id)
             if not registered:
                 raise PipelineError("MEDIA_ASSET_NOT_FOUND", "媒体文件不存在", 404)
-            if variant == "translated":
+            if variant in ("translated", "repaired"):
                 file = next((f for f in document["model"]["files"].values() if f["file_id"] == file_id), None)
-                registered = _selected_preview(document, file)
+                registered = _selected_repair(document, file) if variant == "repaired" else _selected_preview(document, file)
                 if not registered:
-                    raise PipelineError("MEDIA_PREVIEW_NOT_READY", "译图尚未生成或内容已更新，请重新生成预览", 404)
+                    raise PipelineError("MEDIA_PREVIEW_NOT_READY", "处理结果尚未生成或内容已更新，请重新修复或渲染", 404)
             elif variant != "source":
                 raise PipelineError("MEDIA_ASSET_NOT_FOUND", "媒体预览类型不存在", 404)
             try:
@@ -532,8 +591,8 @@ class MediaWorkspaceStore:
                 path = saved.resolve(strict=True)
                 if path != saved or not path.is_file() or _stamp(path) != registered["stamp"]:
                     raise ValueError("changed registered asset")
-                if variant == "translated":
-                    allowed = (_generation_root(document["model"], file) if _image_mode(document["model"]) == "generation"
+                if variant in ("translated", "repaired"):
+                    allowed = (_generation_root(document["model"], file) if variant == "translated" and _image_mode(document["model"]) == "generation"
                                else _preview_root(directory))
                     if not path.is_relative_to(allowed):
                         raise ValueError("preview escaped workspace")

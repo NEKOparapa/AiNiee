@@ -221,8 +221,9 @@ def read_legacy_project(project_type, path, exclude_rule=""):
     return _read(path, {"format": project_type, "exclude_rule": exclude_rule}, kind="legacy")
 
 
-def read_image(path, options=None):
-    raise PipelineError("IMAGE_READ_NOT_IMPLEMENTED", "图片读取尚未实现", 501)
+def read_image(path, options=None, context=None):
+    from Backend.application.image_read_service import read_image as read
+    return read(path, options, context=context)
 
 
 def read_audio(path, options=None):

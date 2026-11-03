@@ -26,6 +26,7 @@ class OcrOptions(RequestModel):
     request_timeout: float | None = Field(default=None, gt=0, le=3600)
     max_retries: int | None = Field(default=None, ge=0, le=5, strict=True)
     reocr: bool | None = None
+    recognition_mode: Literal["page", "regions"] | None = None
     reading_order: Literal["auto", "ltr", "manga_rtl"] | None = None
     group_lines: bool | None = None
     refine_text: bool | None = None
@@ -36,6 +37,10 @@ class OcrOptions(RequestModel):
 class OcrRequest(RequestModel):
     model: IntermediateModel
     config: OcrOptions = Field(default_factory=OcrOptions)
+
+
+class ImageDetectRequest(RequestModel):
+    model: IntermediateModel
 
 
 class ImageWriteOptions(RequestModel):

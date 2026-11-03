@@ -26,8 +26,11 @@ class MediaClient:
     def delete(self, workspace_id):
         return self.backend.request("DELETE", "/api/v2/media/" + quote(workspace_id, safe=""), timeout=None)
 
-    def import_files(self, kind, paths):
-        return self.backend.request("POST", "/api/v2/media/import", json={"kind": kind, "paths": paths}, timeout=None)
+    def import_files(self, kind, paths, operation_id=None):
+        payload = {"kind": kind, "paths": paths}
+        if operation_id:
+            payload["operation_id"] = operation_id
+        return self.backend.request("POST", "/api/v2/media/import", json=payload, timeout=None)
 
     def save(self, workspace_id, model):
         return self.backend.request("POST", f"/api/v2/media/{quote(workspace_id, safe='')}/model",

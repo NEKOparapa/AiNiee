@@ -18,7 +18,7 @@ from Backend.domain.models.cache_item import CacheItem, TranslationStatus
 from Backend.domain.models.intermediate import parse_model
 from Backend.infrastructure.files.pipeline_support import file_sha256
 from Backend.infrastructure.ocr.dashscope import MAX_IMAGE_BYTES, request_ocr, request_ocr_text, validate_polygon
-from Backend.infrastructure.ocr.layout import bounds as region_bounds, order_page, panel_regions, reading_order as order_regions
+from Backend.infrastructure.ocr.layout import bounds as region_bounds, join_text_lines, order_page, panel_regions, reading_order as order_regions
 from Backend.infrastructure.ocr.quality import VALIDATION_VERSION, validate_refinement
 
 
@@ -320,7 +320,9 @@ def _refine_file(cache_file, path, image, config, context, report, project):
             checked = validate_refinement(ocr["lines"], result["text"])
             metadata.update(validation=checked["validation"], result_text=checked["text"])
             accepted = checked["validation"]["status"] == "accepted"
-            replacement = checked["text"] if accepted else item.source_text
+            replacement = join_text_lines([{"text": line} for line in checked["text"].splitlines()]) if accepted else item.source_text
+            if accepted:
+                metadata["result_text"] = replacement
             if not accepted and reused and item.source_text == previous.get("result_text"):
                 replacement = previous.get("input_text", original)
                 metadata["restored_legacy_source"] = True
@@ -379,6 +381,9 @@ def ocr_model(model, config=None, context=None):
     project = parse_model(model)
     resolved = resolve_ocr_config(config)
     context = context or ExecutionContext()
+    if resolved.recognition_mode == "regions":
+        from Backend.application.region_ocr_service import ocr_regions_model
+        return ocr_regions_model(project, resolved, context)
     files = [f for f in project.files.values() if f.media_type == "image"]
     if not files:
         raise PipelineError("OCR_NO_IMAGES", "中间模型中没有图片", 400)
@@ -438,7 +443,7 @@ def ocr_model(model, config=None, context=None):
                     geometry = json.dumps(block["polygon"], separators=(",", ":"))
                     items.append(CacheItem(
                         item_id=uuid.uuid5(uuid.NAMESPACE_URL, f"ainiee:ocr:{cache_file.file_id}:{index}:{geometry}").hex,
-                        text_index=text_index, source_text="\n".join(line["text"] for line in group),
+                        text_index=text_index, source_text=join_text_lines(group),
                         translated_text="", translation_status=TranslationStatus.UNTRANSLATED,
                         locator={"kind": "image", "index": index, "page_index": 0,
                                  "polygon": block["polygon"], "coordinate_space": "pixel",

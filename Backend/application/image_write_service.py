@@ -1,6 +1,6 @@
 """Render translated image models and persist reproducible JSON checkpoints."""
+import copy
 import io
-import json
 import os
 from pathlib import Path
 import re
@@ -10,12 +10,8 @@ from PIL import ImageColor
 
 from Backend.application.execution_context import ExecutionContext
 from Backend.application.pipeline_common import PipelineError
-from Backend.core.log_system import redact
-from Backend.core.protocol import to_wire
 from Backend.domain.models.intermediate import parse_model, validate_storage_path
-from Backend.infrastructure.files.pipeline_support import file_sha256
-from Backend.infrastructure.images.render import find_font, render_image
-from Backend.infrastructure.images.source import verified_image
+from Backend.infrastructure.images.render import find_font
 
 _OPTIONS = {"output_dir", "format", "suffix", "overwrite", "font_path", "font_size", "min_font_size",
             "max_font_size", "font_color", "text_direction", "padding", "erase_mode", "save_model", "debug_overlay"}
@@ -180,68 +176,85 @@ def _image_bytes(pixels, format_):
     return stream.getvalue()
 
 
+def _calibrate_file_geometry(pixels, file, context):
+    """Align provider boxes locally, retaining text, IDs and custom layouts.
+
+    Every OCR line participates in matching so another block cannot claim its
+    detector box. Only untouched, automatically derived item layouts are moved.
+    The original provider polygon stays on each corrected line for inspection.
+    """
+    from Backend.infrastructure.ocr.geometry import calibrate_lines
+
+    def block_polygon(lines):
+        if len(lines) == 1:
+            return lines[0]["polygon"]
+        xs, ys = zip(*(point for line in lines for point in line["polygon"]))
+        return [[min(xs), min(ys)], [max(xs), min(ys)],
+                [max(xs), max(ys)], [min(xs), max(ys)]]
+
+    def same_polygon(first, second):
+        # Schema validation uses tuples for locator points; opaque OCR/layout
+        # metadata keeps JSON lists. Their coordinates are still identical.
+        return first is not None and second is not None and tuple(map(tuple, first)) == tuple(map(tuple, second))
+
+    lines, entries = [], []
+    for item in file.items:
+        ocr = item.extra.get("ocr") or {}
+        if ocr.get("coordinates_source") == "local_detector":
+            continue  # Detection-first OCR already owns these coordinates.
+        original = ocr.get("lines")
+        if not isinstance(original, list) or not original:
+            continue
+        polygon = block_polygon(original)
+        layout = item.extra.get("layout") or {}
+        eligible = (same_polygon(item.locator.get("polygon"), polygon)
+                    and same_polygon(layout.get("polygon", polygon), polygon)
+                    and item.locator.get("rotation", 0) == (original[0].get("rotation", 0) if len(original) == 1 else 0))
+        entries.append((item, len(lines), len(original), eligible))
+        lines.extend(original)
+    if not lines or context.is_cancelled():
+        return []
+    calibrated, _ = calibrate_lines(pixels, lines, context=context)
+    if context.is_cancelled():
+        return []
+    updates = []
+    for item, offset, count, eligible in entries:
+        replacement = calibrated[offset:offset + count]
+        original = lines[offset:offset + count]
+        if not eligible or all(a["polygon"] == b["polygon"] for a, b in zip(original, replacement)):
+            continue
+        polygon = block_polygon(replacement)
+        extra, locator = copy.deepcopy(item.extra), copy.deepcopy(item.locator)
+        extra["ocr"]["lines"] = copy.deepcopy(replacement)
+        locator["polygon"] = copy.deepcopy(polygon)
+        if count == 1:
+            locator["rotation"] = replacement[0].get("rotation", 0)
+        layout = extra.get("layout") or {}
+        layout["polygon"] = copy.deepcopy(polygon)
+        extra["layout"] = layout
+        updates.append((item, locator, extra))
+    # Calibration is optional: a failed preparation must leave every original
+    # item intact so the fallback really does render the provider coordinates.
+    for item, locator, extra in updates:
+        item.locator, item.extra = locator, extra
+    return [item.item_id for item, _, _ in updates]
+
+
 def write_images(model, options=None, context=None):
-    values = validate_image_options(options)
-    project = parse_model(model)
+    """Compatibility entry point; independently cache repair, render and export."""
+    from Backend.application.image_render_service import repair_images, render_images, export_images
+
     context = context or ExecutionContext()
-    root, plans, model_path, sources = _plan(project, values)
-    report = {"errors": [], "warnings": [], "written_files": 0, "rendered_items": 0,
-              "skipped_items": 0, "preserved_items": 0, "cancelled": False,
-              "skipped_files": [{"file_id": f.file_id, "path": f.storage_path, "reason": "not_image"}
-                                for f in project.files.values() if f.media_type != "image"]}
-    outputs = []
-    for file, destinations in plans:
-        if context.is_cancelled():
-            break
-        try:
-            pixels, source = verified_image(file)
-            if not file.items and (file.extra.get("ocr") or {}).get("status") != "complete":
-                raise PipelineError("IMAGE_OCR_REQUIRED", "图片尚未完成 OCR")
-            rendered, mask, debug, result = render_image(pixels, file, values, context)
-            report["warnings"].extend({"file_id": file.file_id, **w} for w in result["warnings"])
-            report["skipped_items"] += result["skipped_items"]
-            if result["cancelled"]:
-                break
-            if file_sha256(source) != file.source_ref.get("sha256"):
-                raise PipelineError("SOURCE_CHANGED", "渲染期间图片源文件发生变化")
-            if values["format"] == "jpeg" and rendered.mode == "RGBA":
-                report["warnings"].append({"file_id": file.file_id, "code": "JPEG_ALPHA_FLATTENED", "message": "JPEG 不支持透明度，已合成白色背景"})
-            artifacts = {}
-            images = {"mask": (mask, "png"), "image": (rendered, values["format"])}
-            if values["debug_overlay"]:
-                images["debug"] = (debug, "png")
-            for kind, (image, format_) in images.items():
-                destination = destinations[kind]
-                _atomic_bytes(destination, _image_bytes(image, format_), values["overwrite"], root, sources)
-                artifacts[kind] = {"path": str(destination), "sha256": file_sha256(destination)}
-            state = file.extra.setdefault("image_pipeline", {})
-            state["render"] = {"status": "partial" if result["skipped_items"] else "complete",
-                               "source_sha256": file.source_ref["sha256"], "artifacts": artifacts,
-                               "placements": result["placements"], "preserved": result["preserved"], "options": dict(values)}
-            outputs.append({"file_id": file.file_id, "path": str(destinations["image"]),
-                            "format": values["format"], "rendered_items": result["rendered_items"],
-                            "preserved_items": result["preserved_items"],
-                            "skipped_items": result["skipped_items"], "artifacts": artifacts})
-            report["rendered_items"] += result["rendered_items"]
-            report["preserved_items"] += result["preserved_items"]
-            if context.on_progress:
-                context.on_progress({"phase": "render", "file_id": file.file_id,
-                                     "completed_files": len(outputs), "total_files": len(plans)})
-        except Exception as error:
-            report["errors"].append({"file_id": file.file_id, "path": file.storage_path,
-                                     "code": getattr(error, "code", "IMAGE_WRITE_FAILED"), "message": redact(str(error))})
-    report["cancelled"] = context.is_cancelled()
-    report["written_files"] = len(outputs)
-    status = "cancelled" if report["cancelled"] else "partial" if outputs and (report["errors"] or report["skipped_items"]) else "failed" if report["errors"] or not outputs else "success"
-    saved_model_path = None
-    if model_path:
-        try:
-            project.extra["image_export"] = {"model_path": str(model_path), "status": status}
-            content = json.dumps(to_wire(project), ensure_ascii=False, indent=2).encode("utf-8")
-            _atomic_bytes(model_path, content, values["overwrite"], root, sources)
-            saved_model_path = str(model_path)
-        except Exception as error:
-            report["errors"].append({"code": getattr(error, "code", "IMAGE_MODEL_SAVE_FAILED"), "message": redact(str(error))})
-            if status != "cancelled":
-                status = "partial" if outputs else "failed"
-    return {"status": status, "model": project, "files": outputs, "model_path": saved_model_path, "report": report}
+    values = validate_image_options(options)
+    # Preserve the old fail-before-work behavior for output collisions.
+    validate_image_targets(model, values)
+    internal = {**values, "save_model": False}
+    repair = repair_images(model, internal, context)
+    if repair["status"] in ("cancelled", "failed") or repair["report"].get("operation_errors"):
+        return repair
+    rendered = render_images(repair["model"], internal, context)
+    if rendered["status"] in ("cancelled", "failed") or rendered["report"].get("operation_errors"):
+        return rendered
+    result = export_images(rendered["model"], values, context)
+    result["report"]["stages"] = {"repair": repair["report"], "render": rendered["report"]}
+    return result

@@ -7,15 +7,16 @@ from urllib.parse import urlsplit
 
 from Backend.application.pipeline_common import PipelineError
 from Backend.domain.config.media_task_config import migrate_media_task_settings
+from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 
 
 DEFAULT_OCR_PROVIDER_ID = "bailian_ocr"
 DEFAULT_OCR_PLATFORM = {
     "name": "百炼图片 OCR", "api_format": "DashScope",
     "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
-    "api_key": "", "model": "qwen-vl-ocr", "request_timeout": 180,
+    "api_key": "", "model": "qwen-vl-ocr", "request_timeout": REQUEST_TIMEOUT_SECONDS,
     "max_retries": 0, "max_pixels": 8388608, "max_tokens": 4096,
-    "reading_order": "auto", "group_lines": False, "refine_text": False,
+    "reading_order": "auto", "group_lines": True, "refine_text": False,
 }
 
 
@@ -26,12 +27,13 @@ class OCRConfig:
     api_key: str = field(default="", repr=False)
     api_format: str = "DashScope"
     model: str = "qwen-vl-ocr"
-    request_timeout: float = 180
+    request_timeout: float = REQUEST_TIMEOUT_SECONDS
     max_retries: int = 0
     max_pixels: int = 8388608
     max_tokens: int = 4096
+    recognition_mode: str = "regions"
     reading_order: str = "auto"
-    group_lines: bool = False
+    group_lines: bool = True
     refine_text: bool = False
     reocr: bool = False
 
@@ -61,7 +63,7 @@ class OCRConfig:
 
     def to_request_config(self):
         return {key: value for key, value in asdict(self).items()
-                if key not in {"reocr", "reading_order", "group_lines", "refine_text"}}
+                if key not in {"reocr", "recognition_mode", "reading_order", "group_lines", "refine_text"}}
 
 
 def resolve_ocr_config(config=None):
@@ -81,12 +83,14 @@ def resolve_ocr_config(config=None):
         if not isinstance(platform, dict):
             raise PipelineError("OCR_CONFIG_ERROR", "所选 OCR 接口不存在", 400)
         values = asdict(OCRConfig())
-        values.update({key: copy.deepcopy(value) for key, value in platform.items() if key in supported and key != "provider_id"})
+        # Saved timeouts are retired; only an explicit per-call override may change the default.
+        values.update({key: copy.deepcopy(value) for key, value in platform.items()
+                       if key in supported and key not in {"provider_id", "request_timeout"}})
         task_settings = snapshot.get("image_translation_settings")
         if not isinstance(task_settings, dict) or not isinstance(task_settings.get("ocr"), dict):
             raise PipelineError("OCR_CONFIG_ERROR", "图译识别设置必须为对象", 400)
         values.update({key: copy.deepcopy(value) for key, value in task_settings["ocr"].items()
-                       if key in ("reading_order", "group_lines", "refine_text")})
+                       if key in ("recognition_mode", "reading_order", "group_lines", "refine_text")})
         values.update(copy.deepcopy(overrides))
         values["provider_id"] = provider_id
     for key in ("provider_id", "api_url", "api_key", "model"):
@@ -114,6 +118,8 @@ def resolve_ocr_config(config=None):
         raise PipelineError("OCR_CONFIG_ERROR", "qwen-vl-ocr 默认输出上限为 4096，请使用支持更长输出的模型", 400)
     if values["model"] == "qwen-vl-ocr-2025-11-20" and values["max_tokens"] > 8192:
         raise PipelineError("OCR_CONFIG_ERROR", "qwen-vl-ocr-2025-11-20 输出上限为 8192", 400)
+    if values["recognition_mode"] not in ("page", "regions"):
+        raise PipelineError("OCR_CONFIG_ERROR", "OCR 识别方式必须为 page 或 regions", 400)
     if values["reading_order"] not in ("auto", "ltr", "manga_rtl"):
         raise PipelineError("OCR_CONFIG_ERROR", "OCR 阅读顺序必须为 auto、ltr 或 manga_rtl", 400)
     for key in ("group_lines", "reocr", "refine_text"):
@@ -131,9 +137,6 @@ def validate_ocr_platform(identifier: str, platform: dict) -> None:
     for field in ("name", "api_url", "api_key", "model", "api_format", "reading_order"):
         if field in platform and not isinstance(platform[field], str):
             raise ValueError(f"OCR 接口字段 {field} 必须是字符串")
-    if "request_timeout" in platform and (isinstance(platform["request_timeout"], bool)
-            or not isinstance(platform["request_timeout"], (int, float))):
-        raise ValueError("OCR 接口字段 request_timeout 必须是数字")
     for field in ("max_pixels", "max_tokens", "max_retries"):
         if field in platform and type(platform[field]) is not int:
             raise ValueError(f"OCR 接口字段 {field} 必须是整数")
@@ -144,5 +147,5 @@ def validate_ocr_platform(identifier: str, platform: dict) -> None:
     for field in ("group_lines", "refine_text"):
         if field in platform and type(platform[field]) is not bool:
             raise ValueError(f"OCR 接口字段 {field} 必须是布尔值")
-    if platform.get("refine_text", False) and not platform.get("group_lines", False):
+    if platform.get("refine_text", False) and not platform.get("group_lines", DEFAULT_OCR_PLATFORM["group_lines"]):
         raise ValueError("复核气泡原文需要先开启“合并相邻文字行”。")

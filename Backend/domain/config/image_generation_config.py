@@ -8,12 +8,13 @@ from urllib.parse import urlsplit
 
 from Backend.application.pipeline_common import PipelineError
 from Backend.domain.config.media_task_config import migrate_media_task_settings
+from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 
 DEFAULT_IMAGE_GENERATION_PROVIDER_ID = "bailian_image"
 DEFAULT_IMAGE_GENERATION_PLATFORM = {
     "name": "百炼生图", "api_format": "DashScope",
     "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
-    "api_key": "", "model": "qwen-image-3.0-pro", "request_timeout": 600,
+    "api_key": "", "model": "qwen-image-3.0-pro", "request_timeout": REQUEST_TIMEOUT_SECONDS,
     "prompt_extend": True, "watermark": False, "size": "auto", "seed": None,
 }
 VOLCENGINE_ARK_API_URL = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
@@ -27,7 +28,7 @@ class ImageGenerationConfig:
     api_key: str = field(default="", repr=False)
     api_format: str = "DashScope"
     model: str = "qwen-image-3.0-pro"
-    request_timeout: float = 600
+    request_timeout: float = REQUEST_TIMEOUT_SECONDS
     prompt_extend: bool = True
     watermark: bool = False
     size: str = "auto"
@@ -103,7 +104,9 @@ def resolve_image_generation_config(config=None):
         if not isinstance(platforms, dict) or not isinstance(provider, str) or not isinstance(platforms.get(provider), dict):
             raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请先配置并选择独立生图接口", 400)
         values = asdict(ImageGenerationConfig())
-        values.update({key: copy.deepcopy(value) for key, value in platforms[provider].items() if key in fields and key != "provider_id"})
+        # Saved timeouts are retired; only an explicit per-call override may change the default.
+        values.update({key: copy.deepcopy(value) for key, value in platforms[provider].items()
+                       if key in fields and key not in {"provider_id", "request_timeout"}})
         task_settings = snapshot.get("image_translation_settings")
         if not isinstance(task_settings, dict) or not isinstance(task_settings.get("generation"), dict):
             raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "图译生成设置必须为对象", 422)
@@ -159,9 +162,6 @@ def validate_image_generation_platform(identifier: str, platform: dict) -> None:
     for field in ("name", "api_url", "api_key", "model", "api_format", "size", "prompt"):
         if field in platform and not isinstance(platform[field], str):
             raise ValueError(f"生图接口字段 {field} 必须是字符串")
-    timeout = platform.get("request_timeout", 600)
-    if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or not 0 < timeout <= 3600:
-        raise ValueError("生图接口请求超时必须大于0且不超过3600秒")
     for field in ("prompt_extend", "watermark"):
         if field in platform and type(platform[field]) is not bool:
             raise ValueError(f"生图接口字段 {field} 必须是布尔值")
