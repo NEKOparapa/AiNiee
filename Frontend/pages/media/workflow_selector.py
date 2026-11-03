@@ -3,14 +3,14 @@
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 from qfluentwidgets import (
-    CaptionLabel, CheckBox, FluentIcon, IconWidget, SimpleCardWidget, TransparentToolButton, themeColor,
+    CaptionLabel, CheckBox, FluentIcon, IconWidget, SimpleCardWidget, themeColor,
 )
 
 from Frontend.core.config import ConfigMixin
 
 
 class _WorkflowStep(SimpleCardWidget, ConfigMixin):
-    def __init__(self, title, number, parent=None, *, selectable=True):
+    def __init__(self, title, number, parent=None):
         super().__init__(parent)
         self.setFixedHeight(52)
         self.setMinimumWidth(0)
@@ -18,15 +18,13 @@ class _WorkflowStep(SimpleCardWidget, ConfigMixin):
         header = QHBoxLayout(self)
         header.setContentsMargins(12, 10, 12, 10)
         header.setSpacing(8)
-        self.check = CheckBox(f"{number}. {self.tra(title)}", self) if selectable else None
-        if self.check:
-            self.check.setChecked(True)
-        header.addWidget(self.check or CaptionLabel(f"{number}. {self.tra(title)}", self))
+        self.check = CheckBox(f"{number}. {self.tra(title)}", self)
+        self.check.setChecked(True)
+        header.addWidget(self.check)
         header.addStretch(1)
         self.status_label = CaptionLabel(self)
         self.status_label.setTextFormat(Qt.PlainText)
         header.addWidget(self.status_label)
-        self.action = None
         self.set_state({})
 
     def set_state(self, state):
@@ -42,7 +40,6 @@ class MediaWorkflowSelector(QWidget, ConfigMixin):
     """Keep explicit step selections for each mode; all execution belongs to the parent."""
 
     selectionChanged = pyqtSignal()
-    exportRequested = pyqtSignal()
 
     def __init__(self, kind, parent=None):
         super().__init__(parent)
@@ -62,26 +59,18 @@ class MediaWorkflowSelector(QWidget, ConfigMixin):
         layout.addLayout(self.grid)
 
         definitions = (("recognize", "转录字幕"), ("translate", "翻译字幕")) if kind == "audio" else (
-            ("read", "导入图片"), ("detect", "文本检测"), ("recognize", "OCR 识别"),
-            ("translate", "AI 翻译"), ("repair", "图像修复"), ("render", "文字渲染"), ("export", "导出"),
+            ("detect", "文本检测"), ("recognize", "OCR 识别"),
+            ("translate", "AI 翻译"), ("preview", "译文填回"),
             ("generate", "生成译图"),
         )
         self._cards = {}
         for index, (stage, title) in enumerate(definitions):
-            card = _WorkflowStep(title, 1 if stage == "generate" else index + 1, self,
-                                 selectable=stage not in ("read", "export"))
-            if card.check:
-                card.check.setChecked(stage != "detect")
-                card.check.toggled.connect(lambda checked: self.selectionChanged.emit())
-            if stage == "export":
-                card.action = TransparentToolButton(FluentIcon.SHARE, card)
-                card.action.setToolTip(self.tra("选择目录并导出"))
-                card.action.setAccessibleName(self.tra("选择目录并导出"))
-                card.action.clicked.connect(self.exportRequested)
-                card.layout().addWidget(card.action)
+            card = _WorkflowStep(title, 1 if stage == "generate" else index + 1, self)
+            card.check.setChecked(stage != "detect")
+            card.check.toggled.connect(lambda checked: self.selectionChanged.emit())
             self._cards[stage] = card
         self._arrows = []
-        for _ in range(1 if kind == "audio" else 6):
+        for _ in range(1 if kind == "audio" else 3):
             arrow = IconWidget(FluentIcon.RIGHT_ARROW, self)
             arrow.setFixedSize(16, 16)
             arrow.setAttribute(Qt.WA_TransparentForMouseEvents)
@@ -101,7 +90,7 @@ class MediaWorkflowSelector(QWidget, ConfigMixin):
         self._mode = mode
         self._visible_stages = (("generate",) if mode == "generation" else
                                 ("recognize", "translate") if self.kind == "audio" else
-                                ("read", "detect", "recognize", "translate", "repair", "render", "export"))
+                                ("detect", "recognize", "translate", "preview"))
         self._columns = 0
         self._reflow(self.width())
         self.set_hint("")
@@ -109,7 +98,7 @@ class MediaWorkflowSelector(QWidget, ConfigMixin):
 
     def selected_stages(self):
         return [stage for stage in self._visible_stages
-                if self._cards[stage].check and self._cards[stage].check.isChecked()]
+                if self._cards[stage].check.isChecked()]
 
     def set_states(self, states):
         for stage, state in states.items():
@@ -119,10 +108,7 @@ class MediaWorkflowSelector(QWidget, ConfigMixin):
     def set_busy(self, busy):
         self._busy = bool(busy)
         for card in self._cards.values():
-            if card.check:
-                card.check.setEnabled(not self._busy)
-            if card.action:
-                card.action.setEnabled(not self._busy)
+            card.check.setEnabled(not self._busy)
 
     def set_hint(self, text):
         text = str(text or "").strip()

@@ -105,11 +105,11 @@ def _preview_states(files, assets, mode):
         complete += bool(usable and render.get("status") == "complete")
         partial += bool(usable and render.get("status") == "partial")
         stale += bool(render and not usable)
-    detail = f"已完成 {complete} / {len(files)} 个文件"
+    detail = f"已完成译文填回 {complete} / {len(files)} 个文件"
     if partial:
-        detail += f"；{partial} 个文件已有预览，部分文字仍需复核"
+        detail += f"；{partial} 个文件已部分填回，仍需复核"
     if stale:
-        detail += f"；{stale} 个文件的预览需要更新或恢复"
+        detail += f"；{stale} 个文件的译文填回结果需要更新或恢复"
     if complete == len(files):
         status = "已完成"
     elif partial:
@@ -123,6 +123,30 @@ def _preview_states(files, assets, mode):
                     for file in files)
         status = "待回填" if ready else "待翻译"
     return _step(status, detail)
+
+
+def _fillback_outcome(state, stages):
+    """Fold persisted repair/render outcomes into the single fillback step.
+
+    A repaired image alone is not a completed fillback. An older translated
+    artifact may remain available even when the latest fillback attempt failed.
+    """
+    records = [(name, _object(stages.get(name))) for name in ("repair", "render", "preview")]
+    records = [(name, record) for name, record in records if record.get("status")]
+    if not records:
+        return state
+    # Current backend snapshots timestamp each outcome. Legacy snapshots without
+    # timestamps use execution order, with a combined preview outcome last.
+    name, record = max(records, key=lambda entry: (
+        str(entry[1].get("updated_at") or ""), ("repair", "render", "preview").index(entry[0])))
+    outcome = record.get("status")
+    state = dict(state)
+    if outcome in ("failed", "cancelled"):
+        state["status"] = "待重试" if outcome == "failed" else "待继续"
+        state["detail"] += "；本次译文填回失败，请重试" if outcome == "failed" else "；本次译文填回已停止，可继续执行"
+    elif outcome == "partial" and name != "repair" and state["status"] not in ("待复核", "待更新"):
+        state["status"] = "部分完成"
+    return state
 
 
 def _generation_state(files, assets, generation_states):
@@ -228,11 +252,12 @@ def workflow_states(workspace, kind, mode="ocr", generation_states=None):
             outcome = _object(stage.get(name)).get("status")
             if outcome in ("failed", "cancelled", "partial") and (name == "read" or result[name]["status"] != "已完成"):
                 result[name]["status"] = {"failed": "待重试", "cancelled": "待继续", "partial": "部分完成"}[outcome]
+        result["preview"] = _fillback_outcome(result["preview"], stage)
         exported = _object(stage.get("export")).get("status")
         rendered = sum(_artifact_ready(file, assets, "render") for file in files)
         status = ("已完成" if exported == "success" and rendered == len(files) else
-                  "部分完成" if exported == "partial" and rendered else "待导出" if rendered else "待渲染")
-        result["export"] = _step(status, "导出已渲染的译图；修改译文后请先重新修复和渲染。")
+                  "部分完成" if exported == "partial" and rendered else "待导出" if rendered else "待回填")
+        result["export"] = _step(status, "导出已完成译文填回的译图；修改译文后请先重新执行译文填回。")
     return result
 
 
@@ -250,15 +275,15 @@ def prerequisite_message(workspace, kind, mode, stages):
         if not any(_detected(file) for file in files):
             return "尚无文本检测结果，请勾选“文本检测”后继续；新导入图片会自动检测。"
     if "translate" in selected and "recognize" not in selected and not (source_ready or empty_ready):
-        return ("尚无可翻译原文，请先识别原文或勾选“识别”步骤。" if kind == "image" else
+        return ("尚无可翻译原文，请先识别原文或勾选“OCR 识别”步骤。" if kind == "image" else
                 "尚无可翻译字幕，请先转录字幕或勾选“转录”步骤。")
     if kind == "image" and mode != "generation" and selected.intersection(("repair", "preview")) and "translate" not in selected:
         if not any(_renderable(item) for item in items) and not empty_ready:
-            return "尚无可处理的译文，请先完成翻译或勾选“AI 翻译”步骤。"
+            return "尚无可填回的译文，请先完成翻译或勾选“AI 翻译”步骤。"
     if kind == "image" and mode != "generation" and "render" in selected and "repair" not in selected:
         if not any(_artifact_ready(file, assets, "repair") for file in files):
-            return "尚无有效修复图，请先完成图像修复或勾选“图像修复”步骤。"
+            return "译文填回所需的图片处理尚未完成，请先执行“译文填回”步骤。"
     if kind == "image" and mode != "generation" and "export" in selected and not selected.intersection(("render", "preview")):
         if not any(_artifact_ready(file, assets, "render") for file in files):
-            return "尚无有效译图，请先完成图像修复和文字渲染，再导出。"
+            return "尚无有效译图，请先完成“译文填回”步骤，再导出。"
     return ""

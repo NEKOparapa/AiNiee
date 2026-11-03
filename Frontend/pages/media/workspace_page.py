@@ -195,7 +195,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if self.kind == "image":
             self._build_image_options(options)
         self.workflow_selector = MediaWorkflowSelector(self.kind, options_card)
-        self.workflow_selector.exportRequested.connect(self._export)
         options.addWidget(self.workflow_selector)
         body.addWidget(options_card)
         body.addStretch(1)
@@ -295,7 +294,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             from Frontend.pages.media.image_preview import ImagePreview
             self.preview = ImagePreview(editor_card)
             self.preview_button = self.preview.refresh_button
-            self.preview_button.clicked.connect(lambda: self.run_stages(["repair", "render"]))
+            self.preview_button.clicked.connect(lambda: self.run_stages(["preview"]))
         else:
             from Frontend.pages.media.audio_preview import AudioPreview
             self.preview = AudioPreview(editor_card)
@@ -513,7 +512,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._live_progress = {}
         labels = {"recognize": "正在识别原文…" if self.kind == "image" else "正在转录字幕…",
                   "detect": "正在检测文字…", "repair": "正在修复图片…", "render": "正在渲染译文…",
-                  "translate": "正在翻译…", "preview": "正在生成译图预览…",
+                  "translate": "正在翻译…", "preview": "正在填回译文…",
                   "generate": "正在生成图片译文…", "export": "正在导出…"}
         self._stage_label = self.tra(labels.get(stage, "正在处理…"))
         self._run_state = {"recognize": "识别中" if self.kind == "image" else "转录中",
@@ -867,7 +866,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if not generation and (self._pending_edits or self._pending_image_extra):
             for stage in ("repair", "render", "export", "preview"):
                 if stage in states:
-                    states[stage] = {"status": self.tra("待更新"), "detail": self.tra("译文已修改，需重新修复和渲染"), "active": False}
+                    states[stage] = {"status": self.tra("待更新"), "detail": self.tra("译文已修改，需重新执行译文填回"), "active": False}
         for key, value in self._stage_results.items():
             if key in states:
                 states[key] = {**states[key], **value}
@@ -886,10 +885,10 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.workflow_selector.set_states(states)
 
         selected = self.workflow_selector.selected_stages()
-        available = ["generate"] if generation else ["recognize", "translate"] + (["repair", "render"] if self.kind == "image" else [])
+        available = ["generate"] if generation else ["recognize", "translate"] + (["preview"] if self.kind == "image" else [])
         labels = {"recognize": "开始转录" if self.kind == "audio" else "开始识别",
                   "detect": "检测文字", "repair": "修复图片", "render": "渲染译文",
-                  "translate": "开始翻译", "preview": "生成译图", "generate": "生成译图"}
+                  "translate": "开始翻译", "preview": "译文填回", "generate": "生成译图"}
         caption = ("请选择步骤" if not selected else labels[selected[0]] if len(selected) == 1
                    else "一键翻译" if selected == available else "执行所选步骤")
         self.translate_button.setText(self.tra(caption))
@@ -1110,7 +1109,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             invalidated.update(("repair", "render", "export", "preview", "generate"))
         elif "repair" in stages:
             invalidated.update(("render", "export", "preview"))
-        elif "render" in stages or "preview" in stages:
+        elif "preview" in stages:
+            invalidated.update(("repair", "render", "export"))
+        elif "render" in stages:
             invalidated.update(("export",))
         for stage in invalidated:
             self._stage_results.pop(stage, None)

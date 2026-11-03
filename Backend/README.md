@@ -66,17 +66,6 @@ python -m Backend --host 127.0.0.1 --port 3389
 | `POST /api/v2/image/generate-pipeline` | `path`、`output.output_dir`；可选 `read_options/generation/operation_id`，执行读取 → 生图翻译 → 导出 |
 | `POST /api/v2/image/operations/{operation_id}/stop` | 按提交时的操作 ID 停止对应 API 任务；也可使用通用任务取消接口 |
 
-OCR 使用独立的 OCR 平台配置，生图使用独立的生图平台配置。图片写出、完整流程及生图处理返回 `status/model/files/report`；支持的图片输出格式为 `png`、`jpeg`、`webp`。
-
-图片 OCR 翻译按 [Saber-Translator](https://github.com/MashiroSaber03/Saber-Translator#readme) 的七步组织：**导入图片 → 文本检测 → OCR 识别 → AI 翻译 → 图像修复 → 文字渲染 → 导出**。读取接口一次完成前两步，并在 `file.extra.text_detection` 保存源文件指纹、检测版本、原图坐标及空白页标记；读取结果已包含带定位的待识别条目。检测失败和取消会保留已读取图片并返回对应状态，不将其伪装为无文字图片。
-
-OCR 默认 `recognition_mode: "regions"`：复用读取时的本地检测区域 → 按区域裁切识别原文 → 合并对白。局部处理思路也参考 [manga-image-translator](https://github.com/zyddnys/manga-image-translator)，检测使用已有 RapidOCR，文字识别继续使用配置的 OCR 接口。`recognition_mode: "page"` 可切回接口整页识别。未保存检测记录的旧模型可在 OCR 时补检；失败或失效的检测需显式重做。
-
-- 分区识别每个文字区域分别请求接口，每页最多 128 区；坐标来自本地检测，接口返回值只用于原文。区域结果及用量随检查点保存，失败或取消后可继续；已完成页面显式 `reocr: true` 会重新识别。
-- `group_lines: true` 将同气泡中的文字行合并成翻译条目，避免将一句对白拆开翻译。新配置默认开启，已有显式关闭的设置保留。`refine_text` 仍表示可选的额外气泡原文复核，默认关闭。
-- 检测、OCR 和回填仍可能漏掉手写字或无法可靠分离的线稿。未完成的识别区域保留定位且不翻译半句；回填报告区分实际写入、主动保留和跳过，并保存具体原因。完整气泡可利用内部空白排版，自定义布局保持原样。
-- 修复、渲染分别保存产物及校验指纹；源图、文字、定位或排版设置改变后，需要重新执行受影响步骤。独立导出接口遇到缺失或过期译图会明确报错。各步应传递上一步返回的完整 `model`；修复/渲染使用相同排版选项，导出仅改变目录、格式等输出选项。
-
 ## 音频接口
 
 | 接口 | 主要参数与用途 |
