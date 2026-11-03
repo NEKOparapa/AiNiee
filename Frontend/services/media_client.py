@@ -38,5 +38,8 @@ class MediaClient:
             "stage": stage, "operation_id": operation_id, "config": config or {}, "options": options or {},
         }, timeout=None)
 
+    def job(self, operation_id):
+        return self.backend.request("GET", f"/api/jobs/{quote(operation_id, safe='')}", timeout=3)["job"]
+
     def stop(self, operation_id):
         return self.backend.request("POST", f"/api/v2/media/operations/{quote(operation_id, safe='')}/stop", timeout=10)

@@ -2,7 +2,9 @@
 
 后端独立管理配置、项目、缓存、翻译、表格条目润色、提取、校对和导出。PyQt 桌面仅通过 HTTP 与 WebSocket 访问后端，两端不导入对方的 Python 模块。
 
-后端提供统一中间模型及 `/api/v2` 接口，同一时刻执行一个顶层操作，单次翻译内部保留多线程批量处理。PDF 仅使用 BabelDOC；Office 自动化转换链及旧 `.doc` 入口已移除，DOCX、PPTX、XLSX 的原生读写保留。音频支持本地读取、在线转录、翻译与字幕导出；图片支持独立在线 OCR、翻译、擦字回填，也可使用独立生图接口直接翻译整图，两种流程均保存中间模型。设计与迁移范围见 [后端改造计划](docs/backend_refactoring_plan.md)，具体用法见 [音频接口](docs/audio_pipeline.md)、[OCR 图片接口](docs/image_pipeline.md)、[生图翻译接口](docs/image_generation.md) 和 [图片/音频预览工作区](docs/media_workspaces.md)。
+其他 MCP 客户端可连接 `http://127.0.0.1:3389/mcp`，使用 Streamable HTTP 提交文档、图片和音频翻译，并查询或取消任务。MCP 与现有接口共享队列，沿用 `AINIEE_API_TOKEN`；无需另起进程。连接、工具参数和官方 SDK 示例见 [MCP 接入说明](docs/mcp.md)。
+
+后端提供统一中间模型及 `/api/v2` 接口，使用文档、图片、音频三个任务队列。同类型任务按提交顺序执行，不同类型最多同时运行三个顶层任务；单次翻译内部保留多线程批量处理，各任务独立使用线程数与模型额度，不共享限流器。PDF 仅使用 BabelDOC；Office 自动化转换链及旧 `.doc` 入口已移除，DOCX、PPTX、XLSX 的原生读写保留。音频支持本地读取、在线转录、翻译与字幕导出；图片支持独立在线 OCR、翻译、擦字回填，也可使用独立生图接口直接翻译整图，两种流程均保存中间模型。当前调度与调用方式见 [任务队列](docs/task_queues.md)，历史设计见 [后端改造计划](docs/backend_refactoring_plan.md)，具体流程见 [音频接口](docs/audio_pipeline.md)、[OCR 图片接口](docs/image_pipeline.md)、[生图翻译接口](docs/image_generation.md) 和 [图片/音频预览工作区](docs/media_workspaces.md)。
 
 超过 5 分钟的音频自动通过 Silero VAD 选择切点，并发提交带上下文重叠的切片，合并回原始时间轴。失败切片可通过返回的中间模型恢复，已完成片不会重复提交；长音频处理需要 FFmpeg。
 
@@ -39,9 +41,9 @@ python -m Frontend --backend-url http://127.0.0.1:3389
 
 原单进程模式、临时 HTTP 监听服务及其完成回调已经删除。旧的 `/api/translate`、`/api/stop` 不再提供；历史配置中的监听开关、监听地址和回调 URL 会由配置存储自动清理。
 
-一个后端拥有一个当前项目和一项后台任务。使用一个 worker 和一个活动桌面客户端，任务期间不要自动重载服务。请通过终端正常停止后端，让任务取消和缓存保存完成。
+一个后端拥有一个当前文档项目、独立媒体工作区，以及 `document`、`image`、`audio` 三个固定队列，每个队列一个执行线程。使用单服务进程、一个 Uvicorn worker 和一个活动桌面客户端，不能通过增加 Uvicorn workers 扩容；任务期间不要自动重载服务。请通过终端正常停止后端，让任务取消和缓存保存完成。
 
-新接口直接处理请求携带的模型，不切换桌面当前项目。它们与桌面任务共用顶层互斥，忙碌时返回 `409 BACKEND_BUSY`；模型内部仍按线程数和 RPM 配置并行翻译批次。新接口同步等待完成，不创建 Job 或队列。连接中断不会立即终止工作线程，调用方应设置足够的超时，不自动重发整次翻译请求。
+新接口直接处理请求携带的模型，不切换桌面当前项目，并与桌面共用对应类型的队列。已有同类任务时新任务排队，不因忙碌直接返回 409。`/api/v2` 默认同步等待排队与执行完成，保持原结果结构；发送 `Prefer: respond-async` 则返回 `202 {"job": ...}` 和指向任务查询的 `Location`。任务结果持久保存，断线不取消任务，也不应自动重发收费流程。配置、只读查询与取消请求不等待业务队列。
 
 ## 目录职责
 
@@ -67,6 +69,8 @@ BabelDOC 的 `skimage` 导入兼容模块位于 `infrastructure/compat/skimage`�
 - `infrastructure/config/store.py` 负责配置读取、迁移、默认值初始化和原子保存。默认值在 `resources/defaults.json`；接口预设和提示词模板通过 API 提供给界面。
 - 源码与便携模式使用 `Data/config.json`，系统安装模式使用平台用户目录。旧版 `Resource/config.json` 会迁移到新位置，已有新配置不会被覆盖。
 - `AINIEE_USER_DATA_DIR`、`AINIEE_CACHE_DIR`、`AINIEE_BACKEND_RESOURCE_DIR` 分别覆盖后端数据、缓存、只读资源目录。后端日志位于默认日志目录的 `backend` 子目录，可通过 `AINIEE_BACKEND_LOG_DIR` 覆盖。
+- Job 元信息、进度和结果保存在 `cache_root()/tasks.sqlite3`，缓存根目录可由 `AINIEE_CACHE_DIR` 覆盖。重启时未完成任务标为 `interrupted`，不会自动重放请求；恢复业务应使用已保存项目或阶段结果。
+- 配置在提交任务时生成独立快照，修改配置影响之后提交的任务。代理设置立即落盘，但直到三个队列都无运行和排队任务才应用并重建客户端；`GET /api/status` 的 `network_settings_pending` 表示代理变更仍待生效。
 - 项目输入、输出和配置导入导出的路径属于后端机器。文件选择器用于本机或路径一致的共享目录；未提供跨机器项目文件上传下载。词表文件由前端选择、通过 API 校验后提交配置。
 - 导入配置合并已有设置及显式提供的词表，导出生成 `ainiee_profile.json`。无效结构被拒绝。表格更新使用配置版本校验，冲突返回 409。
 - 后端先保存生成结果，再通知前端。断线不会丢失已保存结果；断线期间的日志可查后端日志文件。
@@ -82,14 +86,21 @@ python -m Backend --host 0.0.0.0 --port 3389
 
 HTTP 和 WebSocket 均使用 `Authorization: Bearer ...`。跨网络部署时通过支持 WebSocket 的 HTTPS 反向代理提供 TLS。该服务面向个人可信环境，不提供多用户文件权限隔离。
 
+MCP 的每个 HTTP 请求也使用相同的 Bearer 令牌。远程 MCP 地址需额外通过 `AINIEE_MCP_ALLOWED_HOSTS` 和 `AINIEE_MCP_ALLOWED_ORIGINS` 显式允许；默认只允许本机，配置方法见 [MCP 鉴权与部署](docs/mcp.md#连接与鉴权)。
+
 ## API
 
 运行后打开 `http://127.0.0.1:3389/docs` 查看 OpenAPI 请求结构。
 
 | 接口 | 用途 |
 | --- | --- |
+| `/mcp`（Streamable HTTP） | MCP 工具发现、翻译任务提交、查询与取消 |
 | `GET /health` | 服务与协议版本 |
-| `GET /api/status` | 任务状态、进度和错误 |
+| `GET /api/status` | 文档兼容状态、全局 `any_busy/queues` 和代理待应用标志 |
+| `GET /api/jobs?lane=document&limit=50` | 查询任务列表，列表省略完整结果 |
+| `GET /api/jobs/{job_id}` | 查询任务状态、进度、结果及错误 |
+| `POST /api/jobs/{job_id}/cancel` | 取消指定排队或运行中的任务 |
+| `GET /api/queues` | 三类队列的运行任务与待执行任务 |
 | `GET /api/config` / `PATCH /api/config` | 读取配置、带版本校验的更新 |
 | `GET /api/config/info` | 后端配置路径 |
 | `GET /api/config/defaults/{section}` | 页面默认值 |
@@ -107,7 +118,7 @@ HTTP 和 WebSocket 均使用 `Authorization: Bearer ...`。跨网络部署时通
 | `POST /api/tasks/table/translate` / `polish` / `proofread` | 表格条目翻译、润色、校对 |
 | `POST /api/tasks/glossary/translate` | 指定术语表的未翻译条目翻译 |
 | `POST /api/tasks/api-test` | 测试传入的模型接口配置 |
-| `POST /api/tasks/stop` | 协作停止当前工作区任务，等待在途请求收尾 |
+| `POST /api/tasks/stop` | 停止文档队列中桌面发起的当前或首个排队任务 |
 | `POST /api/project/export` / `save` | 当前项目正式文件导出、缓存保存 |
 | `POST /api/shutdown` | 确认退出后关闭服务，需通过后端正式入口启动（源码或随包程序） |
 | `POST /api/models` / `POST /api/names` | 模型列表和目录人名提取 |
@@ -121,13 +132,13 @@ HTTP 和 WebSocket 均使用 `Authorization: Bearer ...`。跨网络部署时通
 {"continue_status": false}
 ```
 
-这些工作区操作使用后端当前项目，长任务返回 202 接受确认，结果通过 WebSocket 通知和项目快照获取；保存、停止接口返回 200。运行时仍只接纳一个顶层操作，不排队，不建立持久化 Job。外部 Agent 组合读写翻译时使用下文同步 `/api/v2` 接口，可直接取得完整返回模型。
+这些工作区操作使用后端当前文档项目，长任务入队后返回 202，响应保留原状态字段并增加 `job_id`、`job`；结果可通过任务查询、WebSocket 通知和项目快照获取。保存接口入队并同步等到完成后返回 200，停止接口直接返回。文档页面使用的 `status.busy`、`work_status_code`、`operation` 只表示文档队列；`any_busy` 与 `queues` 表示全局状态。图片与音频页面按自己的 job ID 查询进度，不占用文档页面的忙碌状态。
 
 表格条目润色传入 `file_path`、`items_to_polish`（包含 `text_index`、`source_text`、`translation_text`）和可选 `view`。多文件一次提交 `translate_jobs`、`polish_jobs` 或 `proofread_jobs`，每项包含 `file_path` 和对应的条目数组，内部逐文件处理；不能与单文件参数混用。`view` 只用于把通知交给 `basic`、`search`、`language_check`、`rule_check`、`terminology_check` 中的对应界面，不参与业务保存。
 
-停止仅设置当前工作区操作的 `ExecutionContext` 取消信号；在途请求完成并保存已产生的结果后才释放准入。文件读取、检查、正式导出暂不支持取消；模型接口发起的操作不能被工作区停止接口中断。正常退出等待实际执行结束后关闭缓存与模型客户端。
+取消排队任务会直接标为 `cancelled`，不开始执行；取消运行任务先标为 `cancelling` 并设置协作取消信号，在途请求和保存收尾后才释放该类型的队列。读取、检查和部分写出不会中途打断，仍需等待实际函数返回。旧工作区停止接口只控制桌面发起的文档任务；指定任意 job 使用通用取消接口，媒体专用停止接口仍按 operation ID 定位。正常退出等待实际执行结束后关闭缓存与模型客户端。
 
-WebSocket 消息类型为 `connected`、`status`、`notification`、`log`、`settled`、`error`、`resync`。通知使用 `name` 与 `data`，例如 `translation.progress`、`analysis.completed`、`table.updated`、`glossary.completed`、`project.export.completed`；`settled` 和 `error` 使用具名 `operation`。导出完成通知保留完整的 `status`、`files` 和 `report`，包括部分成功时的逐文件错误；桌面显示结果提示，并将完整报告写入运行日志。状态心跳间隔两秒，`last_operation` 给出最近一次工作区操作的名称和结果状态；慢客户端队列满时要求重连获取快照。通知失败或没有连接者不会阻断结果保存，前端收到通知后仅在本地分发 UI 信号。
+WebSocket 消息类型包括 `connected`、`status`、`job`、`notification`、`log`、`settled`、`error`、`resync`。`job` 推送任务元信息和进度，完整结果通过 `GET /api/jobs/{job_id}` 获取。通知使用 `name` 与 `data`，例如 `translation.progress`、`analysis.completed`、`table.updated`、`glossary.completed`、`project.export.completed`；`settled` 和 `error` 使用具名 `operation`。导出完成通知保留完整的 `status`、`files` 和 `report`，包括部分成功时的逐文件错误；桌面显示结果提示，并将完整报告写入运行日志。状态心跳间隔两秒，`last_operation` 给出最近一次工作区操作的名称和结果状态；慢客户端队列满时要求重连获取快照。通知失败或没有连接者不会阻断结果保存，前端收到通知后仅在本地分发 UI 信号。
 
 ## 统一中间模型接口
 
@@ -199,19 +210,22 @@ with httpx.Client(base_url="http://127.0.0.1:3389", headers=headers,
 
 ## 验证
 
-统一文档/PDF 读取入口的独立回归测试（模拟 PDF 解析与语言检测，不下载模型）：
+后端队列、配置隔离、缓存并发和统一文档/PDF 入口的回归测试（使用临时目录与模拟模型服务，不发起收费模型请求）：
 
 ```powershell
-python -m pytest Tests/test_document_read.py -q
+python -X utf8 -m pytest Tests/test_job_scheduler.py Tests/test_runtime_queues.py Tests/test_queue_api.py Tests/test_task_resources.py Tests/test_cache_concurrency.py Tests/test_document_read.py -q
 ```
+
+MCP 的服务、鉴权与真实 HTTP 协议测试：
 
 ```powershell
-python Tests/run_all.py
+python -X utf8 -m pytest Tests/test_mcp_service.py Tests/test_mcp_security.py Tests/test_mcp_http.py -q
 ```
 
-测试使用临时目录和模拟模型回复，覆盖模型与缓存迁移、多线程翻译、取消与重试、显式工作区接口、持久化与通知顺序、服务独立调用、桌面请求和状态恢复、TXT/字幕/DOCX/EPUB/PPTX 等格式读写及 PDF 映射。测试入口将后端与桌面测试分进程运行，避免 Windows 下 QtMultimedia 与 ONNX Runtime 的原生库加载冲突。真实 BabelDOC PDF 测试需启用相应环境变量，并已具备 BabelDOC 所需的模型和字体资产：
+前端测试单独运行，不与后端原生依赖放在同一 Python 进程。Qt 测试设置 `QT_QPA_PLATFORM=offscreen`，覆盖连接错误提示、媒体队列进度与取消请求独立发送：
 
 ```powershell
-$env:AINIEE_TEST_REAL_PDF = "1"
-python -X utf8 Tests/run_all.py
+python -X utf8 -m pytest Tests/test_frontend_queue_clients.py Tests/test_startup_errors.py Tests/test_media_queue_progress.py -q
 ```
+
+文档入口测试模拟 PDF 解析和语言检测，不验证真实模型效果。真实 PDF 读取仍需要固定版本的 PyMuPDF，以及 BabelDOC 所需模型和字体资产；不要将 QtMultimedia 与后端 ONNX Runtime/PDF 原生库放入同一个测试进程。

@@ -29,12 +29,22 @@ class BackendClient:
         self.http = httpx.Client(base_url=self.url, headers=self.headers, trust_env=False, timeout=60)
         self.stopping = threading.Event()
         self.operations = ThreadPoolExecutor(max_workers=1, thread_name_prefix="backend-requests")
+        self.controls = ThreadPoolExecutor(max_workers=1, thread_name_prefix="backend-controls")
         self.ws = None
         self.ws_thread = None
         self.on_message = lambda message: None
         self.cache = None
         self.backend_process = None
         self._closed = False
+
+    @property
+    def mcp_url(self) -> str:
+        """MCP shares the backend listener, including any reverse-proxy prefix."""
+        parts = urlsplit(self.url)
+        return urlunsplit((
+            parts.scheme, parts.netloc.rsplit("@", 1)[-1],
+            parts.path.rstrip("/") + "/mcp", "", "",
+        ))
 
     def request(self, method, path, **kwargs):
         try:
@@ -145,7 +155,7 @@ class BackendClient:
         return self._submit_operation("project.export", "/api/project/export", payload)
 
     def stop_task(self) -> Future:
-        return self._submit_operation("stop", "/api/tasks/stop", {})
+        return self._submit_operation("stop", "/api/tasks/stop", {}, control=True)
 
     def save_project(self) -> Future:
         return self._submit_operation("project.save", "/api/project/save", {})
@@ -154,7 +164,7 @@ class BackendClient:
         """For project-loading workers that must finish persistence before continuing."""
         return self.request("POST", "/api/project/save", json={}, timeout=600)
 
-    def _submit_operation(self, operation: str, path: str, data: dict) -> Future:
+    def _submit_operation(self, operation: str, path: str, data: dict, *, control=False) -> Future:
         # Snapshot UI-owned lists before the worker starts serializing them.
         payload = to_wire(data)
 
@@ -162,7 +172,7 @@ class BackendClient:
             try:
                 # State updates arrive in order on the WebSocket. An HTTP response
                 # can arrive after completion and must not restore a stale busy state.
-                result = self.request("POST", path, json=payload, timeout=600)
+                result = self.request("POST", path, json=payload, timeout=10 if control else 600)
                 if operation == "project.save":
                     self.on_message({"type": "request_completed", "operation": operation})
                 return result
@@ -176,7 +186,10 @@ class BackendClient:
                 if status is not None:
                     message["status"] = status
                 self.on_message(message)
-        return self.operations.submit(send)
+        # A save/export request can wait for queued work on the backend. Stop
+        # must reach HTTP independently so it can cancel that preceding work.
+        executor = self.controls if control else self.operations
+        return executor.submit(send)
 
     def start_events(self, callback):
         self.on_message = callback
@@ -223,5 +236,6 @@ class BackendClient:
             self.ws.close()
         if self.ws_thread:
             self.ws_thread.join(timeout=5)
+        self.controls.shutdown(wait=True, cancel_futures=True)
         self.operations.shutdown(wait=True, cancel_futures=True)
         self.http.close()

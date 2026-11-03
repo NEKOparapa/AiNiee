@@ -211,11 +211,10 @@ class LLMClientFactory:
 
     def _get_cached_client(self, key, factory_func):
         """线程安全地获取或创建客户端"""
-        if key not in self._clients:
-            with self._lock:
-                if key not in self._clients:
-                    self._clients[key] = factory_func()
-        return self._clients[key]
+        with self._lock:
+            if key not in self._clients:
+                self._clients[key] = factory_func()
+            return self._clients[key]
 
     def close_all_clients(self) -> None:
         with self._lock:

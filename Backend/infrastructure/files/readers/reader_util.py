@@ -1,6 +1,7 @@
 import os
 import pathlib
 import re
+import threading
 import time
 from typing import Union
 
@@ -9,16 +10,14 @@ import charset_normalizer
 import rich
 from bs4 import BeautifulSoup
 from bs4.exceptions import ParserRejectedMarkup
-from mediapipe.tasks.python import text, BaseOptions
-from mediapipe.tasks.python.text import LanguageDetector
 
 from Backend.core.paths import backend_resource_path
 from Backend.domain.models.cache_file import CacheFile
 from Backend.domain.models.cache_item import CacheItem
 from Backend.domain.text.epub_markup import TOKEN_RE
 
-_LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
-"""语言检测器单例实现"""
+_LANG_DETECTOR_LOCAL = threading.local()
+"""Each coordinating worker owns its detector and closes only that instance."""
 
 VARIOUS_LETTERS_RANGE = r'a-zA-Z\uFF21-\uFF3A\uFF41-\uFF5A'
 """标准字母与全角字母的范围"""
@@ -138,65 +137,56 @@ def adjust_close_language_pair_confidence(first_lang: str, second_lang: str, raw
     return max(default_prob, weighted_prob, bonus_prob)
 
 
-# 加载语言检测器(全局)
+def _create_lang_detector():
+    # Import native dependencies only when detection is needed.
+    from mediapipe.tasks.python import text, BaseOptions
+
+    rich.print("[[green]INFO[/]] 加载 MediaPipe 文本语言检测器中...")
+    start_time = time.time()
+    model_path = language_detector_model_path()
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"在预期位置未找到模型文件: {model_path}")
+    try:
+        # Buffer loading also supports model paths containing Chinese characters.
+        model_buffer = model_path.read_bytes()
+        options = text.LanguageDetectorOptions(
+            base_options=BaseOptions(model_asset_buffer=model_buffer),
+            max_results=4, score_threshold=0.0001, category_denylist=["hmn"],
+        )
+        detector = text.LanguageDetector.create_from_options(options)
+        load_time_ms = (time.time() - start_time) * 1000
+        rich.print(f"[[green]INFO[/]] MediaPipe 文本语言检测器已加载! ({load_time_ms:.2f} ms)")
+        return detector
+    except Exception as error:
+        rich.print(f"[[red]ERROR[/]] 加载 MediaPipe 语言检测器失败: {error}")
+        raise
+
+
 def get_lang_detector():
-    """获取语言检测器的全局单例实例"""
-    global _LANG_DETECTOR_INSTANCE
-    if _LANG_DETECTOR_INSTANCE is None:
-        rich.print("[[green]INFO[/]] 加载 MediaPipe 文本语言检测器中...")
-        # Record start time
-        start_time = time.time()
-
-        model_path = language_detector_model_path()
-
-        if not os.path.exists(model_path):
-            rich.print(f"[[red]ERROR[/]] 模型文件不存在于: {model_path}")
-            # 您可能希望在此处抛出错误或更优雅地处理
-            raise FileNotFoundError(f"在预期位置未找到模型文件: {model_path}")
-
-        try:
-            # 使用 Python 的 open 函数读取模型文件到缓冲区后加载模型，兼容路径有中文的情况
-            with open(model_path, "rb") as f:  # "rb" 表示二进制读取模式
-                model_buffer = f.read()
-
-            # 使用 model_asset_buffer 而不是 model_asset_path
-            base_options = BaseOptions(model_asset_buffer=model_buffer)
-            # 20250504改动：获取最多四个结果用于重新计算置信度
-            # 20250609改动：在识别结果中过滤苗语(hmn)
-            options = text.LanguageDetectorOptions(base_options=base_options,
-                                                   max_results=4, score_threshold=0.0001,
-                                                   category_denylist=["hmn"])
-            _LANG_DETECTOR_INSTANCE = text.LanguageDetector.create_from_options(options)
-
-            # 计算加载时间（毫秒）
-            load_time_ms = (time.time() - start_time) * 1000
-            rich.print(f"[[green]INFO[/]] MediaPipe 文本语言检测器已加载! ({load_time_ms:.2f} ms)")
-
-        except Exception as e:
-            rich.print(f"[[red]ERROR[/]] 加载 MediaPipe 语言检测器失败: {e}")
-            # 重新抛出异常，以便调用者知道出了问题
-            # 或者根据您的应用程序进行适当处理。
-            raise
-
-    return _LANG_DETECTOR_INSTANCE
+    """Reuse a detector only within the current worker's get/close lifecycle."""
+    detector = getattr(_LANG_DETECTOR_LOCAL, "instance", None)
+    if detector is None:
+        detector = _create_lang_detector()
+        _LANG_DETECTOR_LOCAL.instance = detector
+    return detector
 
 
 # 释放语言检测器
 def close_lang_detector():
-    """关闭并释放语言检测器的全局单例实例"""
-    global _LANG_DETECTOR_INSTANCE
-    if _LANG_DETECTOR_INSTANCE is not None:
+    """Close this worker's detector without touching another running task."""
+    detector = getattr(_LANG_DETECTOR_LOCAL, "instance", None)
+    if detector is not None:
         # MediaPipe任务通常有close方法用于释放资源
         try:
-            _LANG_DETECTOR_INSTANCE.close()
+            detector.close()
             rich.print("[[green]INFO[/]] MediaPipe 文本语言检测器已释放!")
         except AttributeError:
             # 如果没有close方法，尝试其他可能的清理方法
-            if hasattr(_LANG_DETECTOR_INSTANCE, 'release'):
-                _LANG_DETECTOR_INSTANCE.release()
+            if hasattr(detector, 'release'):
+                detector.release()
         finally:
             # 无论如何都将实例设置为None，允许垃圾回收
-            _LANG_DETECTOR_INSTANCE = None
+            _LANG_DETECTOR_LOCAL.instance = None
     return True
 
 

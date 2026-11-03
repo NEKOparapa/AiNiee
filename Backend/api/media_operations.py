@@ -1,7 +1,8 @@
-"""Synchronous, resumable media stages; no background job system."""
+"""Resumable media stages serialized through each project's media queue."""
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
+from starlette.concurrency import run_in_threadpool
 from pydantic import Field, ValidationError
 
 from Backend.api.schemas import RequestModel
@@ -9,7 +10,7 @@ from Backend.api.image_schemas import OcrOptions, ImageWriteOptions
 from Backend.api.image_generation_schemas import ImageGenerationOptions, GeneratedImageWriteOptions
 from Backend.api.audio_schemas import TranscriptionOptions, SubtitleOptions
 from Backend.api.pipeline_schemas import TranslationOptions
-from Backend.application.execution_context import ExecutionContext
+from Backend.api.queued import media_lane, run_queued
 from Backend.application.pipeline_common import PipelineError
 from Backend.core.protocol import to_wire
 from Backend.core.log_system import redact
@@ -44,20 +45,20 @@ def create_media_operation_router(runtime, authorized):
         return runtime.stop_model_operation(operation_id)
 
     @router.post("/{workspace_id}/run")
-    def run(workspace_id: str, body: MediaRunRequest):
+    async def run(workspace_id: str, body: MediaRunRequest, prefer: str | None = Header(default=None)):
         from Backend.application.media_workspace_service import get_media_store
-        from Backend.application.ocr_service import ocr_model
-        from Backend.application.transcription_service import transcribe_model
-        from Backend.application.translation_service import translate_model
-        from Backend.application.image_write_service import write_images
-        from Backend.application.image_generation_service import generate_image_model
-        from Backend.application.generated_image_write_service import write_generated_images
-        from Backend.application.subtitle_service import write_subtitles
 
         store = get_media_store(runtime)
-        context = ExecutionContext()
-        # Admission before loading prevents an old snapshot overwriting a later stage.
-        with runtime.operation(f"media/{workspace_id}/{body.stage}", context=context, operation_id=body.operation_id):
+        lane = await run_in_threadpool(media_lane, store, workspace_id)
+        def action(context):
+            from Backend.application.ocr_service import ocr_model
+            from Backend.application.transcription_service import transcribe_model
+            from Backend.application.translation_service import translate_model
+            from Backend.application.image_write_service import write_images
+            from Backend.application.image_generation_service import generate_image_model
+            from Backend.application.generated_image_write_service import write_generated_images
+            from Backend.application.subtitle_service import write_subtitles
+            # Reload only after reaching the front of the project's queue.
             workspace = store.load(workspace_id)
             image = workspace["kind"] == "image"
             mode = workspace["model"].get("extra", {}).get("image_translation_mode", "ocr")
@@ -150,5 +151,8 @@ def create_media_operation_router(runtime, authorized):
                                  "files": [{**entry, "translated_url": None} for entry in workspace.get("files", [])]}
                 return {"status": "failed", "workspace": workspace, "report": report,
                         "files": result.get("files", []) if isinstance(result, dict) else []}
+
+        return await run_queued(runtime, f"media/{workspace_id}/{body.stage}", action, lane=lane,
+                          prefer=prefer, operation_id=body.operation_id, project_id=workspace_id)
 
     return router

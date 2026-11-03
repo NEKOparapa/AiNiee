@@ -1,5 +1,6 @@
 """HTTP adapters for explicit workspace service methods."""
 from fastapi import APIRouter, Depends
+from Backend.api.legacy_jobs import wait_document_call
 
 from Backend.api.task_schemas import (
     ApiTestRequest, ExportRequest, GlossaryRequest, TablePolishRequest,
@@ -43,8 +44,8 @@ def create_task_router(runtime, authorized):
         return runtime.start_export(body.model_dump(exclude_none=True))
 
     @router.post("/project/save")
-    def save():
-        return runtime.save_project()
+    async def save():
+        return await wait_document_call(runtime.save_project)
 
     @router.post("/tasks/stop")
     def stop():

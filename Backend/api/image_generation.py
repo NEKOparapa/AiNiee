@@ -1,5 +1,5 @@
 """Independent generated-image translation and export endpoints."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
@@ -10,9 +10,8 @@ from Backend.api.image_schemas import ImageReadOptions, ImagePipelineResponse
 from Backend.api.image_generation_schemas import (
     ImageGenerationOptions, ImageGenerationRequest, GeneratedImageWriteOptions, GeneratedImageWriteRequest,
 )
-from Backend.application.execution_context import ExecutionContext
+from Backend.api.queued import require_model_lane, run_queued
 from Backend.core.log_system import redact
-from Backend.core.protocol import to_wire
 
 
 class GenerationRoute(APIRoute):
@@ -52,27 +51,33 @@ def create_image_generation_router(runtime, authorized):
                        dependencies=[Depends(authorized)], route_class=GenerationRoute)
 
     @router.post("/image/generate-translation", response_model=ImagePipelineResponse)
-    def generate(body: GenerationRequest):
-        from Backend.application.image_generation_pipeline_service import generate_with_checkpoint
-        context = ExecutionContext(on_progress=runtime.pipeline_progress)
-        with runtime.operation("image/generate-translation", context=context, operation_id=body.operation_id):
-            return to_wire(generate_with_checkpoint(body.model.model_dump(),
-                                                   body.config.model_dump(exclude_unset=True), context=context))
+    async def generate(body: GenerationRequest, prefer: str | None = Header(default=None)):
+        model = body.model.model_dump()
+        require_model_lane(runtime, model, "image")
+        def action(context):
+            from Backend.application.image_generation_pipeline_service import generate_with_checkpoint
+            return generate_with_checkpoint(model, body.config.model_dump(exclude_unset=True), context=context)
+        return await run_queued(runtime, "image/generate-translation", action, lane="image", prefer=prefer,
+                          operation_id=body.operation_id, project_id=model.get("project_id"))
 
     @router.post("/write/generated-image", response_model=ImagePipelineResponse)
-    def write(body: GeneratedImageWriteRequest):
-        from Backend.application.generated_image_write_service import write_generated_images
-        context = ExecutionContext(on_progress=runtime.pipeline_progress)
-        with runtime.operation("write/generated-image", context=context):
-            return to_wire(write_generated_images(body.model.model_dump(), body.options.model_dump(), context=context))
+    async def write(body: GeneratedImageWriteRequest, prefer: str | None = Header(default=None)):
+        model = body.model.model_dump()
+        require_model_lane(runtime, model, "image")
+        def action(context):
+            from Backend.application.generated_image_write_service import write_generated_images
+            return write_generated_images(model, body.options.model_dump(), context=context)
+        return await run_queued(runtime, "write/generated-image", action, lane="image", prefer=prefer,
+                          project_id=model.get("project_id"))
 
     @router.post("/image/generate-pipeline", response_model=ImagePipelineResponse)
-    def pipeline(body: GenerationPipelineRequest):
-        from Backend.application.image_generation_pipeline_service import translate_image_generation
-        context = ExecutionContext(on_progress=runtime.pipeline_progress)
-        with runtime.operation("image/generate-pipeline", context=context, operation_id=body.operation_id):
-            return to_wire(translate_image_generation(body.path, read_options=body.read_options.model_dump(),
-                         generation=body.generation.model_dump(exclude_unset=True), output=body.output.model_dump(), context=context))
+    async def pipeline(body: GenerationPipelineRequest, prefer: str | None = Header(default=None)):
+        def action(context):
+            from Backend.application.image_generation_pipeline_service import translate_image_generation
+            return translate_image_generation(body.path, read_options=body.read_options.model_dump(),
+                         generation=body.generation.model_dump(exclude_unset=True), output=body.output.model_dump(), context=context)
+        return await run_queued(runtime, "image/generate-pipeline", action, lane="image", prefer=prefer,
+                          operation_id=body.operation_id)
 
     @router.post("/image/operations/{operation_id}/stop")
     def stop(operation_id: str):

@@ -6,7 +6,7 @@ import urllib.request
 import rapidjson as json
 
 from Backend.core.base import Base
-from Backend.core.config import ConfigMixin
+from Backend.core.config import ConfigMixin, get_config_snapshot
 from Backend.core.headers import normalize_extra_headers
 from Backend.domain.config.tables import TableConfigHelper
 from Backend.core.paths import auto_output_dir
@@ -141,7 +141,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             if not self._is_valid_platform_tag(role_tag, platforms):
                 api_settings[role] = None
 
-        if persist and original_api_settings != api_settings:
+        if persist and not getattr(self, "_snapshot_mode", False) and original_api_settings != api_settings:
             return self.save_config(config)
 
         return config
@@ -185,7 +185,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
 
     # 读取配置文件，并记录当前任务要使用的接口角色
     def initialize(self, interface_role: str = "active") -> None:
-        self._snapshot_mode = False
+        self._snapshot_mode = get_config_snapshot() is not None
         self.interface_role = self._normalize_interface_role(interface_role)
         self.prepared_interface_role = None
         self.target_platform = None
@@ -195,6 +195,8 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         self.apikey_list = []
 
         config = self._normalize_api_settings(self.load_config(), persist=True)
+        if self._snapshot_mode:
+            self._source_snapshot = copy.deepcopy(config)
 
         # 将字典中的每一项赋值到类中的同名属性
         for key, value in config.items():
@@ -205,6 +207,10 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
     @classmethod
     def read_snapshot(cls) -> dict:
         """Read configuration without migration, normalization writes or backups."""
+        snapshot = get_config_snapshot()
+        if snapshot is not None:
+            return snapshot
+
         from Backend.core.paths import config_path
         from Backend.infrastructure.config.defaults import get_defaults
         from Backend.infrastructure.config.store import ConfigStore

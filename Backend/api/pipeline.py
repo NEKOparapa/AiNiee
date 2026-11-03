@@ -1,5 +1,5 @@
-"""Synchronous model-in/model-out endpoints; admission is owned by Runtime."""
-from fastapi import APIRouter, Depends
+"""Model-in/model-out endpoints backed by the shared project queues."""
+from fastapi import APIRouter, Depends, Header
 
 from Backend.api.pipeline_schemas import (
     DocumentReadRequest, ModelResponse,
@@ -12,8 +12,7 @@ from Backend.api.audio_schemas import (
 from Backend.api.image_schemas import (
     ImageReadRequest, OcrRequest, ImageWriteRequest, ImageTranslateRequest, ImagePipelineResponse,
 )
-from Backend.application.execution_context import ExecutionContext
-from Backend.core.protocol import to_wire
+from Backend.api.queued import require_model_lane, run_queued
 
 
 def create_pipeline_router(runtime, authorized):
@@ -21,85 +20,104 @@ def create_pipeline_router(runtime, authorized):
                        dependencies=[Depends(authorized)])
 
     @router.post("/read/document", response_model=ModelResponse)
-    def read_document(body: DocumentReadRequest):
-        from Backend.application.read_service import read_document as read
-        with runtime.operation("read/document", context=ExecutionContext()):
-            return to_wire(read(body.path, body.options.model_dump()))
+    async def read_document(body: DocumentReadRequest, prefer: str | None = Header(default=None)):
+        def action(context):
+            from Backend.application.read_service import read_document as read
+            return read(body.path, body.options.model_dump())
+        return await run_queued(runtime, "read/document", action, lane="document", prefer=prefer)
 
     @router.post("/read/image", response_model=ModelResponse)
-    def read_image(body: ImageReadRequest):
-        from Backend.application.image_read_service import read_image as read
-        with runtime.operation("read/image", context=ExecutionContext()):
-            return to_wire(read(body.path, body.options.model_dump()))
+    async def read_image(body: ImageReadRequest, prefer: str | None = Header(default=None)):
+        def action(context):
+            from Backend.application.image_read_service import read_image as read
+            return read(body.path, body.options.model_dump())
+        return await run_queued(runtime, "read/image", action, lane="image", prefer=prefer)
 
     @router.post("/ocr", response_model=ModelResponse)
-    def ocr(body: OcrRequest):
-        from Backend.application.ocr_service import ocr_model
-        context = ExecutionContext(on_progress=runtime.pipeline_progress)
-        with runtime.operation("ocr", context=context):
-            return to_wire(ocr_model(body.model.model_dump(), body.config.model_dump(exclude_none=True), context=context))
+    async def ocr(body: OcrRequest, prefer: str | None = Header(default=None)):
+        model = body.model.model_dump()
+        require_model_lane(runtime, model, "image")
+        def action(context):
+            from Backend.application.ocr_service import ocr_model
+            return ocr_model(model, body.config.model_dump(exclude_none=True), context=context)
+        return await run_queued(runtime, "ocr", action, lane="image", prefer=prefer,
+                          project_id=model.get("project_id"))
 
     @router.post("/write/image", response_model=ImagePipelineResponse)
-    def write_image(body: ImageWriteRequest):
-        from Backend.application.image_write_service import write_images
-        context = ExecutionContext(on_progress=runtime.pipeline_progress)
-        with runtime.operation("write/image", context=context):
-            return to_wire(write_images(body.model.model_dump(), body.options.model_dump(exclude_none=True), context=context))
+    async def write_image(body: ImageWriteRequest, prefer: str | None = Header(default=None)):
+        model = body.model.model_dump()
+        require_model_lane(runtime, model, "image")
+        def action(context):
+            from Backend.application.image_write_service import write_images
+            return write_images(model, body.options.model_dump(exclude_none=True), context=context)
+        return await run_queued(runtime, "write/image", action, lane="image", prefer=prefer,
+                          project_id=model.get("project_id"))
 
     @router.post("/image/translate", response_model=ImagePipelineResponse)
-    def translate_image(body: ImageTranslateRequest):
-        from Backend.application.image_translation_service import translate_image as run
-        context = ExecutionContext(on_progress=runtime.pipeline_progress)
-        with runtime.operation("image/translate", context=context):
-            return to_wire(run(body.path, read_options=body.read_options.model_dump(),
-                               ocr=body.ocr.model_dump(exclude_none=True),
-                               translation=body.translation.model_dump(exclude_none=True),
-                               output=body.output.model_dump(exclude_none=True), context=context))
+    async def translate_image(body: ImageTranslateRequest, prefer: str | None = Header(default=None)):
+        def action(context):
+            from Backend.application.image_translation_service import translate_image as run
+            return run(body.path, read_options=body.read_options.model_dump(),
+                       ocr=body.ocr.model_dump(exclude_none=True),
+                       translation=body.translation.model_dump(exclude_none=True),
+                       output=body.output.model_dump(exclude_none=True), context=context)
+        return await run_queued(runtime, "image/translate", action, lane="image", prefer=prefer)
 
     @router.post("/read/audio", response_model=ModelResponse)
-    def read_audio(body: AudioReadRequest):
-        from Backend.application.audio_read_service import read_audio as read
-        with runtime.operation("read/audio", context=ExecutionContext()):
-            return to_wire(read(body.path, body.options.model_dump()))
+    async def read_audio(body: AudioReadRequest, prefer: str | None = Header(default=None)):
+        def action(context):
+            from Backend.application.audio_read_service import read_audio as read
+            return read(body.path, body.options.model_dump())
+        return await run_queued(runtime, "read/audio", action, lane="audio", prefer=prefer)
 
     @router.post("/transcribe", response_model=ModelResponse)
-    def transcribe(body: TranscribeRequest):
-        from Backend.application.transcription_service import transcribe_model
-        context = ExecutionContext(on_progress=runtime.pipeline_progress)
-        with runtime.operation("transcribe", context=context):
-            return to_wire(transcribe_model(body.model.model_dump(),
-                                           body.config.model_dump(exclude_none=True), context=context))
+    async def transcribe(body: TranscribeRequest, prefer: str | None = Header(default=None)):
+        model = body.model.model_dump()
+        require_model_lane(runtime, model, "audio")
+        def action(context):
+            from Backend.application.transcription_service import transcribe_model
+            return transcribe_model(model, body.config.model_dump(exclude_none=True), context=context)
+        return await run_queued(runtime, "transcribe", action, lane="audio", prefer=prefer,
+                          project_id=model.get("project_id"))
 
     @router.post("/write/subtitles", response_model=WriteResponse)
-    def write_subtitles(body: SubtitleWriteRequest):
-        from Backend.application.subtitle_service import write_subtitles as write
-        with runtime.operation("write/subtitles", context=ExecutionContext()):
-            return to_wire(write(body.model.model_dump(), body.options.model_dump()))
+    async def write_subtitles(body: SubtitleWriteRequest, prefer: str | None = Header(default=None)):
+        model = body.model.model_dump()
+        require_model_lane(runtime, model, "audio")
+        def action(context):
+            from Backend.application.subtitle_service import write_subtitles as write
+            return write(model, body.options.model_dump())
+        return await run_queued(runtime, "write/subtitles", action, lane="audio", prefer=prefer,
+                          project_id=model.get("project_id"))
 
     @router.post("/audio/translate", response_model=AudioTranslateResponse)
-    def translate_audio(body: AudioTranslateRequest):
-        from Backend.application.audio_translation_service import translate_audio as run
-        context = ExecutionContext(on_progress=runtime.pipeline_progress)
-        with runtime.operation("audio/translate", context=context):
-            return to_wire(run(
-                body.path, read_options=body.read_options.model_dump(),
-                transcription=body.transcription.model_dump(exclude_none=True),
-                translation=body.translation.model_dump(exclude_none=True),
-                output=body.output.model_dump(), context=context,
-            ))
+    async def translate_audio(body: AudioTranslateRequest, prefer: str | None = Header(default=None)):
+        def action(context):
+            from Backend.application.audio_translation_service import translate_audio as run
+            return run(body.path, read_options=body.read_options.model_dump(),
+                       transcription=body.transcription.model_dump(exclude_none=True),
+                       translation=body.translation.model_dump(exclude_none=True),
+                       output=body.output.model_dump(), context=context)
+        return await run_queued(runtime, "audio/translate", action, lane="audio", prefer=prefer)
 
     @router.post("/translate", response_model=ModelResponse)
-    def translate(body: TranslateRequest):
-        from Backend.application.translation_service import translate_model
-        context = ExecutionContext(on_progress=runtime.pipeline_progress)
-        with runtime.operation("translate", context=context):
-            return to_wire(translate_model(body.model.model_dump(),
-                                           body.config.model_dump(exclude_none=True), context=context))
+    async def translate(body: TranslateRequest, prefer: str | None = Header(default=None)):
+        model = body.model.model_dump()
+        lane = runtime.lane_for_model(model)
+        def action(context):
+            from Backend.application.translation_service import translate_model
+            return translate_model(model, body.config.model_dump(exclude_none=True), context=context)
+        return await run_queued(runtime, "translate", action, lane=lane, prefer=prefer,
+                          project_id=model.get("project_id"))
 
     @router.post("/write", response_model=WriteResponse)
-    def write(body: WriteRequest):
-        from Backend.application.write_service import write_model
-        with runtime.operation("write", context=ExecutionContext()):
-            return to_wire(write_model(body.model.model_dump(), body.options.model_dump(exclude_none=True)))
+    async def write(body: WriteRequest, prefer: str | None = Header(default=None)):
+        model = body.model.model_dump()
+        lane = require_model_lane(runtime, model, "document")
+        def action(context):
+            from Backend.application.write_service import write_model
+            return write_model(model, body.options.model_dump(exclude_none=True))
+        return await run_queued(runtime, "write", action, lane=lane, prefer=prefer,
+                          project_id=model.get("project_id"))
 
     return router

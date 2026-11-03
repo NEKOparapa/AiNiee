@@ -26,7 +26,7 @@ class ConfigStore:
     def initialize_config(self):
         from Backend.infrastructure.config.defaults import get_defaults
         with self.CONFIG_FILE_LOCK:
-            return self.save_config(self.fill_config(self.load_config(), get_defaults()))
+            return self.save_config(self.fill_config(ConfigStore.load_config(self), get_defaults()))
 
     @staticmethod
     def get_default_section(name):
@@ -65,9 +65,15 @@ class ConfigStore:
         return {"path": str(config_path().resolve())}
 
     @staticmethod
+    def _validate_mcp_settings(config):
+        if "mcp_enable" in config and type(config["mcp_enable"]) is not bool:
+            raise ValueError("配置字段 mcp_enable 必须是布尔值")
+
+    @staticmethod
     def _validate_profile(profile):
         if not isinstance(profile, dict):
             raise ValueError("配置文件的根节点必须是 JSON 对象")
+        ConfigStore._validate_mcp_settings(profile)
         validate_media_task_settings(profile)
         for key in ("platforms", "api_settings", "response_check_switch", "transcription_platforms", "ocr_platforms", "image_generation_platforms"):
             if key in profile and not isinstance(profile[key], dict):
@@ -214,6 +220,9 @@ class ConfigStore:
                         pass
                     config = {}
 
+                # Invalid persisted booleans must not silently turn a disabled
+                # MCP endpoint on through Python's truthiness or default fill.
+                self._validate_mcp_settings(config)
                 needs_write = any(key in config for key in self.RETIRED_SETTINGS)
                 for key in self.RETIRED_SETTINGS:
                     config.pop(key, None)
@@ -267,6 +276,7 @@ class ConfigStore:
         return config
 
     def save_config(self, new: dict, *, _table_update: bool = False) -> dict:
+        self._validate_mcp_settings(new)
         with ConfigStore.CONFIG_FILE_LOCK:
             migrate_config_if_needed()
             ConfigStore.CONFIG_PATH = config_path()
@@ -298,6 +308,7 @@ class ConfigStore:
                     continue
                 old[key] = value
 
+            self._validate_mcp_settings(old)
             media_changed = migrate_media_task_settings(old)
             validate_media_task_settings(old)
             prompt_changed = TranslationPromptConfigHelper.normalize_config(old)
@@ -316,7 +327,9 @@ class ConfigStore:
     def update_config(self, updater) -> dict:
         """Apply an edit to the latest config under one lock, including table edits by ID."""
         with ConfigStore.CONFIG_FILE_LOCK:
-            config = self.load_config()
+            # Explicit edits always use persisted settings, including when the
+            # caller is a ConfigMixin operating within a task read snapshot.
+            config = ConfigStore.load_config(self)
             TableConfigHelper.normalize_config(config)
             updater(config)
             TableConfigHelper.normalize_config(config)

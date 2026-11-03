@@ -1,12 +1,14 @@
 """Media import, persistence, and authenticated preview assets."""
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, Query
 from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import Field
 
 from Backend.api.schemas import RequestModel
-from Backend.application.execution_context import ExecutionContext
+from Backend.api.queued import load_media_workspace, media_lane, run_queued
+from Backend.application.pipeline_common import PipelineError
 from Backend.application.media_workspace_service import get_media_store
 from Backend.domain.models.intermediate import IntermediateModel
 
@@ -27,9 +29,9 @@ def create_media_router(runtime, authorized):
     store = get_media_store(runtime)
 
     @router.post("/import")
-    def import_media(body: MediaImportRequest):
-        with runtime.operation("media/import", context=ExecutionContext()):
-            return store.import_media(body.kind, body.paths, body.exclude_rule)
+    async def import_media(body: MediaImportRequest, prefer: str | None = Header(default=None)):
+        return await run_queued(runtime, "media/import", lambda context: store.import_media(
+            body.kind, body.paths, body.exclude_rule), lane=body.kind, prefer=prefer)
 
     @router.get("")
     def history(kind: Literal["image", "audio"] | None = None, limit: int = Query(default=20, ge=1, le=100)):
@@ -40,16 +42,27 @@ def create_media_router(runtime, authorized):
         return store.load(workspace_id)
 
     @router.post("/{workspace_id}/model")
-    def save(workspace_id: str, body: MediaSaveRequest):
+    async def save(workspace_id: str, body: MediaSaveRequest, prefer: str | None = Header(default=None)):
         # Public saves share admission with runs, imports, and deletion.
         # Internal paid-stage checkpoints call the store directly.
-        with runtime.operation(f"media/{workspace_id}/save", context=ExecutionContext()):
+        workspace = await run_in_threadpool(load_media_workspace, store, workspace_id)
+        lane, revision = workspace["kind"], workspace["updated_at"]
+        def action(context):
+            current = load_media_workspace(store, workspace_id)
+            if current["updated_at"] != revision:
+                raise PipelineError("MEDIA_WORKSPACE_CHANGED", "项目在等待保存期间已更新，请刷新后重新保存", 409)
             return store.save_model(workspace_id, body.model.model_dump(), preview_files=body.preview_files)
+        return await run_queued(runtime, f"media/{workspace_id}/save", action, lane=lane,
+                          prefer=prefer, project_id=workspace_id)
 
     @router.delete("/{workspace_id}")
-    def delete(workspace_id: str):
-        with runtime.operation(f"media/{workspace_id}/delete", context=ExecutionContext()):
+    async def delete(workspace_id: str, prefer: str | None = Header(default=None)):
+        lane = await run_in_threadpool(media_lane, store, workspace_id)
+        def action(context):
+            store.load(workspace_id)
             return store.delete(workspace_id)
+        return await run_queued(runtime, f"media/{workspace_id}/delete", action, lane=lane,
+                          prefer=prefer, project_id=workspace_id)
 
     @router.get("/{workspace_id}/files/{file_id}/{variant}")
     @router.head("/{workspace_id}/files/{file_id}/{variant}")

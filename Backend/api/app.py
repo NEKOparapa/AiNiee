@@ -1,4 +1,4 @@
-"""FastAPI transport. Run one worker: a service owns one active project."""
+"""FastAPI transport. Run one process owning three serial project queues."""
 import asyncio
 import hashlib
 import json
@@ -10,8 +10,10 @@ from typing import Any
 from fastapi import Depends, FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
+from starlette.routing import Route
 
 from Backend.api.events import EventHub
+from Backend.api.legacy_jobs import wait_document_call
 from Backend.api.schemas import CacheCall, ConfigPatch, EditorCall, FolderQuery, ModelQuery, ProjectLoad
 from Backend.application.runtime import BusyError, Runtime
 from Backend.application.pipeline_common import PipelineError
@@ -27,6 +29,13 @@ def create_app(runtime=None, token=None):
     runtime = runtime or Runtime()
     token = os.environ.get("AINIEE_API_TOKEN", "") if token is None else token
     hub = EventHub()
+    from Backend.api.mcp_server import create_mcp_server
+    from Backend.api.mcp_security import MCPAuthMiddleware, transport_security_from_env
+    mcp_server = create_mcp_server(runtime)
+    mcp_http = mcp_server.streamable_http_app(
+        streamable_http_path="/mcp", json_response=True, stateless_http=True,
+        transport_security=transport_security_from_env(),
+    )
 
     @asynccontextmanager
     async def lifespan(app):
@@ -34,13 +43,17 @@ def create_app(runtime=None, token=None):
         runtime.publish = hub.publish
         await run_in_threadpool(runtime.start)
         try:
-            yield
+            # Mounted ASGI applications do not receive FastAPI's lifespan.
+            # Start the SDK manager exactly once, sharing this same Runtime.
+            async with mcp_server.session_manager.run():
+                yield
         finally:
             await run_in_threadpool(runtime.close)
             hub.loop = None
 
     app = FastAPI(title="AiNiee Backend", version="2.0.0", lifespan=lifespan)
     app.state.runtime = runtime
+    app.state.mcp_server = mcp_server
     app.state.hub = hub
     app.state.shutdown = None
 
@@ -78,12 +91,12 @@ def create_app(runtime=None, token=None):
         from Backend.domain.config.task_config import TaskConfig
         if role not in ("translate", "polish"):
             raise ValueError("未知任务角色")
-        with runtime.lock:
-            runtime.ensure_idle()
+        from Backend.core.config import config_snapshot
+        with config_snapshot(TaskConfig.read_snapshot()):
             config = TaskConfig()
             config.initialize(role)
-            tag = config.get_active_platform_tag(role)
-            return {"selected_tag": tag, "exists": tag in (getattr(config, "platforms", {}) or {})}
+        tag = config.get_active_platform_tag(role)
+        return {"selected_tag": tag, "exists": tag in (getattr(config, "platforms", {}) or {})}
 
     @app.get("/api/config", dependencies=[Depends(authorized)])
     def get_config():
@@ -108,7 +121,6 @@ def create_app(runtime=None, token=None):
     @app.post("/api/config/import", dependencies=[Depends(authorized)])
     def import_config(body: FolderQuery):
         with runtime.lock:
-            runtime.ensure_idle()
             return config_document(runtime.import_config(body.path))
 
     @app.post("/api/config/export", dependencies=[Depends(authorized)])
@@ -117,13 +129,13 @@ def create_app(runtime=None, token=None):
 
     @app.patch("/api/config", dependencies=[Depends(authorized)])
     def patch_config(body: ConfigPatch):
+        runtime._validate_mcp_settings(body.values)
         with runtime.lock, runtime.CONFIG_FILE_LOCK:
             current = config_document(runtime.load_config())
             if body.revision is not None and body.revision != current["revision"]:
                 raise HTTPException(409, "配置已更新，请重新读取后重试")
             if all(key in current["config"] and current["config"][key] == value for key, value in body.values.items()):
                 return current
-            runtime.ensure_idle()
             if body.table_update:
                 return config_document(runtime.update_config(lambda config: config.update(body.values)))
             return config_document(runtime.save_config(body.values, _table_update=body.table_update))
@@ -141,21 +153,24 @@ def create_app(runtime=None, token=None):
         return runtime.reader.get_support_project_types()
 
     @app.post("/api/project/load", dependencies=[Depends(authorized)])
-    def load_project(body: ProjectLoad):
-        return {"project": runtime.load_project(body.project_type, body.input_path, body.exclude_rule)}
+    async def load_project(body: ProjectLoad):
+        return {"project": await wait_document_call(runtime.load_project, body.project_type, body.input_path, body.exclude_rule)}
 
     @app.post("/api/cache/{method}", dependencies=[Depends(authorized)])
-    def cache_call(method: str, body: CacheCall):
-        return runtime.cache_call(method, body.args, body.kwargs, body.project_id)
+    async def cache_call(method: str, body: CacheCall):
+        execute = run_in_threadpool if method in ("list_project_histories", "search_items") else wait_document_call
+        return await execute(runtime.cache_call, method, body.args, body.kwargs, body.project_id)
 
     @app.post("/api/check/{kind}", dependencies=[Depends(authorized)])
-    def check(kind: str, params: dict[str, Any]):
-        return runtime.check(kind, params)
+    async def check(kind: str, params: dict[str, Any]):
+        return await wait_document_call(runtime.check, kind, params)
 
     @app.post("/api/shutdown", dependencies=[Depends(authorized)])
     def shutdown():
         with runtime.lock:
-            if runtime.busy and runtime._operation_source == "api":
+            queues = runtime.scheduler.lanes()
+            if any(job["source"] in ("api", "mcp") for queue in queues.values()
+                   for job in ([queue["running"]] if queue["running"] else []) + queue["queued"]):
                 raise PipelineError("BACKEND_BUSY", "外部接口仍在执行，请等待完成后关闭后端", 409)
             if app.state.shutdown is None:
                 raise HTTPException(409, "此启动方式不支持远程关闭")
@@ -218,6 +233,15 @@ def create_app(runtime=None, token=None):
     app.include_router(create_task_router(runtime, authorized))
     from Backend.api.media_operations import create_media_operation_router
     app.include_router(create_media_operation_router(runtime, authorized))
+    from Backend.api.jobs import create_job_router
+    app.include_router(create_job_router(runtime, authorized))
+    # A concrete ASGI route preserves /mcp exactly, without a redirect to /mcp/.
+    # FastAPI route dependencies do not protect an ASGI app: authenticate every
+    # request here, before the SDK processes its protocol or session headers.
+    app.router.routes.append(Route(
+        "/mcp", endpoint=MCPAuthMiddleware(mcp_http, token, is_enabled=lambda: runtime.mcp_enabled),
+        methods=["GET", "POST", "DELETE", "OPTIONS"],
+    ))
     return app
 
 

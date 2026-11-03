@@ -103,6 +103,7 @@
     "AppSettingsPage": {
         "proxy_url": "",
         "proxy_enable": false,
+        "mcp_enable": true,
         "scale_factor": "AUTO",
         "interface_language_setting": "简中",
         "auto_check_update": true,

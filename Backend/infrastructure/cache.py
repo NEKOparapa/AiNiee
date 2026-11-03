@@ -17,6 +17,8 @@ from Backend.core.config import ConfigMixin
 from Backend.core.paths import project_cache_root
 from Backend.domain.config.task_type import TaskType
 from Backend.core.log import LogMixin
+from Backend.core.protocol import to_wire
+from Backend.application.pipeline_common import PipelineError
 from Backend.domain.models.cache_file import CacheFile
 from Backend.domain.models.cache_item import CacheItem, TranslationStatus
 from Backend.domain.models.cache_project import CacheProject, CacheProjectStatistics
@@ -24,6 +26,9 @@ from Backend.domain.models.intermediate import (
     SCHEMA_VERSION, generate_item_chunks, generate_previous_chunks, normalize_project,
     parse_model,
 )
+
+
+_ANY_PROJECT = object()
 
 
 def copy_legacy_extras(content: dict) -> dict:
@@ -464,8 +469,9 @@ class CacheManager(ConfigMixin, LogMixin):
 
     def load_from_project(self, data: CacheProject):
         """直接从内存中的 CacheProject 对象加载项目。"""
-        self._ensure_project_metadata(data)
-        self.project = normalize_project(data)
+        with self.file_lock:
+            self._ensure_project_metadata(data)
+            self.project = normalize_project(data)
 
     def load_from_project_id(self, project_id: str) -> None:
         """根据 project_id 从新的 ProjectCache 目录加载项目。"""
@@ -724,9 +730,32 @@ class CacheManager(ConfigMixin, LogMixin):
             else:
                 item_to_update.translation_status = translation_status
 
-    def search_items(self, query: str, scope: str, is_regex: bool, search_flagged: bool) -> list:
-        """在整个项目缓存中搜索条目。"""
+    def _query_project_locked(self, expected_project_id):
+        project = self.project
+        current_id = project.project_id if project else None
+        if expected_project_id is not _ANY_PROJECT and expected_project_id != current_id:
+            raise PipelineError("PROJECT_CHANGED", "项目已切换，请刷新后重试", 409)
+        return project
+
+    def search_items(self, query: str, scope: str, is_regex: bool, search_flagged: bool,
+                     *, expected_project_id=_ANY_PROJECT) -> list:
+        """Search only the project whose identity was checked under the lock."""
+        with self.file_lock:
+            project = self._query_project_locked(expected_project_id)
+            return self._search_items_locked(project, query, scope, is_regex, search_flagged)
+
+    def search_items_snapshot(self, query: str, scope: str, is_regex: bool, search_flagged: bool,
+                              *, expected_project_id=_ANY_PROJECT) -> dict:
+        """Return matching rows and their project as one consistent response."""
+        with self.file_lock:
+            project = self._query_project_locked(expected_project_id)
+            result = self._search_items_locked(project, query, scope, is_regex, search_flagged)
+            return {"result": to_wire(result), "project": to_wire(project) if project else None}
+
+    def _search_items_locked(self, project, query, scope, is_regex, search_flagged):
         results = []
+        if project is None:
+            return results
         fields_to_check = ["source_text", "translated_text"] if scope == "all" else [scope]
 
         try:
@@ -740,29 +769,28 @@ class CacheManager(ConfigMixin, LogMixin):
             self.error(f"无效的正则表达式: {error}")
             return []
 
-        with self.file_lock:
-            for file_path, cache_file in self.project.files.items():
-                for item_index, item in enumerate(cache_file.items):
-                    if search_flagged:
-                        # 仅返回被语言检查等流程标记过的条目
-                        is_item_flagged = False
-                        if item.extra:
-                            if scope in {"translated_text", "all"}:
-                                is_item_flagged = item.extra.get("language_mismatch_translation", False)
-                        if not is_item_flagged:
-                            continue
-
-                    if not query.strip():
-                        # 空查询仅在“只看标记项”时有意义
-                        if search_flagged:
-                            results.append((file_path, item_index + 1, item))
+        for file_path, cache_file in project.files.items():
+            for item_index, item in enumerate(cache_file.items):
+                if search_flagged:
+                    # 仅返回被语言检查等流程标记过的条目
+                    is_item_flagged = False
+                    if item.extra:
+                        if scope in {"translated_text", "all"}:
+                            is_item_flagged = item.extra.get("language_mismatch_translation", False)
+                    if not is_item_flagged:
                         continue
 
-                    for field_name in fields_to_check:
-                        text_to_check = getattr(item, field_name, None)
-                        if text_to_check and matcher(text_to_check):
-                            results.append((file_path, item_index + 1, item))
-                            break
+                if not query.strip():
+                    # 空查询仅在“只看标记项”时有意义
+                    if search_flagged:
+                        results.append((file_path, item_index + 1, item))
+                    continue
+
+                for field_name in fields_to_check:
+                    text_to_check = getattr(item, field_name, None)
+                    if text_to_check and matcher(text_to_check):
+                        results.append((file_path, item_index + 1, item))
+                        break
 
         return results
 

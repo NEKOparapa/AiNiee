@@ -2,11 +2,13 @@ import os
 import sys
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QSignalBlocker
 from PyQt5.QtCore import QTimer
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QColor
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QVBoxLayout
 
 from qfluentwidgets import ColorPickerButton
@@ -21,6 +23,7 @@ from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
 from Frontend.core.paths import user_log_dir
 from Frontend.core.log import LogMixin
+from Frontend.core.log_system import redact
 from Frontend.components.toast import ToastMixin
 from Frontend.components.cards.empty_card import EmptyCard
 from Frontend.components.cards.combo_box_card import ComboBoxCard
@@ -29,6 +32,7 @@ from Frontend.components.cards.switch_button_card import SwitchButtonCard
 from Frontend.components.segmented_control import SegmentedControl
 from Frontend.platform.file_dialogs import get_existing_directory, get_open_file_name
 from Frontend.platform.process import launch_desktop
+from Frontend.services.backend_client import BackendError
 
 class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
@@ -71,6 +75,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_accent_color(self.vbox, config)
         self.add_widget_backend_connection(self.vbox, config)
+        self.add_widget_mcp(self.vbox, config)
         # 填充
         self.vbox.addStretch(1)
 
@@ -146,6 +151,60 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             self.tra("当前连接地址；更换后端后需要重新启动桌面端。"),
             init=init_backend,
         ))
+
+    def add_widget_mcp(self, parent, config) -> None:
+        self._mcp_enabled = config.get("mcp_enable", True)
+
+        def checked_changed(widget, checked: bool) -> None:
+            try:
+                saved = self.save_config({"mcp_enable": checked})
+            except (BackendError, ValueError) as error:
+                with QSignalBlocker(widget.switch_button):
+                    widget.set_checked(self._mcp_enabled)
+                self.error_toast(self.tra("MCP 设置保存失败"), redact(str(error)))
+                return
+            self._mcp_enabled = saved.get("mcp_enable", checked)
+            with QSignalBlocker(widget.switch_button):
+                widget.set_checked(self._mcp_enabled)
+
+        self.mcp_switch_card = SwitchButtonCard(
+            self.tra("MCP 服务"),
+            self.tra("允许 MCP 客户端提交、查询和取消翻译任务。立即生效，关闭后已提交的任务继续执行。"),
+            init=lambda widget: widget.set_checked(self._mcp_enabled),
+            checked_changed=checked_changed,
+        )
+        self.mcp_switch_card.description_label.setWordWrap(True)
+        self.mcp_switch_card.container.setStretch(0, 1)
+        self.mcp_switch_card.container.setStretch(1, 0)
+        parent.addWidget(self.mcp_switch_card)
+
+        def copy_address() -> None:
+            QApplication.clipboard().setText(self.mcp_address_card.get_text())
+            self.success_toast("", self.tra("MCP 地址已复制"))
+
+        def init_address(widget) -> None:
+            address = self.config_backend().mcp_url
+            widget.set_text(address)
+            widget.set_fixed_width(280)
+            widget.line_edit.setReadOnly(True)
+            widget.line_edit.setClearButtonEnabled(False)
+            widget.line_edit.setCursorPosition(0)
+            widget.line_edit.setToolTip(address)
+            self.mcp_copy_button = PushButton(self.tra("复制地址"), self)
+            self.mcp_copy_button.setIcon(FluentIcon.COPY)
+            self.mcp_copy_button.clicked.connect(copy_address)
+            widget.add_spacing(8)
+            widget.add_widget(self.mcp_copy_button)
+
+        self.mcp_address_card = LineEditCard(
+            self.tra("MCP 连接地址"),
+            self.tra("客户端请选择 Streamable HTTP，地址随当前后端自动生成。"),
+            init=init_address,
+        )
+        self.mcp_address_card.description_label.setWordWrap(True)
+        self.mcp_address_card.hbox.setStretch(0, 1)
+        self.mcp_address_card.hbox.setStretch(1, 0)
+        parent.addWidget(self.mcp_address_card)
 
     # 全局缩放比例
     # 主题（跟随系统 / 浅色 / 深色，连体分段控件）

@@ -58,7 +58,7 @@ OCR 与生图流程分别保留预览；生图语言保存于 `project.extra.ima
 | `/api/v2/image/generate-pipeline` | `path`、`read_options`、`generation`、`output`、可选 `operation_id` | 串行全流程结果 |
 | `/api/v2/image/operations/{operation_id}/stop` | 无请求体 | 请求取消匹配的在途操作 |
 
-这些接口同步等待，与其他业务共用顶层互斥，忙碌时返回 `409 BACKEND_BUSY`。逐页串行处理，不创建并行 Job。启用鉴权时使用 `Authorization: Bearer <AINIEE_API_TOKEN>`。
+生图处理与图片读写接口作为 Job 进入 `image` 队列，同类按提交顺序执行，可与文档、音频任务同时运行。默认同步等待；发送 `Prefer: respond-async` 返回 `202 {job}` 和任务查询地址，详见 [任务队列](task_queues.md)。每个生图 Job 内仍逐页串行处理。停止接口直接处理，不等待队列；可用通用 `POST /api/jobs/{job_id}/cancel` 取消排队任务。启用鉴权时使用 `Authorization: Bearer <AINIEE_API_TOKEN>`。已提交的 `operation_id` 再次提交返回 `409 DUPLICATE_JOB_ID`，应查询原任务，不会自动合并为幂等重试。
 
 已在桌面配置生图接口后，可以这样调用：
 
@@ -127,4 +127,4 @@ with httpx.Client(base_url="http://127.0.0.1:3389", timeout=3600) as client:
 
 输出默认不覆盖已有文件，需显式 `overwrite=true` 才可覆盖目标。禁止覆盖源图与生成缓存。PNG 直接导出已验证的缓存图片；WebP 为无损编码，JPEG 会用白底处理透明区域。导出不再次生成，也不调用 OCR 擦字或字体排版。
 
-验证命令：`python Tests/run_all.py`。测试覆盖请求协议、无重复提交恢复、逐页停止、模型与预览保存、指定文字、配置隔离和桌面模式切换；自动测试使用模拟服务，不产生在线调用费用。
+队列、取消、配置隔离和桌面进度的回归命令见 [后端说明的验证部分](../README.md#验证)。这些测试使用模拟服务，不产生在线调用费用，不代表已经验证真实生图模型的输出效果。

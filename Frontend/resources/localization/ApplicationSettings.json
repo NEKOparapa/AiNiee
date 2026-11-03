@@ -6,6 +6,48 @@
       "English": "Application Settings",
       "日本語": "アプリ設定"
     },
+    "MCP 服务": {
+      "简中": "MCP 服务",
+      "繁中": "MCP 服務",
+      "English": "MCP Service",
+      "日本語": "MCP サービス"
+    },
+    "允许 MCP 客户端提交、查询和取消翻译任务。立即生效，关闭后已提交的任务继续执行。": {
+      "简中": "允许 MCP 客户端提交、查询和取消翻译任务。立即生效，关闭后已提交的任务继续执行。",
+      "繁中": "允許 MCP 用戶端提交、查詢及取消翻譯任務。立即生效，關閉後已提交的任務會繼續執行。",
+      "English": "Allow MCP clients to submit, query, and cancel translation tasks. Changes apply immediately; submitted tasks continue when disabled.",
+      "日本語": "MCP クライアントから翻訳タスクの送信・確認・キャンセルを許可します。変更はすぐに反映され、無効にしても送信済みのタスクは続行されます。"
+    },
+    "MCP 设置保存失败": {
+      "简中": "MCP 设置保存失败",
+      "繁中": "MCP 設定儲存失敗",
+      "English": "Failed to save MCP settings",
+      "日本語": "MCP 設定を保存できませんでした"
+    },
+    "MCP 连接地址": {
+      "简中": "MCP 连接地址",
+      "繁中": "MCP 連線位址",
+      "English": "MCP Connection URL",
+      "日本語": "MCP 接続アドレス"
+    },
+    "客户端请选择 Streamable HTTP，地址随当前后端自动生成。": {
+      "简中": "客户端请选择 Streamable HTTP，地址随当前后端自动生成。",
+      "繁中": "用戶端請選擇 Streamable HTTP，位址依目前的後端自動產生。",
+      "English": "Select Streamable HTTP in your client. The URL is generated from the current backend address.",
+      "日本語": "クライアントでは Streamable HTTP を選択してください。アドレスは現在のバックエンドから自動生成されます。"
+    },
+    "复制地址": {
+      "简中": "复制地址",
+      "繁中": "複製位址",
+      "English": "Copy URL",
+      "日本語": "アドレスをコピー"
+    },
+    "MCP 地址已复制": {
+      "简中": "MCP 地址已复制",
+      "繁中": "MCP 位址已複製",
+      "English": "MCP URL copied",
+      "日本語": "MCP アドレスをコピーしました"
+    },
     "主题": {
       "简中": "主题",
       "繁中": "主題",

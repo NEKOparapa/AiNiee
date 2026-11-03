@@ -1,6 +1,6 @@
 # 图片与漫画翻译接口
 
-图片复用中间模型 v2 和现有批量多线程翻译服务。桌面“接口管理 → OCR 接口”单独配置文字识别服务，与翻译和转录配置分开保存。首版接入百炼 Qwen-OCR 原生 DashScope HTTP API；桌面使用独立[图片预览工作区](media_workspaces.md)，不创建并行 Job。另有不经过 OCR 的[生图模型翻译流程](image_generation.md)。
+图片复用中间模型 v2 和现有批量多线程翻译服务。桌面“接口管理 → OCR 接口”单独配置文字识别服务，与翻译和转录配置分开保存。首版接入百炼 Qwen-OCR 原生 DashScope HTTP API；桌面使用独立[图片预览工作区](media_workspaces.md)，所有图片操作进入 `image` 队列，同类依次执行，可与文档、音频任务并行。另有不经过 OCR 的[生图模型翻译流程](image_generation.md)。
 
 OCR 及可选原文复核结束后，自动通过本地语言检测器补齐文字条目的 `lang_code` 和文件语言统计，再返回并保存结果；复用的 OCR 结果也会补齐缺失信息。此步骤不调用在线接口。检测失败时保留文字、坐标和用量，报告 `operation_errors` 并停止后续自动翻译；翻译入口仍兼容缺少语言信息的旧模型。
 
@@ -32,7 +32,7 @@ OCR 接口页管理连接名称、地址、密钥、协议、模型和超时；�
 | `/api/v2/write/image` | `model`、`options` | `status/model/files/model_path/report` |
 | `/api/v2/image/translate` | `path/read_options/ocr/translation/output` | 图片、中间模型、分阶段报告 |
 
-这些同步接口与桌面共用顶层操作互斥，繁忙时返回 `409 BACKEND_BUSY`。逐页 OCR 串行执行，翻译保留现有线程池。不会切换桌面当前项目。网络断开不会自动取消在途的付费请求，调用方应等待结果并保存模型，不自动重发全流程。
+这些接口与桌面共用 `image` 队列，繁忙时排队，默认同步等待排队与执行完成。发送 `Prefer: respond-async` 可取得 `202 {job}`，再查询进度和完整结果，详见 [任务队列](task_queues.md)。逐页 OCR 串行执行，翻译保留现有线程池，各任务独立使用模型额度。不会切换桌面当前文档项目。网络断开不会取消任务，调用方应查询既有 job 并保存返回模型，不自动重发全流程。
 
 全流程示例：
 

@@ -536,13 +536,23 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             return
         identifier = owner.operation_id
         self._polling = True
-        worker = MediaWorker(lambda unused: self.client.backend.request("GET", "/api/status", timeout=3), self)
-        def show(status):
+        worker = MediaWorker(lambda unused: self.client.job(identifier), self)
+        def show(job):
             if self._worker is not owner or owner.operation_id != identifier or owner.cancelled.is_set():
                 return
-            if (status.get("operation") or {}).get("id") != identifier:
+            if job.get("id") != identifier:
                 return
-            progress = status.get("pipeline_progress", {})
+            if job.get("state") == "queued":
+                self._live_progress = {}
+                self._run_state = "排队中"
+                self._set_status(self.tra("正在排队，等待本类型的前序任务完成…"))
+                self._refresh_metrics()
+                return
+            if job.get("state") != "running":
+                return
+            if self._run_state == "排队中":
+                self._stage_changed(self._active_stage)
+            progress = job.get("progress", {})
             if (not self.workspace or progress.get("workspace_id") != self.workspace["workspace_id"]
                     or progress.get("stage") != self._active_stage):
                 return
@@ -813,7 +823,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                         states[key] = {**states[key], "status": self.tra("等待执行")}
             if self._active_stage in states:
                 states[self._active_stage] = {**states[self._active_stage],
-                                             "status": self.tra("停止中" if self._worker.cancelled.is_set() else "处理中"),
+                                             "status": self.tra("停止中" if self._worker.cancelled.is_set()
+                                                                else "排队中" if self._run_state == "排队中" else "处理中"),
                                              "active": True}
         self.workflow_selector.set_states(states)
 

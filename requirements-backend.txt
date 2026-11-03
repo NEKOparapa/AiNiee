@@ -2,6 +2,8 @@
 # System
 fastapi>=0.115,<1
 uvicorn[standard]>=0.30,<1
+# Official MCP SDK; Streamable HTTP mounts into the same backend and queues.
+mcp==2.3.0
 openai>=2.46.0
 boto3>=1.43.51
 anthropic>=0.117.0,<1

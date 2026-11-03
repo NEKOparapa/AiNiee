@@ -51,7 +51,7 @@ workspace = client.post(f"/api/v2/media/{workspace_id}/model", json={
 
 两个接口都使用已有 `Authorization: Bearer ...` 鉴权，仅访问工作区登记的文件，不接受任意文件路径。支持 HTTP byte ranges，音频播放器可跳转播放位置。源或预览文件被移动、修改时返回 `409 MEDIA_SOURCE_CHANGED`；尚无可用译图返回 `404 MEDIA_PREVIEW_NOT_READY`。原图保持原格式，客户端显示 JPEG 等格式时应启用 EXIF 方向处理。
 
-导入、公共模型保存、工作区处理与删除共用后端顶层业务互斥。有操作正在运行时，其他公共写操作返回 `409 BACKEND_BUSY`，防止旧快照覆盖结果或删除正在使用的文件。内部处理回调可逐批持久化，不受此公共接口限制。读取图片或音频本身不会调用在线 OCR、转录或翻译接口。
+导入、公共模型保存、工作区处理与删除按工作区类型进入 `image` 或 `audio` 队列。同类型按提交顺序执行，图片与音频可同时处理，也可与文档任务并行。公共保存记录入队时的工作区版本；如果等待期间工作区已更新，执行保存时返回 `409 MEDIA_WORKSPACE_CHANGED`，应重新加载并确认修改，避免旧模型覆盖新结果。内部处理回调在当前 Job 内逐批持久化，不再次入队。历史、模型与预览查询以及取消请求直接处理。读取图片或音频本身不会调用在线 OCR、转录或翻译接口。
 
 ## 删除工作区
 
@@ -77,9 +77,9 @@ workspace = client.post(f"/api/v2/media/{workspace_id}/model", json={
 
 图片的 `preview` / `export` 可通过 `options.mode` 指定 `ocr` 或 `generation`，省略时使用模型的 `extra.image_translation_mode`，默认 `ocr`。生图模式直接导出已生成图片；OCR 模式使用原有擦字排版。生图预览从受控生成缓存自动登记，校验路径、SHA256 与当前选项，切换模式保留各自预览。响应 `files[].generation_status` 提供每页生成状态；`stale` 表示配置或文本已变化，`unavailable` 表示产物缺失或不可用。
 
-该请求同步等待操作完成，不创建后台 job。响应为 `{status, workspace, report, files}`；`workspace` 含更新后的中间模型。识别、转录与翻译的可恢复结果会通过回调逐步保存。停止后再次执行对应阶段会复用模型中已完成的内容。
+该请求创建 Job，`job_id` 与传入的 `operation_id` 相同。默认同步等待排队与执行完成，响应仍为 `{status, workspace, report, files}`；`workspace` 含更新后的中间模型。发送 `Prefer: respond-async` 时返回 `202 {job}`，通过 `GET /api/jobs/{operation_id}` 查询结果。工作区导入、保存和删除同样支持此请求头，详见 [任务队列](task_queues.md)。重复提交已存在的 ID 返回 `409 DUPLICATE_JOB_ID`，不自动重复执行或复用响应。识别、转录与翻译的可恢复结果会通过回调逐步保存；用户重新提交阶段时，由该阶段的参数决定是否复用已完成内容。
 
-`POST /api/v2/media/operations/{operation_id}/stop` 只取消匹配的媒体调用，不能停止其他页面、其他调用 ID 或原有桌面翻译任务。停止请求仅表示已发出协作取消信号，调用方仍需等待在途请求返回并处理最终模型。
+`POST /api/v2/media/operations/{operation_id}/stop` 按指定 ID 取消模型接口调用，不能停止原有桌面文档任务。也可用通用 `POST /api/jobs/{job_id}/cancel` 精确取消指定 Job。排队中的任务直接取消；已运行任务先进入 `cancelling`，调用方仍需等待在途请求返回、保存并处理最终模型，该类型的后续任务随后才开始。
 
 当磁盘保存失败时，响应仍保留最新内存模型与已有用量报告，但 `workspace.persisted=false`、`model_path=null`，并在 `report.operation_errors` 返回 `MEDIA_CHECKPOINT_FAILED`。客户端应保留该模型，提示未保存，并重试保存；不能将旧磁盘路径显示为已保存的最新结果。不要因断线或保存错误自动重发整个付费流程。
 
@@ -91,10 +91,10 @@ workspace = client.post(f"/api/v2/media/{workspace_id}/model", json={
 
 翻译页按箭头连接的步骤卡选择本次操作，卡片不另设底部计数。音频步骤为转录、翻译；图片 OCR 步骤为识别、翻译、回填。可单独执行或组合执行，缺少必要前置结果时提示补选，不会隐式增加付费步骤。桌面每次执行均明确重新处理勾选步骤：识别传 `reocr=true` 或 `retranscribe=true`，翻译传 `retranslate=true`，生图传 `regenerate=true`；已完成内容也会重新处理，界面不再设置单独的重译开关。后端/API 仍支持这些覆盖项及默认的结果复用语义。
 
-步骤按固定顺序执行，每步保存后再继续；部分完成可沿用有效结果，失败、停止或保存失败时不再启动后续步骤。翻译仍使用原有线程池，两页不会并行启动多个顶层任务。停止会等待在途请求结束并保存有效结果。完成后不自动导出，点击顶部“导出结果”并选择目录时读取最新任务设置；支持 PNG/JPEG/WebP 和 SRT/VTT/ASS/LRC，音频支持原文、译文和双语。
+步骤按固定顺序执行，每步保存后再继续；部分完成可沿用有效结果，失败、停止或保存失败时不再启动后续步骤。每页仍只发起一个当前流程，图片页、音频页与文档页可以同时处理。媒体页通过具体 job ID 查询进度；排队时提示等待本类型前序任务，运行后显示对应阶段进度，不使用 `/api/status` 中文档队列的单一 `operation`。翻译内部保留线程池，各任务独立使用额度。停止会等待在途请求结束并保存有效结果。完成后不自动导出，点击顶部“导出结果”并选择目录时读取最新任务设置；支持 PNG/JPEG/WebP 和 SRT/VTT/ASS/LRC，音频支持原文、译文和双语。
 
 图片页的“生图直译”使用独立生图接口，桌面固定请求 `text_mode=direct`，不展示文字模式切换或补充要求输入。OCR 与生图流程保留各自预览。后端/API 仍支持 `text_mode=specified`、`replacements`、`prompt` 等参数，详见[生图流程](image_generation.md)。
 
 远程后端需要能访问所选路径。预览通过鉴权资源接口读取；在 Windows 上，带鉴权的音频先由 Qt 网络层下载到临时文件后播放，以避免系统媒体后端丢失鉴权头。切换文件或退出会清理临时文件。
 
-验证命令：`python Tests/run_all.py`。后端与桌面测试分进程执行，与正式应用结构一致，避免 Windows 下 QtMultimedia 与 ONNX Runtime 同进程加载时的 DLL 初始化冲突。
+队列接口与桌面进度的验证命令见 [后端说明的验证部分](../README.md#验证)。后端与桌面测试分进程执行，与正式应用结构一致，避免 Windows 下 QtMultimedia 与 ONNX Runtime 同进程加载时的 DLL 初始化冲突。
