@@ -1,4 +1,4 @@
-"""Persistent job records and three independent, serial project queues.
+"""Persistent job records and four independent, serial project queues.
 
 Only task results and public metadata are persisted. Callables, credentials and
 configuration snapshots stay in memory; unfinished work is marked interrupted
@@ -23,7 +23,7 @@ from Backend.core.log_system import redact
 from Backend.core.protocol import to_wire
 
 
-LANES = ("document", "image", "audio")
+LANES = ("document", "image", "audio", "video")
 TERMINAL_STATES = frozenset(("succeeded", "partial", "failed", "cancelled", "interrupted"))
 
 
@@ -130,7 +130,7 @@ class JobScheduler:
     @staticmethod
     def _validate_lane(lane):
         if lane not in LANES:
-            raise PipelineError("INVALID_JOB_LANE", "任务队列只能是 document、image 或 audio", 400)
+            raise PipelineError("INVALID_JOB_LANE", "任务队列只能是 document、image、audio 或 video", 400)
 
     def _ensure_open(self):
         if self._closed:

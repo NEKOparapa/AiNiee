@@ -9,7 +9,7 @@ from pydantic import ValidationError, create_model
 from starlette.concurrency import run_in_threadpool
 
 from Backend.api.mcp_schemas import (
-    DocumentTranslationRequest, MCPAudioTranslationRequest, MCPImageGenerationRequest,
+    DocumentTranslationRequest, MCPAudioTranslationRequest, MCPImageGenerationRequest, MCPVideoTranslationRequest,
     MCPJobListQuery, MCPJobQuery,
 )
 from Backend.api.schemas import RequestModel
@@ -43,6 +43,7 @@ def create_mcp_server(runtime):
             ("submit_document_translation", DocumentTranslationRequest),
             ("submit_image_generation", MCPImageGenerationRequest),
             ("submit_audio_translation", MCPAudioTranslationRequest),
+            ("submit_video_translation", MCPVideoTranslationRequest),
         )
     }
     schemas.update(get_job=MCPJobQuery, list_jobs=MCPJobListQuery,
@@ -68,10 +69,10 @@ def create_mcp_server(runtime):
     server = MCPServer(
         "AiNiee", title="AiNiee Translation", version="1.0.0",
         instructions=(
-            "Translate documents (including PDF), images and audio using AiNiee. "
+            "Translate documents (including PDF), images, audio and video speech using AiNiee. "
             "Submissions return a job ID immediately. Poll get_job, use include_result=true "
             "only when retrieving the completed model/files, and use cancel_job to stop. "
-            "Document/image/audio queues are shared with REST and desktop: each runs one job. "
+            "Document/image/audio/video queues are shared with REST and desktop: each runs one job. "
             "Paths are on the backend machine. Models/providers inherit its saved settings; "
             "prefer provider_id over supplying credentials. Jobs may call paid providers and "
             "write output files. A disconnected MCP client does not stop a submitted job. "
@@ -127,6 +128,15 @@ def create_mcp_server(runtime):
         """
         return await invoke(service.submit_audio, "job", request.model_dump(exclude_unset=True))
 
+    @server.tool(title="提交视频翻译", annotations=submit_hints)
+    async def submit_video_translation(request: MCPVideoTranslationRequest) -> CallToolResult:
+        """Queue video read → default audio track extraction → transcription → translation → subtitles.
+
+        Supply backend-local path and output.output_dir. Uses saved video task settings,
+        shared ASR/translation providers and the independent video queue. No frame OCR or dubbing.
+        """
+        return await invoke(service.submit_video, "job", request.model_dump(exclude_unset=True))
+
     @server.tool(title="查询任务进度与结果", annotations=query_hints)
     async def get_job(job_id: str, include_result: bool = False) -> CallToolResult:
         """Get state/progress/error immediately. Set include_result=true to fetch the model/files.
@@ -137,7 +147,7 @@ def create_mcp_server(runtime):
         return await invoke(service.get_job, "job", job_id, include_result=include_result)
 
     @server.tool(title="查询任务列表", annotations=query_hints)
-    async def list_jobs(lane: Literal["document", "image", "audio"] | None = None,
+    async def list_jobs(lane: Literal["document", "image", "audio", "video"] | None = None,
                         limit: int = 50) -> CallToolResult:
         """List the latest shared REST, desktop and MCP jobs without large results (limit 1–200)."""
         return await invoke(service.list_jobs, "jobs", lane=lane, limit=limit)
@@ -151,9 +161,9 @@ def create_mcp_server(runtime):
         """
         return await invoke(service.cancel_job, "job", job_id)
 
-    @server.tool(title="查询三类队列", annotations=query_hints)
+    @server.tool(title="查询任务队列", annotations=query_hints)
     async def get_queues() -> CallToolResult:
-        """Get running and queued jobs for document, image and audio without entering a queue."""
+        """Get running and queued jobs for document, image, audio and video without entering a queue."""
         return await invoke(service.get_queues, "queues")
 
     return server

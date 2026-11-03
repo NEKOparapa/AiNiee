@@ -14,7 +14,7 @@ from Backend.domain.models.intermediate import IntermediateModel
 
 
 class MediaImportRequest(RequestModel):
-    kind: Literal["image", "audio"]
+    kind: Literal["image", "audio", "video"]
     paths: list[str] = Field(min_length=1, max_length=100)
     exclude_rule: str = ""
     operation_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{16,80}$")
@@ -22,6 +22,10 @@ class MediaImportRequest(RequestModel):
 
 class MediaSaveRequest(RequestModel):
     model: IntermediateModel
+
+
+class VideoPreviewRequest(RequestModel):
+    operation_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{16,80}$")
 
 
 def create_media_router(runtime, authorized):
@@ -35,7 +39,7 @@ def create_media_router(runtime, authorized):
             operation_id=body.operation_id)
 
     @router.get("")
-    def history(kind: Literal["image", "audio"] | None = None, limit: int = Query(default=20, ge=1, le=100)):
+    def history(kind: Literal["image", "audio", "video"] | None = None, limit: int = Query(default=20, ge=1, le=100)):
         return {"workspaces": store.history(kind, limit)}
 
     @router.get("/{workspace_id}")
@@ -65,9 +69,17 @@ def create_media_router(runtime, authorized):
         return await run_queued(runtime, f"media/{workspace_id}/delete", action, lane=lane,
                           prefer=prefer, project_id=workspace_id)
 
+    @router.post("/{workspace_id}/files/{file_id}/video-preview")
+    async def video_preview(workspace_id: str, file_id: str, body: VideoPreviewRequest,
+                            prefer: str | None = Header(default=None)):
+        lane = await run_in_threadpool(media_lane, store, workspace_id)
+        return await run_queued(runtime, f"media/{workspace_id}/video-preview",
+                                lambda context: store.prepare_video_preview(workspace_id, file_id, context),
+                                lane=lane, prefer=prefer, project_id=workspace_id, operation_id=body.operation_id)
+
     @router.get("/{workspace_id}/files/{file_id}/{variant}")
     @router.head("/{workspace_id}/files/{file_id}/{variant}")
-    def preview(workspace_id: str, file_id: str, variant: Literal["source", "translated"]):
+    def preview(workspace_id: str, file_id: str, variant: Literal["source", "translated", "preview"]):
         path = store.asset(workspace_id, file_id, variant)
         # Starlette's FileResponse handles byte ranges and HEAD for QMediaPlayer.
         return FileResponse(path, filename=path.name, content_disposition_type="inline", headers={"Cache-Control": "no-cache"})

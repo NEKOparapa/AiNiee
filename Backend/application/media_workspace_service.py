@@ -18,6 +18,7 @@ from Backend.core.protocol import to_wire
 from Backend.domain.models.cache_project import CacheProject
 from Backend.domain.models.intermediate import normalize_project, parse_model
 from Backend.infrastructure.files.audio_probe import AUDIO_EXTENSIONS
+from Backend.infrastructure.files.video_probe import VIDEO_EXTENSIONS
 from Backend.infrastructure.files.pipeline_support import file_sha256
 from Backend.infrastructure.images.source import IMAGE_EXTENSIONS
 
@@ -250,6 +251,8 @@ class MediaWorkspaceStore:
             base = f"/api/v2/media/{document['workspace_id']}/files/{file['file_id']}"
             entry = {"file_id": file["file_id"], "storage_path": storage_path,
                      "source_url": base + "/source", "translated_url": base + "/translated" if preview else None}
+            if document["kind"] == "video":
+                entry["preview_url"] = base + "/preview" if file["file_id"] in document.get("video_previews", {}) else None
             if document["kind"] == "image":
                 state = file.get("extra", {}).get("image_generation", {})
                 state = state if isinstance(state, dict) else {}
@@ -278,6 +281,11 @@ class MediaWorkspaceStore:
                 directory = self._directory(workspace_id)
                 generation_root = project_cache_root().resolve() / "ImageGeneration"
                 generation_directory = generation_root / workspace_id
+                from Backend.infrastructure.transcription.video_audio import video_cache_root
+                video_root = video_cache_root()
+                video_directory = video_root / workspace_id
+                if directory.is_relative_to(video_directory) or video_directory.is_relative_to(directory):
+                    raise PipelineError("MEDIA_WORKSPACE_DELETE_UNSAFE", "工作区与视频缓存目录重叠，无法安全删除", 409)
                 if directory.is_relative_to(generation_directory) or generation_directory.is_relative_to(directory):
                     raise PipelineError("MEDIA_WORKSPACE_DELETE_UNSAFE", "工作区与生图缓存目录重叠，无法安全删除", 409)
                 workspace_plan, workspace_ids = _delete_plan(self.root, directory, workspace_id)
@@ -286,6 +294,7 @@ class MediaWorkspaceStore:
                         or document["model"].get("project_id") != workspace_id):
                     raise PipelineError("MEDIA_WORKSPACE_INVALID", "媒体工作区项目标识不匹配", 409)
                 generation_plan, generation_ids = _delete_plan(generation_root, generation_directory, workspace_id)
+                video_plan, video_ids = _delete_plan(video_root, video_directory, workspace_id)
             except (OSError, RuntimeError) as error:
                 raise PipelineError("MEDIA_WORKSPACE_DELETE_FAILED", "无法检查项目目录，请关闭占用文件后重试", 500) from error
 
@@ -295,6 +304,7 @@ class MediaWorkspaceStore:
             workspace_plan = [(path, is_dir) for path, is_dir in workspace_plan
                               if path not in (manifest, directory)] + [(manifest, False), (directory, True)]
             plans = [("image_generation_cache", generation_root, generation_plan, generation_ids),
+                     ("video_audio_cache", video_root, video_plan, video_ids),
                      ("workspace", self.root, workspace_plan, workspace_ids)]
             completed, removed = [], 0
             manifest_removed = False
@@ -327,14 +337,15 @@ class MediaWorkspaceStore:
     def import_media(self, kind, paths, exclude_rule="", context=None):
         from Backend.application.execution_context import ExecutionContext
         context = context or ExecutionContext()
-        if kind not in ("image", "audio") or not isinstance(paths, list) or not 1 <= len(paths) <= 100:
-            raise PipelineError("MEDIA_INVALID_INPUT", "请选择图片或音频，以及 1 至 100 个输入路径", 422)
+        if kind not in ("image", "audio", "video") or not isinstance(paths, list) or not 1 <= len(paths) <= 100:
+            raise PipelineError("MEDIA_INVALID_INPUT", "请选择图片、音频或视频，以及 1 至 100 个输入路径", 422)
         if not isinstance(exclude_rule, str):
             raise PipelineError("MEDIA_INVALID_INPUT", "排除规则必须是字符串", 422)
         from Backend.application.image_read_service import read_image
         from Backend.application.audio_read_service import read_audio
-        reader = read_image if kind == "image" else read_audio
-        extensions = IMAGE_EXTENSIONS if kind == "image" else AUDIO_EXTENSIONS
+        from Backend.application.video_read_service import read_video
+        reader = {"image": read_image, "audio": read_audio, "video": read_video}[kind]
+        extensions = {"image": IMAGE_EXTENSIONS, "audio": AUDIO_EXTENSIONS, "video": VIDEO_EXTENSIONS}[kind]
         workspace_id = uuid.uuid4().hex
         directory = self._directory(workspace_id)
         directory.mkdir(parents=True, exist_ok=False)
@@ -359,7 +370,7 @@ class MediaWorkspaceStore:
                     if is_archive:
                         target = directory / "imports" / str(ordinal)
                         _extract_archive(source, target, extensions)
-                    result = (reader(target, {"exclude_rule": exclude_rule}, context=context) if kind == "image"
+                    result = (reader(target, {"exclude_rule": exclude_rule}, context=context) if kind in ("image", "video")
                               else reader(target, {"exclude_rule": exclude_rule}))
                     if not project.project_name:
                         project.project_name = source.stem if len(paths) == 1 else f"{len(paths)} 个媒体输入"
@@ -454,6 +465,9 @@ class MediaWorkspaceStore:
                         or file["source_ref"]["path"] != registered["path"]
                         or file["source_ref"]["sha256"] != registered["sha256"]):
                     raise PipelineError("MEDIA_MODEL_MISMATCH", "工作区源文件引用不能被修改", 409)
+                if (document["kind"] == "video"
+                        and file["media_metadata"] != document["model"]["files"][name]["media_metadata"]):
+                    raise PipelineError("MEDIA_MODEL_MISMATCH", "视频音轨和时间轴不能被修改，请重新导入", 409)
             # Canonical generation artifacts already live in a controlled cache.
             # Register each completed page during checkpoints, independent of the
             # other processing and without copying or re-generating the image.
@@ -495,6 +509,26 @@ class MediaWorkspaceStore:
             self._commit(directory, document)
             return self._response(directory, document)
 
+    def prepare_video_preview(self, workspace_id, file_id, context=None):
+        from Backend.infrastructure.transcription.video_audio import prepare_video_preview
+        with self.lock:
+            directory, document = self._read(workspace_id)
+            if document["kind"] != "video":
+                raise PipelineError("INVALID_MEDIA_KIND", "此预览仅支持视频项目", 422)
+            project = parse_model(document["model"])
+            file = next((f for f in project.files.values() if f.file_id == file_id), None)
+            if file is None:
+                raise PipelineError("MEDIA_ASSET_NOT_FOUND", "视频文件不存在", 404)
+        artifact = prepare_video_preview(workspace_id, file, context)
+        path = Path(artifact["source_ref"]["path"])
+        with self.lock:
+            directory, document = self._read(workspace_id)
+            document.setdefault("video_previews", {})[file_id] = {
+                **artifact["source_ref"], "stamp": _stamp(path),
+            }
+            self._commit(directory, document)
+        return {"url": f"/api/v2/media/{workspace_id}/files/{file_id}/preview"}
+
     def asset(self, workspace_id, file_id, variant="source"):
         with self.lock:
             directory, document = self._read(workspace_id)
@@ -506,6 +540,12 @@ class MediaWorkspaceStore:
                 registered = _selected_preview(document, file)
                 if not registered:
                     raise PipelineError("MEDIA_PREVIEW_NOT_READY", "译图尚未生成或内容已更新，请重新生成", 404)
+            elif variant == "preview" and document["kind"] == "video":
+                registered = document.get("video_previews", {}).get(file_id)
+                if not registered:
+                    raise PipelineError("MEDIA_PREVIEW_NOT_READY", "视频预览尚未准备完成", 404)
+                # A derivative cannot conceal that the original has changed.
+                self.asset(workspace_id, file_id, "source")
             elif variant != "source":
                 raise PipelineError("MEDIA_ASSET_NOT_FOUND", "媒体预览类型不存在", 404)
             try:
@@ -517,12 +557,16 @@ class MediaWorkspaceStore:
                     allowed = _generation_root(document["model"], file)
                     if not path.is_relative_to(allowed):
                         raise ValueError("preview escaped workspace")
+                if variant == "preview":
+                    from Backend.infrastructure.transcription.video_audio import video_cache_directory
+                    if not path.is_relative_to(video_cache_directory(workspace_id, file_id)):
+                        raise ValueError("video preview escaped project")
             except (OSError, ValueError) as error:
                 raise PipelineError("MEDIA_SOURCE_CHANGED", "媒体文件已移动或改变，请重新导入或生成预览", 409) from error
             return path
 
     def history(self, kind=None, limit=20):
-        if kind is not None and kind not in ("image", "audio"):
+        if kind is not None and kind not in ("image", "audio", "video"):
             raise PipelineError("MEDIA_INVALID_KIND", "媒体类型无效", 422)
         with self.lock:
             results = []

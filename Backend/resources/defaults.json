@@ -75,6 +75,20 @@
             }
         }
     },
+    "VideoTranslationSettingsPage": {
+        "video_translation_settings": {
+            "language_hints": [],
+            "speaker_diarization_enabled": false,
+            "chunk_duration_seconds": 240,
+            "chunk_overlap_seconds": 2,
+            "chunk_concurrency": 3,
+            "vad_threshold": 0.35,
+            "export": {
+                "format": "srt",
+                "mode": "bilingual"
+            }
+        }
+    },
     "ImageTranslationSettingsPage": {
         "image_translation_settings": {
             "generation": {

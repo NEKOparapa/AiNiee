@@ -11,7 +11,7 @@ def create_job_router(runtime, authorized):
 
     @router.get("/jobs")
     def list_jobs(limit: int = Query(default=50, ge=1, le=200),
-                  lane: Literal["document", "image", "audio"] | None = None):
+                  lane: Literal["document", "image", "audio", "video"] | None = None):
         return {"jobs": to_wire(runtime.scheduler.list(lane=lane, limit=limit))}
 
     @router.get("/jobs/{job_id}")

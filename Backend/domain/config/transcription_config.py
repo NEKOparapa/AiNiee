@@ -65,7 +65,16 @@ class TranscriptionConfig:
             "transcription_platforms": {DEFAULT_TRANSCRIPTION_PROVIDER_ID: copy.deepcopy(DEFAULT_TRANSCRIPTION_PLATFORM)},
             "active_transcription_platform": DEFAULT_TRANSCRIPTION_PROVIDER_ID,
             "audio_translation_settings": {},
+            "video_translation_settings": {},
         }
+        from Backend.core.config import get_config_snapshot
+        snapshot = get_config_snapshot()
+        if snapshot is not None:
+            for key in result:
+                if key in snapshot:
+                    result[key] = copy.deepcopy(snapshot[key])
+            migrate_media_task_settings(result)
+            return result
         try:
             with ConfigStore.CONFIG_FILE_LOCK:
                 path = config_path()
@@ -90,7 +99,7 @@ class TranscriptionConfig:
         return result
 
 
-def resolve_transcription_config(config=None) -> TranscriptionConfig:
+def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionConfig:
     explicit_hints = isinstance(config, dict) and "language_hints" in config
     if isinstance(config, TranscriptionConfig):
         # Validate manually constructed objects as rigorously as API overrides.
@@ -117,7 +126,7 @@ def resolve_transcription_config(config=None) -> TranscriptionConfig:
         # Saved timeouts are retired; only an explicit per-call override may change the default.
         values.update({key: copy.deepcopy(value) for key, value in platform.items()
                        if key in values and key not in {"provider_id", "request_timeout"}})
-        task_settings = snapshot.get("audio_translation_settings")
+        task_settings = snapshot.get(f"{kind}_translation_settings")
         if not isinstance(task_settings, dict):
             raise PipelineError("ASR_CONFIG_ERROR", "音译设置必须为对象", 400)
         values.update({key: copy.deepcopy(value) for key, value in task_settings.items()

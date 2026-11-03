@@ -30,13 +30,14 @@ from Frontend.platform.macos import about_message, app_menu_title, command_short
 from Frontend.pages.providers.platform_page import PlatformPage
 from Frontend.pages.providers.transcription_page import TranscriptionPage
 from Frontend.pages.providers.image_generation_page import ImageGenerationPage
-from Frontend.pages.media.workspace_page import ImageTranslationPage, AudioTranslationPage
+from Frontend.pages.media.workspace_page import ImageTranslationPage, AudioTranslationPage, VideoTranslationPage
 from Frontend.pages.prompts.extraction.extraction_prompt_page import ExtractionPromptPage
 from Frontend.pages.prompts.image_translation_prompt_page import ImageTranslationPromptPage
 from Frontend.pages.logs.log_view_page import LogViewPage
 from Frontend.pages.settings.advanced_settings_page import AdvancedSettingsPage
 from Frontend.pages.settings.app_settings_page import AppSettingsPage
 from Frontend.pages.settings.audio_translation_settings_page import AudioTranslationSettingsPage
+from Frontend.pages.settings.video_translation_settings_page import VideoTranslationSettingsPage
 from Frontend.pages.settings.image_translation_settings_page import ImageTranslationSettingsPage
 from Frontend.pages.settings.output_settings_page import OutputSettingsPage
 from Frontend.pages.settings.task_settings_page import TaskSettingsPage
@@ -376,9 +377,11 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.addSubInterface(self.edit_view_page, FluentIcon.FONT_SIZE, self.tra("文本翻译"), NavigationItemPosition.SCROLL)
         self.image_translation_page = ImageTranslationPage(parent=self)
         self.audio_translation_page = AudioTranslationPage(parent=self)
-        self.media_pages = (self.image_translation_page, self.audio_translation_page)
+        self.video_translation_page = VideoTranslationPage(parent=self)
+        self.media_pages = (self.image_translation_page, self.audio_translation_page, self.video_translation_page)
         self.addSubInterface(self.image_translation_page, FluentIcon.PHOTO, self.tra("图片翻译"), NavigationItemPosition.SCROLL)
         self.addSubInterface(self.audio_translation_page, FluentIcon.MUSIC, self.tra("音频翻译"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.video_translation_page, FluentIcon.VIDEO, self.tra("视频翻译"), NavigationItemPosition.SCROLL)
 
     # 添加任务设置
     def add_task_setting_pages(self) -> None:
@@ -415,6 +418,9 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             self.audio_translation_settings_page, FluentIcon.MICROPHONE,
             self.tra("音译设置"), NavigationItemPosition.SCROLL,
         )
+        self.video_translation_settings_page = VideoTranslationSettingsPage("video_translation_settings_page", self)
+        self.addSubInterface(self.video_translation_settings_page, FluentIcon.VIDEO,
+                             self.tra("视译设置"), NavigationItemPosition.SCROLL)
         self.add_image_translation_setting_pages()
 
     def add_image_translation_setting_pages(self) -> None:

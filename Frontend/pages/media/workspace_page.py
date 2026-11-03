@@ -110,6 +110,12 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                        and (self.kind == "image"
                             or self.workflow_stack.currentWidget() is self.translation_page))
         self.status_label.setVisible(bool(self._status_message) and not hide_footer)
+        if self.kind == "video":
+            proofreading = (self.stack.currentWidget() is self.work_page
+                            and self.workflow_stack.currentWidget() is self.proofreading_page)
+            self.workflow_header.subtitle_table_button.setVisible(proofreading)
+            if not proofreading:
+                self.preview.set_subtitle_table_visible(False, animated=False)
 
     def _build_ui(self):
         outer = QVBoxLayout(self)
@@ -186,7 +192,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         body.addWidget(self.monitoring)
 
         self.workflow_selector = None
-        if self.kind == "audio":
+        if self.kind in ("audio", "video"):
             options_card = SimpleCardWidget(content)
             options_card.setBorderRadius(12)
             options = QVBoxLayout(options_card)
@@ -271,7 +277,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                                        else [self.tra("文件"), self.tra("已译/条目")])
         self.file_tree.setHeaderHidden(True)
         self.file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
-        if self.kind == "audio":
+        if self.kind in ("audio", "video"):
             self.file_tree.header().setSectionResizeMode(1, QHeaderView.Fixed)
             self.file_tree.setColumnWidth(1, 60)
             self.file_tree.setColumnHidden(1, True)
@@ -298,10 +304,15 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             self.preview_button.clicked.connect(lambda: self.preview.refresh_translated())
         else:
             from Frontend.pages.media.audio_preview import AudioPreview
-            self.preview = AudioPreview(editor_card)
+            from Frontend.pages.media.video_preview import VideoPreview
+            self.preview = VideoPreview(editor_card) if self.kind == "video" else AudioPreview(editor_card)
+            if self.kind == "video":
+                button = self.workflow_header.subtitle_table_button
+                button.toggled.connect(self.preview.set_subtitle_table_visible)
+                self.preview.subtitleTableVisibilityChanged.connect(button.setChecked)
             self.preview_button = TransparentPushButton(editor_card)
             self.preview_button.hide()
-        if self.kind == "audio":
+        if self.kind in ("audio", "video"):
             self.preview.translationEdited.connect(self._translation_edited)
         editor.addWidget(self.preview, 1)
         splitter.addWidget(sidebar)
@@ -377,7 +388,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             QTimer.singleShot(0, self._load_history)
 
     def _choose_files(self):
-        filter_ = "图片 (*.png *.jpg *.jpeg *.webp)" if self.kind == "image" else "音频 (*.mp3 *.wav *.flac *.m4a *.ogg *.aac *.opus)"
+        filter_ = {"image": "图片 (*.png *.jpg *.jpeg *.webp)",
+                   "audio": "音频 (*.mp3 *.wav *.flac *.m4a *.ogg *.aac *.opus)",
+                   "video": "视频 (*.mp4 *.mkv *.mov *.avi *.webm *.m4v *.wmv *.flv)"}[self.kind]
         paths, _ = QFileDialog.getOpenFileNames(self, self.tra("选择文件"), "", filter_)
         if paths:
             self.import_paths(paths)
@@ -398,7 +411,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                        self.save_button, self.translate_button,
                        self.preview_button, self.export_button, self.source_combo, self.target_combo):
             widget.setEnabled(not value)
-        if self.kind == "audio":
+        if self.kind in ("audio", "video"):
             self.preview.set_editable(not value)
         if self.workflow_selector is not None:
             self.workflow_selector.set_busy(value)
@@ -492,6 +505,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._refresh_metrics()
 
     def _progress_message(self, progress):
+        if progress.get("operation") == "video_extract":
+            return self.tra("正在提取视频音轨…" if progress.get("state") != "completed" else "视频音轨已就绪，正在转录…")
         def counts(current_key, total_key):
             current, total = progress.get(current_key), progress.get(total_key)
             if (type(current) in (int, float) and type(total) in (int, float)
@@ -739,9 +754,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             return
         for file in self.workspace["model"]["files"].values():
             row = self._file_rows.get(file["file_id"])
-            if row and self.kind == "audio":
+            if row and self.kind in ("audio", "video"):
                 row.setText(1, self._file_progress(file))
-            if self.kind == "audio" and file["file_id"] == self._selected_id:
+            if self.kind in ("audio", "video") and file["file_id"] == self._selected_id:
                 items = file.get("items", [])
                 translated = sum(item.get("translation_status") in (1, 2)
                                  and bool(str(item.get("translated_text") or "").strip()) for item in items)
@@ -755,9 +770,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         for file in files:
             extra = file.get("extra", {})
             items = file.get("items", [])
-            recognition = extra.get("transcription", {}) if self.kind == "audio" else {}
+            recognition = extra.get("transcription", {}) if self.kind in ("audio", "video") else {}
             identified = recognition.get("status") == "complete"
-            if self.kind == "audio" and not extra.get("transcription_checkpoint"):
+            if self.kind in ("audio", "video") and not extra.get("transcription_checkpoint"):
                 identified = identified or any(str(item.get("source_text", "")).strip() for item in items)
             recognized += bool(identified)
             if generation:
@@ -838,11 +853,11 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             self.preview.set_file(file, source_url=source, translated_url=translated, headers=self.client.headers)
         else:
             self.preview.set_file(file, source_url=source, headers=self.client.headers)
-        if self.kind == "audio":
+        if self.kind in ("audio", "video"):
             self.preview.set_editable(not self.busy)
 
     def _translation_edited(self, identifier, text):
-        if self.kind != "audio" or self.busy or not self.workspace:
+        if self.kind not in ("audio", "video") or self.busy or not self.workspace:
             return
         for file in self.workspace["model"]["files"].values():
             for item in file["items"]:
@@ -903,7 +918,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         prepare = self._prepare_checkpoint()
         dirty = self._dirty
         def done(workspace):
-            if dirty and self.kind == "audio":
+            if dirty and self.kind in ("audio", "video"):
                 # Avoid rebuilding the audio table editor after an ordinary save.
                 self.workspace = copy.deepcopy(workspace)
                 self._dirty = not workspace.get("persisted", True)
@@ -944,8 +959,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             self.warning_toast(self.tra("缺少前置结果"), self.tra(hint))
             return
         workspace_id = self.workspace["workspace_id"]
-        recognition_config = {"retranscribe": True}
-        if self.kind == "audio" and "recognize" in stages:
+        states = workflow_states(self.workspace, self.kind, self._image_mode())
+        recognition_config = {"retranscribe": self.kind != "video" or states.get("recognize", {}).get("status") == "已完成"}
+        if self.kind in ("audio", "video") and "recognize" in stages:
             provider_config = self._audio_recognition_config()
             if provider_config is None:
                 return
@@ -953,6 +969,10 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         prepare = self._prepare_checkpoint()
         config = {"source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData(),
                   "retranslate": True}
+        if self.kind == "video":
+            previous_target = self.workspace["model"].get("translation_context", {}).get("target_language")
+            config["retranslate"] = (bool(previous_target and previous_target != config["target_language"])
+                                     or states.get("translate", {}).get("status") == "已完成")
         generation_config = {"source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData(),
                              "regenerate": True}
         export_options = copy.deepcopy(options or {})
@@ -1121,3 +1141,8 @@ class ImageTranslationPage(MediaWorkspacePage):
 class AudioTranslationPage(MediaWorkspacePage):
     def __init__(self, name="audio_translation_page", parent=None, backend=None):
         super().__init__(name, "audio", parent, backend)
+
+
+class VideoTranslationPage(MediaWorkspacePage):
+    def __init__(self, name="video_translation_page", parent=None, backend=None):
+        super().__init__(name, "video", parent, backend)

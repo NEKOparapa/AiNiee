@@ -32,14 +32,14 @@ def _has_checkpoint(file):
 
 def _recognized(file, kind):
     extra = _object(file.get("extra"))
-    if kind == "audio" and _has_checkpoint(file):
+    if kind in ("audio", "video") and _has_checkpoint(file):
         return False
     record = _object(extra.get("transcription"))
     source_hash = _object(file.get("source_ref")).get("sha256")
     complete = (record.get("status") == "complete" and _text(source_hash)
                 and record.get("source_sha256") == source_hash)
     # Older audio models can have usable segments without transcription metadata.
-    return complete or (kind == "audio" and any(_text(item.get("source_text")) for item in _items(file)))
+    return complete or (kind in ("audio", "video") and any(_text(item.get("source_text")) for item in _items(file)))
 
 
 def _empty_recognized(file, kind):

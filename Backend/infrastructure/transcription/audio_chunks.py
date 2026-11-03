@@ -4,13 +4,13 @@ from dataclasses import dataclass
 import math
 import os
 from pathlib import Path
-import shutil
 import subprocess
 from tempfile import TemporaryDirectory
 import time
 import wave
 
 from Backend.application.pipeline_common import PipelineError
+from Backend.core.media_tools import find_media_tool, missing_media_tool_message
 from Backend.infrastructure.transcription.vad import (
     FRAME_SAMPLES, MODEL_SHA256, MODEL_VERSION, SAMPLE_RATE, analyze_wave, check_cancelled,
 )
@@ -41,9 +41,9 @@ class PreparedAudio:
 
 def _normalize_audio(source, destination, context):
     check_cancelled(context)
-    executable = shutil.which("ffmpeg")
+    executable = find_media_tool("ffmpeg")
     if not executable:
-        raise PipelineError("FFMPEG_UNAVAILABLE", "长音频切片需要本机 ffmpeg；未自动安装依赖", 503)
+        raise PipelineError("FFMPEG_UNAVAILABLE", missing_media_tool_message("ffmpeg"), 503)
     command = [executable, "-hide_banner", "-v", "error", "-nostdin", "-y",
                "-protocol_whitelist", "file,pipe", "-i", str(source), "-map", "0:a:0",
                "-vn", "-sn", "-dn", "-map_metadata", "-1", "-ac", "1", "-ar", str(SAMPLE_RATE),
@@ -70,7 +70,7 @@ def _normalize_audio(source, destination, context):
                 detail = errors.read().decode("utf-8", errors="replace").strip()
             raise PipelineError("AUDIO_NORMALIZATION_FAILED", f"ffmpeg 无法解码音频: {detail or '未知错误'}")
     except FileNotFoundError as error:
-        raise PipelineError("FFMPEG_UNAVAILABLE", "ffmpeg 不可用，请检查本机安装和 PATH", 503) from error
+        raise PipelineError("FFMPEG_UNAVAILABLE", missing_media_tool_message("ffmpeg"), 503) from error
     except OSError as error:
         raise PipelineError("AUDIO_NORMALIZATION_FAILED", f"音频规范化失败: {error}") from error
     finally:

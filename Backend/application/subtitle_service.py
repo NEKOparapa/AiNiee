@@ -90,7 +90,7 @@ def _collect_cues(cache_file, options, report):
     for item in cache_file.items:
         locator = item.locator or {}
         start, end = locator.get("start_ms"), locator.get("end_ms")
-        if locator.get("kind") != "audio" or type(start) is not int or type(end) is not int or start < 0 or end <= start:
+        if locator.get("kind") not in ("audio", "video") or type(start) is not int or type(end) is not int or start < 0 or end <= start:
             raise PipelineError("INVALID_AUDIO_TIMESTAMPS", "字幕片段必须提供有效的 audio.start_ms/end_ms",
                                 details={"item_id": item.item_id})
         text, fallback = _cue_text(item, options, report["warnings"], cache_file.file_id)
@@ -199,7 +199,7 @@ def _plan_targets(project, options):
     source_paths = {os.path.normcase(str(Path(file.source_ref["path"]).expanduser().resolve()))
                     for file in project.files.values() if file.source_ref.get("path")}
     for cache_file in project.files.values():
-        if cache_file.media_type != "audio":
+        if cache_file.media_type not in ("audio", "video"):
             skipped.append({"file_id": cache_file.file_id, "path": cache_file.storage_path, "reason": "not_audio"})
             continue
         try:

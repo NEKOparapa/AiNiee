@@ -5,16 +5,19 @@ from qfluentwidgets import ComboBox, FluentIcon, SpinBox, SwitchButton
 from Frontend.core.media_task_config import (
     MEDIA_EXPORT_FORMATS, build_audio_translation_settings_update, normalize_audio_translation_settings,
     read_audio_translation_settings,
+    read_video_translation_settings, build_video_translation_settings_update,
 )
 from Frontend.pages.settings.media_settings_page import MediaSettingsPage
 
 
 class AudioTranslationSettingsPage(MediaSettingsPage):
-    def __init__(self, text, parent=None):
+    def __init__(self, text, parent=None, *, kind="audio"):
+        self.kind = kind
         super().__init__(text, parent)
 
     def _build_fields(self):
-        recognition = self._add_section("识别参数", FluentIcon.MICROPHONE, "设置说话人识别")
+        recognition = self._add_section("识别参数", FluentIcon.MICROPHONE,
+            "自动选择默认音轨，仅提取音频进行翻译。" if self.kind == "video" else "设置说话人识别")
         self.speaker_switch = SwitchButton(self.editor)
         recognition.add_field("说话人分离", self.speaker_switch,
                               "请求为不同说话人的内容添加区分标记。是否支持及返回效果取决于所选接口和音频语言。")
@@ -30,9 +33,10 @@ class AudioTranslationSettingsPage(MediaSettingsPage):
         audio.add_field("切片并发数", self.chunk_concurrency_spin,
                         "同时发送的转录请求数。遇到服务限流时可降低此值；已完成的切片可随中间模型继续使用。")
 
-        export = self._add_section("导出设置", FluentIcon.SHARE, "用于音频项目的字幕导出")
+        export = self._add_section("导出设置", FluentIcon.SHARE,
+                                  "用于视频项目的字幕导出" if self.kind == "video" else "用于音频项目的字幕导出")
         self.export_format_combo = ComboBox(self.editor)
-        for value in MEDIA_EXPORT_FORMATS["audio"]:
+        for value in MEDIA_EXPORT_FORMATS[self.kind]:
             self.export_format_combo.addItem(value.upper(), userData=value)
         export.add_field("字幕格式", self.export_format_combo)
         self.export_mode_combo = ComboBox(self.editor)
@@ -47,7 +51,8 @@ class AudioTranslationSettingsPage(MediaSettingsPage):
         self.export_mode_combo.currentIndexChanged.connect(self._schedule_save)
 
     def _read_settings(self, config):
-        return normalize_audio_translation_settings(read_audio_translation_settings(config))
+        reader = read_video_translation_settings if self.kind == "video" else read_audio_translation_settings
+        return normalize_audio_translation_settings(reader(config))
 
     def _load_fields(self, values):
         self.speaker_switch.setChecked(values["speaker_diarization_enabled"])
@@ -68,4 +73,5 @@ class AudioTranslationSettingsPage(MediaSettingsPage):
         }
 
     def _build_update(self, config, values):
-        return build_audio_translation_settings_update(config, values)
+        build = build_video_translation_settings_update if self.kind == "video" else build_audio_translation_settings_update
+        return build(config, values)

@@ -1,4 +1,4 @@
-"""Project services backed by three independent, serial task queues."""
+"""Project services backed by four independent, serial task queues."""
 import copy
 import logging
 import re
@@ -162,7 +162,7 @@ class Runtime(ConfigStore):
             model = model.to_dict()
         kinds = set()
         def category(value):
-            return value if value in ("image", "audio") else "document"
+            return value if value in ("image", "audio", "video") else "document"
         declared = str(model.get("project_type", "")).lower()
         if declared:
             kinds.add(category(declared))
@@ -177,7 +177,7 @@ class Runtime(ConfigStore):
                 if locator_kind:
                     kinds.add(category(locator_kind))
         if len(kinds) > 1:
-            raise PipelineError("MIXED_PROJECT_KINDS", "文档、图片、音频请分别创建项目后提交任务", 422)
+            raise PipelineError("MIXED_PROJECT_KINDS", "文档、图片、音频、视频请分别创建项目后提交任务", 422)
         return next(iter(kinds), "document")
 
     def run_job(self, name, action, *, lane="document", source="api", context=None,
@@ -214,7 +214,7 @@ class Runtime(ConfigStore):
 
     def status(self):
         queues = self._scheduler.lanes() if self._scheduler is not None else {
-            lane: {"running": None, "queued": []} for lane in ("document", "image", "audio")
+            lane: {"running": None, "queued": []} for lane in ("document", "image", "audio", "video")
         }
         document = queues["document"]
         operation = document["running"] or next(iter(document["queued"]), None)

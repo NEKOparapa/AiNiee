@@ -30,6 +30,33 @@ jobs:
         with:
           python-version: 3.12
 
+      - name: Cache bundled FFmpeg
+        id: ffmpeg-cache
+        uses: actions/cache@v4
+        with:
+          path: build/media-tools/windows-x86_64
+          key: ffmpeg-windows-x86_64-${{ hashFiles('Tools/ffmpeg-source.json', 'Tools/prepare_ffmpeg.py', 'Tools/scripts/build_ffmpeg.sh') }}
+
+      - name: Prepare verified FFmpeg source
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        run: python Tools/prepare_ffmpeg.py
+
+      - name: Install FFmpeg build toolchain
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: make diffutils mingw-w64-x86_64-gcc
+
+      - name: Build bundled FFmpeg and ffprobe
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        shell: msys2 {0}
+        run: bash Tools/scripts/build_ffmpeg.sh windows x86_64
+
+      - name: Verify media tools without system PATH
+        run: python Tools/ffmpeg_bundle.py
+
       - name: Install Requirements
         run: |
           python -m pip install --upgrade pip
@@ -83,6 +110,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Cache bundled FFmpeg
+        id: ffmpeg-cache
+        uses: actions/cache@v4
+        with:
+          path: build/media-tools/macos-${{ matrix.arch }}
+          key: ffmpeg-macos-${{ matrix.arch }}-${{ hashFiles('Tools/ffmpeg-source.json', 'Tools/prepare_ffmpeg.py', 'Tools/scripts/build_ffmpeg.sh') }}
+
+      - name: Build bundled FFmpeg and ffprobe
+        if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+        run: |
+          python Tools/prepare_ffmpeg.py
+          bash Tools/scripts/build_ffmpeg.sh macos "$AINIEE_MACOS_ARCH"
+
+      - name: Verify media tools without system PATH
+        run: python Tools/ffmpeg_bundle.py --target-arch "$AINIEE_MACOS_ARCH"
 
       - name: Install requirements
         run: |

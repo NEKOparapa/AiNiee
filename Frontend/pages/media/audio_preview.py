@@ -2,6 +2,7 @@
 from bisect import bisect_right
 import copy
 import math
+import os
 from pathlib import Path, PurePosixPath
 from tempfile import NamedTemporaryFile
 
@@ -114,6 +115,9 @@ class AudioPreview(QWidget, ConfigMixin):
     ``stop_playback`` pauses when leaving a page and retains its playhead.
     """
     translationEdited = pyqtSignal(str, str)
+    MEDIA_SUFFIXES = (".wav", ".mp3", ".m4a", ".aac", ".ogg", ".flac", ".opus", ".wma")
+    CACHE_PREFIX = "ainiee-audio-"
+    CACHE_SUFFIX = ".audio"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -151,8 +155,8 @@ class AudioPreview(QWidget, ConfigMixin):
         layout.setSpacing(6)
         self.timeline = SubtitleTimeline(self)
         self.timeline.seekRequested.connect(self.seek)
-        subtitle_panel = QWidget(self)
-        subtitle_layout = QVBoxLayout(subtitle_panel)
+        self.subtitle_panel = QWidget(self)
+        subtitle_layout = QVBoxLayout(self.subtitle_panel)
         subtitle_layout.setContentsMargins(0, 0, 0, 0)
         subtitle_layout.setSpacing(2)
         self.current_source = BodyLabel(self)
@@ -186,7 +190,7 @@ class AudioPreview(QWidget, ConfigMixin):
         self.table.itemChanged.connect(self._edit_translation)
         layout.addWidget(self.table, 1)
         layout.addWidget(self.timeline)
-        layout.addWidget(subtitle_panel)
+        layout.addWidget(self.subtitle_panel)
 
         self.status_label = CaptionLabel(self)
         self.status_label.setWordWrap(True)
@@ -219,7 +223,15 @@ class AudioPreview(QWidget, ConfigMixin):
     def _build_player(self):
         if QMediaPlayer is None:
             return
+        # Qt caches its multimedia provider when the first player is created.
+        # Audio is initialized before video in the main window, so choose the
+        # Windows built-in decoder here, not only in VideoPreview. Respect an
+        # explicitly configured provider and restore the process environment.
+        preference = "QT_MULTIMEDIA_PREFERRED_PLUGINS"
+        prefer_wmf = os.name == "nt" and preference not in os.environ
         try:
+            if prefer_wmf:
+                os.environ[preference] = "windowsmediafoundation"
             self.player = QMediaPlayer(self)
             self.player.setNotifyInterval(80)
             self.player.setVolume(self.volume_slider.value())
@@ -230,6 +242,9 @@ class AudioPreview(QWidget, ConfigMixin):
             self.player.error.connect(self._on_media_error)
         except (RuntimeError, OSError):
             self.player = None
+        finally:
+            if prefer_wmf:
+                os.environ.pop(preference, None)
 
     @staticmethod
     def _valid_segments(file):
@@ -243,7 +258,7 @@ class AudioPreview(QWidget, ConfigMixin):
                 invalid += 1
                 continue
             start, end = locator.get("start_ms"), locator.get("end_ms")
-            if (locator.get("kind") != "audio" or type(start) is not int or type(end) is not int
+            if (locator.get("kind") not in ("audio", "video") or type(start) is not int or type(end) is not int
                     or not 0 <= start < end or not isinstance(item.get("item_id"), str)):
                 invalid += 1
                 continue
@@ -343,10 +358,10 @@ class AudioPreview(QWidget, ConfigMixin):
 
     def _start_authenticated_download(self, request):
         suffix = PurePosixPath(str(self.file.get("storage_path", "")).replace("\\", "/")).suffix.lower()
-        if suffix not in (".wav", ".mp3", ".m4a", ".aac", ".ogg", ".flac", ".opus", ".wma"):
-            suffix = ".audio"
+        if suffix not in self.MEDIA_SUFFIXES:
+            suffix = self.CACHE_SUFFIX
         try:
-            temporary = NamedTemporaryFile(prefix="ainiee-audio-", suffix=suffix, delete=False)
+            temporary = NamedTemporaryFile(prefix=self.CACHE_PREFIX, suffix=suffix, delete=False)
         except OSError:
             self._playback_failed = True
             self._set_status(self.tra("无法创建音频预览缓存，请检查临时目录可用空间。"))

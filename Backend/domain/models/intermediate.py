@@ -78,7 +78,11 @@ class AudioLocator(ModelSchema):
         return self
 
 
-Locator = Annotated[DocumentLocator | PdfLocator | ImageLocator | AudioLocator, Field(discriminator="kind")]
+class VideoLocator(AudioLocator):
+    kind: Literal["video"] = "video"
+
+
+Locator = Annotated[DocumentLocator | PdfLocator | ImageLocator | AudioLocator | VideoLocator, Field(discriminator="kind")]
 
 
 class IntermediateItem(ModelSchema):
@@ -101,7 +105,7 @@ class IntermediateItem(ModelSchema):
 
 class IntermediateFile(ModelSchema):
     file_id: StrictStr = ""
-    media_type: Literal["", "document", "pdf", "image", "audio"] = ""
+    media_type: Literal["", "document", "pdf", "image", "audio", "video"] = ""
     source_ref: SourceReference = Field(default_factory=SourceReference)
     media_metadata: dict[str, JsonValue] = Field(default_factory=dict)
     storage_path: StrictStr = ""

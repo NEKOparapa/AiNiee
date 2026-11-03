@@ -2,7 +2,7 @@
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
-from qfluentwidgets import CardWidget, FluentIcon, SegmentedWidget, TransparentPushButton
+from qfluentwidgets import CardWidget, FluentIcon, SegmentedWidget, TransparentPushButton, TransparentTogglePushButton
 
 from Frontend.core.config import ConfigMixin
 
@@ -31,14 +31,19 @@ class MediaWorkflowHeader(CardWidget, ConfigMixin):
             side_layout.setSpacing(8)
 
         self.back_button = TransparentPushButton(FluentIcon.RETURN, self.tra("返回"), left)
+        self.subtitle_table_button = TransparentTogglePushButton(FluentIcon.MENU, self.tra("字幕"), right)
+        self.subtitle_table_button.setAccessibleName(self.tra("字幕"))
+        self.subtitle_table_button.setToolTip(self.tra("展开字幕表格并暂停播放；收起后保持暂停"))
+        self.subtitle_table_button.hide()
         self.save_button = TransparentPushButton(FluentIcon.SAVE, self.tra("保存"), right)
         self.export_button = TransparentPushButton(FluentIcon.SHARE, self.tra("导出结果"), right)
-        for button in (self.back_button, self.save_button, self.export_button):
+        for button in (self.back_button, self.subtitle_table_button, self.save_button, self.export_button):
             button.setFixedHeight(32)
 
         left_layout.addWidget(self.back_button, 0, Qt.AlignLeft)
         left_layout.addStretch(1)
         right_layout.addStretch(1)
+        right_layout.addWidget(self.subtitle_table_button)
         right_layout.addWidget(self.save_button)
         right_layout.addWidget(self.export_button)
 

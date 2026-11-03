@@ -3,11 +3,11 @@ import json
 import math
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import wave
 
 from Backend.application.pipeline_common import PipelineError
+from Backend.core.media_tools import find_media_tool, missing_media_tool_message
 
 
 AUDIO_EXTENSIONS = frozenset({
@@ -69,11 +69,11 @@ def _wave_metadata(path):
 def probe_audio(path: Path) -> dict:
     """Use ffprobe's first audio stream, falling back to stdlib for PCM WAV."""
     path = Path(path).resolve()
-    executable = shutil.which("ffprobe")
+    executable = find_media_tool("ffprobe")
     if not executable:
         if path.suffix.lower() in (".wav", ".wave"):
             return _wave_metadata(path)
-        raise PipelineError("AUDIO_PROBE_UNAVAILABLE", "读取该音频格式需要本机可用的 ffprobe；未自动安装依赖", 503)
+        raise PipelineError("AUDIO_PROBE_UNAVAILABLE", missing_media_tool_message("ffprobe"), 503)
     command = [
         executable, "-v", "error", "-select_streams", "a:0",
         "-show_entries", "format=duration,format_name,size:stream=codec_type,codec_name,sample_rate,channels,duration",
@@ -88,7 +88,7 @@ def probe_audio(path: Path) -> dict:
     except FileNotFoundError as error:
         if path.suffix.lower() in (".wav", ".wave"):
             return _wave_metadata(path)
-        raise PipelineError("AUDIO_PROBE_UNAVAILABLE", "ffprobe 不可用，请检查本机安装和 PATH", 503) from error
+        raise PipelineError("AUDIO_PROBE_UNAVAILABLE", missing_media_tool_message("ffprobe"), 503) from error
     except subprocess.TimeoutExpired as error:
         raise PipelineError("AUDIO_PROBE_TIMEOUT", "读取音频元数据超时", 408) from error
     except OSError as error:

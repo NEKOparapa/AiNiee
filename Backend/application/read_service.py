@@ -75,7 +75,7 @@ def _language_stats(cache_file):
     cache_file.lc_language_stats = [value for value in ordered if value[0] not in high_languages]
 
 
-def ensure_media_language_metadata(project, *, media_types=("audio", "image")):
+def ensure_media_language_metadata(project, *, media_types=("audio", "image", "video")):
     """Fill missing recognized-text language metadata without changing content or statuses.
 
     Unlike document readers, recognition creates items after the read stage.
@@ -85,7 +85,7 @@ def ensure_media_language_metadata(project, *, media_types=("audio", "image")):
     """
     pending = []
     for file in project.files.values():
-        if file.media_type not in ("audio", "image") or file.media_type not in media_types:
+        if file.media_type not in ("audio", "image", "video") or file.media_type not in media_types:
             continue
         text_items = [item for item in file.items if isinstance(item.source_text, str) and item.source_text.strip()]
         missing = [item for item in text_items if not item.lang_code]

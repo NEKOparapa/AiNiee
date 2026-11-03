@@ -1,0 +1,148 @@
+{
+  "VideoTranslationPage": {
+    "展开字幕表格并暂停播放；收起后保持暂停": {
+      "简中": "展开字幕表格并暂停播放；收起后保持暂停",
+      "繁中": "展開字幕表格並暫停播放；收起後保持暫停",
+      "English": "Open the subtitle table and pause playback; closing keeps playback paused",
+      "日本語": "字幕テーブルを開いて再生を一時停止します。閉じても再生は再開しません"
+    },
+    "视频翻译": {
+      "简中": "视频翻译",
+      "繁中": "影片翻譯",
+      "English": "Video Translation",
+      "日本語": "動画翻訳"
+    },
+    "视译设置": {
+      "简中": "视译设置",
+      "繁中": "視譯設定",
+      "English": "Video Translation Settings",
+      "日本語": "動画翻訳設定"
+    },
+    "将视频拖到这里": {
+      "简中": "将视频拖到这里",
+      "繁中": "將影片拖到這裡",
+      "English": "Drop videos here",
+      "日本語": "動画をここにドロップ"
+    },
+    "选择视频": {
+      "简中": "选择视频",
+      "繁中": "選擇影片",
+      "English": "Select videos",
+      "日本語": "動画を選択"
+    },
+    "用于视频项目的字幕导出": {
+      "简中": "用于视频项目的字幕导出",
+      "繁中": "用於影片專案的字幕匯出",
+      "English": "Subtitle export for video projects",
+      "日本語": "動画プロジェクトの字幕書き出し"
+    },
+    "自动选择默认音轨，仅提取音频进行翻译。": {
+      "简中": "自动选择默认音轨，仅提取音频进行翻译。",
+      "繁中": "自動選擇預設音軌，僅擷取音訊進行翻譯。",
+      "English": "Automatically select the default audio track and translate its speech.",
+      "日本語": "既定の音声トラックを選択し、音声を抽出して翻訳します。"
+    },
+    "正在提取视频音轨…": {
+      "简中": "正在提取视频音轨…",
+      "繁中": "正在擷取影片音軌…",
+      "English": "Extracting video audio…",
+      "日本語": "動画から音声を抽出中…"
+    },
+    "视频音轨已就绪，正在转录…": {
+      "简中": "视频音轨已就绪，正在转录…",
+      "繁中": "影片音軌已就緒，正在轉錄…",
+      "English": "Audio is ready; transcribing…",
+      "日本語": "音声の準備が完了しました。文字起こし中…"
+    },
+    "正在准备默认音轨的视频预览…": {
+      "简中": "正在准备默认音轨的视频预览…",
+      "繁中": "正在準備預設音軌的影片預覽…",
+      "English": "Preparing video preview with the default audio track…",
+      "日本語": "既定の音声トラックで動画プレビューを準備中…"
+    },
+    "无法准备选定音轨的视频预览；字幕仍可编辑和导出。": {
+      "简中": "无法准备选定音轨的视频预览；字幕仍可编辑和导出。",
+      "繁中": "無法準備所選音軌的影片預覽；仍可編輯和匯出字幕。",
+      "English": "Cannot prepare the selected audio track preview. Subtitles can still be edited and exported.",
+      "日本語": "選択した音声トラックの動画プレビューを準備できません。字幕の編集と書き出しは利用できます。"
+    },
+    "从左侧选择一个视频文件。": {
+      "简中": "从左侧选择一个视频文件。",
+      "繁中": "從左側選擇一個影片檔案。",
+      "English": "Select a video file on the left.",
+      "日本語": "左側から動画ファイルを選択してください。"
+    },
+    "当前系统没有可用视频播放器，字幕预览和编辑仍可使用。": {
+      "简中": "当前系统没有可用视频播放器，字幕预览和编辑仍可使用。",
+      "繁中": "目前系統沒有可用的影片播放器，仍可預覽和編輯字幕。",
+      "English": "No video playback service is available. Subtitle preview and editing remain available.",
+      "日本語": "動画再生サービスを利用できません。字幕のプレビューと編集は利用できます。"
+    },
+    "播放或暂停视频": {
+      "简中": "播放或暂停视频",
+      "繁中": "播放或暫停影片",
+      "English": "Play or pause video",
+      "日本語": "動画を再生・一時停止"
+    },
+    "无法创建视频预览缓存，请检查临时目录可用空间。": {
+      "简中": "无法创建视频预览缓存，请检查临时目录可用空间。",
+      "繁中": "無法建立影片預覽快取，請檢查暫存目錄可用空間。",
+      "English": "Cannot create the video preview cache. Check free space in the temporary directory.",
+      "日本語": "動画プレビューのキャッシュを作成できません。一時フォルダーの空き容量を確認してください。"
+    },
+    "正在下载视频供本地预览…": {
+      "简中": "正在下载视频供本地预览…",
+      "繁中": "正在下載影片以供本機預覽…",
+      "English": "Downloading video for local preview…",
+      "日本語": "ローカルプレビュー用の動画をダウンロード中…"
+    },
+    "正在下载视频供本地预览：{0}": {
+      "简中": "正在下载视频供本地预览：{0}",
+      "繁中": "正在下載影片以供本機預覽：{0}",
+      "English": "Downloading video for local preview: {0}",
+      "日本語": "ローカルプレビュー用の動画をダウンロード中：{0}"
+    },
+    "视频下载失败，请检查后端连接或访问令牌。": {
+      "简中": "视频下载失败，请检查后端连接或访问令牌。",
+      "繁中": "影片下載失敗，請檢查後端連線或存取權杖。",
+      "English": "Video download failed. Check the backend connection or access token.",
+      "日本語": "動画のダウンロードに失敗しました。バックエンド接続またはアクセストークンを確認してください。"
+    },
+    "视频无法加载，请检查系统视频解码器。": {
+      "简中": "视频无法加载，请检查系统视频解码器。",
+      "繁中": "無法載入影片，請檢查系統影片解碼器。",
+      "English": "Cannot load video. Check the system video decoder.",
+      "日本語": "動画を読み込めません。システムの動画デコーダーを確認してください。"
+    },
+    "视频无法加载，请检查连接或系统视频解码器。": {
+      "简中": "视频无法加载，请检查连接或系统视频解码器。",
+      "繁中": "無法載入影片，請檢查連線或系統影片解碼器。",
+      "English": "Cannot load video. Check the connection or system video decoder.",
+      "日本語": "動画を読み込めません。接続またはシステムの動画デコーダーを確認してください。"
+    },
+    "视频无法播放，请检查后端连接和系统视频解码器；字幕仍可预览、编辑和导出。": {
+      "简中": "视频无法播放，请检查后端连接和系统视频解码器；字幕仍可预览、编辑和导出。",
+      "繁中": "無法播放影片，請檢查後端連線與系統影片解碼器；仍可預覽、編輯和匯出字幕。",
+      "English": "Cannot play video. Check the backend connection and system decoder. Subtitles can still be previewed, edited and exported.",
+      "日本語": "動画を再生できません。バックエンド接続と動画デコーダーを確認してください。字幕のプレビュー、編集、書き出しは利用できます。"
+    },
+    "视频预览地址不可用，仍可查看和编辑字幕。": {
+      "简中": "视频预览地址不可用，仍可查看和编辑字幕。",
+      "繁中": "影片預覽網址無法使用，仍可檢視和編輯字幕。",
+      "English": "The video preview URL is unavailable. Subtitles can still be viewed and edited.",
+      "日本語": "動画プレビューのURLを利用できません。字幕の表示と編集は利用できます。"
+    },
+    "视频预览地址无效。": {
+      "简中": "视频预览地址无效。",
+      "繁中": "影片預覽網址無效。",
+      "English": "Invalid video preview URL.",
+      "日本語": "動画プレビューのURLが無効です。"
+    },
+    "视频预览缓存写入失败，请检查磁盘空间。": {
+      "简中": "视频预览缓存写入失败，请检查磁盘空间。",
+      "繁中": "影片預覽快取寫入失敗，請檢查磁碟空間。",
+      "English": "Cannot write the video preview cache. Check disk space.",
+      "日本語": "動画プレビューのキャッシュを書き込めません。ディスクの空き容量を確認してください。"
+    }
+  }
+}

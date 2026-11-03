@@ -15,6 +15,7 @@ DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
     "vad_threshold": 0.35,
     "export": {"format": "srt", "mode": "bilingual"},
 }
+DEFAULT_VIDEO_TRANSLATION_SETTINGS = copy.deepcopy(DEFAULT_AUDIO_TRANSLATION_SETTINGS)
 DEFAULT_IMAGE_TRANSLATION_SETTINGS = {
     "generation": {
         "size": "auto",
@@ -25,7 +26,7 @@ DEFAULT_IMAGE_TRANSLATION_SETTINGS = {
     },
     "export": {"format": "png"},
 }
-MEDIA_EXPORT_FORMATS = {"audio": ("srt", "vtt", "ass", "lrc"), "image": ("png", "jpeg", "webp")}
+MEDIA_EXPORT_FORMATS = {"audio": ("srt", "vtt", "ass", "lrc"), "video": ("srt", "vtt", "ass", "lrc"), "image": ("png", "jpeg", "webp")}
 AUDIO_EXPORT_MODES = ("bilingual", "translated", "source")
 SUPPORTED_LANGUAGE_HINTS = frozenset(
     "zh en ja ko vi th id ms tl hi ar fr de es pt ru it nl sv da fi no el pl cs hu ro bg hr sk".split()
@@ -50,12 +51,12 @@ def _merge_known(target, source):
 
 
 def _normalize_export_settings(values, kind):
-    defaults = (DEFAULT_AUDIO_TRANSLATION_SETTINGS if kind == "audio" else DEFAULT_IMAGE_TRANSLATION_SETTINGS)["export"]
+    defaults = (DEFAULT_AUDIO_TRANSLATION_SETTINGS if kind in ("audio", "video") else DEFAULT_IMAGE_TRANSLATION_SETTINGS)["export"]
     result = _merge_known(copy.deepcopy(defaults), _require_object(values, "导出设置必须是对象。"))
     if not isinstance(result["format"], str) or result["format"] not in MEDIA_EXPORT_FORMATS[kind]:
-        label = "字幕" if kind == "audio" else "图片"
+        label = "字幕" if kind in ("audio", "video") else "图片"
         raise ValueError(f"{label}导出格式必须为 {'、'.join(MEDIA_EXPORT_FORMATS[kind])}。")
-    if kind == "audio" and (not isinstance(result["mode"], str) or result["mode"] not in AUDIO_EXPORT_MODES):
+    if kind in ("audio", "video") and (not isinstance(result["mode"], str) or result["mode"] not in AUDIO_EXPORT_MODES):
         raise ValueError("字幕导出模式必须为 bilingual、translated 或 source。")
     return result
 
@@ -63,7 +64,7 @@ def _normalize_export_settings(values, kind):
 def read_media_export_settings(config, kind):
     """Read and validate export options only; unrelated task/provider values are ignored."""
     if not isinstance(kind, str) or kind not in MEDIA_EXPORT_FORMATS:
-        raise ValueError("媒体类型必须为 audio 或 image。")
+        raise ValueError("媒体类型必须为 audio、video 或 image。")
     _require_object(config, "媒体配置必须是对象。")
     section = _require_object(config.get(f"{kind}_translation_settings", {}), "媒体翻译设置必须是对象。")
     return _normalize_export_settings(section.get("export", {}), kind)
@@ -94,6 +95,18 @@ def read_audio_translation_settings(config):
     _merge_known(result, {key: value for key, value in legacy.items() if key != "export"})
     current = _require_object(config.get("audio_translation_settings", {}), "音频翻译设置必须是对象。")
     return _merge_known(result, current)
+
+
+def read_video_translation_settings(config):
+    """Video defaults are independent of saved audio task/provider options."""
+    _require_object(config, "视频翻译配置必须是对象。")
+    current = _require_object(config.get("video_translation_settings", {}), "视频翻译设置必须是对象。")
+    return _merge_known(copy.deepcopy(DEFAULT_VIDEO_TRANSLATION_SETTINGS), current)
+
+
+def build_video_translation_settings_update(config, values):
+    result = _merge_known(read_video_translation_settings(config), _require_object(values, "视频翻译设置必须是对象。"))
+    return {"video_translation_settings": normalize_audio_translation_settings(result)}
 
 
 def read_image_translation_settings(config):

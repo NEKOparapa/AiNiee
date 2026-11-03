@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import Field
 
 from Backend.api.audio_schemas import AudioTranslateRequest
+from Backend.api.video_schemas import VideoTranslateRequest
 from Backend.api.image_generation import GenerationPipelineRequest
 from Backend.api.pipeline_schemas import DocumentReadOptions, TranslationOptions, WriteOptions
 from Backend.api.schemas import RequestModel
@@ -29,11 +30,15 @@ class MCPAudioTranslationRequest(AudioTranslateRequest, MCPRequestId):
     pass
 
 
+class MCPVideoTranslationRequest(VideoTranslateRequest, MCPRequestId):
+    pass
+
+
 class MCPJobQuery(RequestModel):
     job_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     include_result: bool = Field(default=False, strict=True)
 
 
 class MCPJobListQuery(RequestModel):
-    lane: Literal["document", "image", "audio"] | None = None
+    lane: Literal["document", "image", "audio", "video"] | None = None
     limit: int = Field(default=50, ge=1, le=200, strict=True)

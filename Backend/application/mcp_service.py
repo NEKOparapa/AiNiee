@@ -5,7 +5,7 @@ from functools import lru_cache
 from pydantic import ValidationError
 
 from Backend.api.mcp_schemas import (
-    DocumentTranslationRequest, MCPAudioTranslationRequest, MCPImageGenerationRequest,
+    DocumentTranslationRequest, MCPAudioTranslationRequest, MCPImageGenerationRequest, MCPVideoTranslationRequest,
     MCPJobListQuery, MCPJobQuery,
 )
 from Backend.application.execution_context import ExecutionContext
@@ -145,6 +145,17 @@ class MCPTranslationService:
                                    translation=body.translation.model_dump(exclude_none=True),
                                    output=body.output.model_dump(), context=context)
         return self._submit("mcp/audio.translate", "audio", body, action)
+
+    def submit_video(self, requestdict):
+        body = _validate(MCPVideoTranslationRequest, requestdict)
+        def action(context):
+            from Backend.application.video_translation_service import translate_video
+            _progress(context, "read", state="running")
+            return translate_video(body.path, read_options=body.read_options.model_dump(),
+                                   transcription=body.transcription.model_dump(exclude_none=True),
+                                   translation=body.translation.model_dump(exclude_none=True),
+                                   output=body.output.model_dump(exclude_unset=True), context=context)
+        return self._submit("mcp/video.translate", "video", body, action)
 
     def get_job(self, job_id, include_result=False):
         query = _validate(MCPJobQuery, {"job_id": job_id, "include_result": include_result})

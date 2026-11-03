@@ -177,6 +177,8 @@ def main() -> None:
     build_backend(ROOT / "dist" / f"{APP_NAME}.app" / "Contents" / "Helpers" / "AiNieeBackend.app", target_arch(args.target_arch))
     patch_info_plist()
     sign_app_bundle()
+    from Tools.ffmpeg_bundle import check_release
+    check_release(ROOT / "dist" / f"{APP_NAME}.app" / "Contents" / "Helpers" / "AiNieeBackend.app")
 
 
 if __name__ == "__main__":

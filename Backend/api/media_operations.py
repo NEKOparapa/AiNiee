@@ -79,6 +79,9 @@ def create_media_operation_router(runtime, authorized):
                                      {**output_values, "output_dir": workspace["preview_dir"] + "/generation",
                                       "format": "png", "overwrite": True, "save_model": False})
             elif body.stage == "export":
+                if workspace["kind"] == "video":
+                    from Backend.application.video_translation_service import video_subtitle_options
+                    output_values = video_subtitle_options(output_values)
                 options = _validated(GeneratedImageWriteOptions if image else SubtitleOptions, output_values)
 
             prepared = {"model": workspace["model"]}

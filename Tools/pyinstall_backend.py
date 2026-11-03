@@ -35,7 +35,9 @@ def pyinstaller_command(arch=None):
 
 
 def build_backend(destination, arch=None):
-    subprocess.run([sys.executable, "-m", "PyInstaller", *pyinstaller_command(arch)], cwd=ROOT, check=True)
+    from Tools.ffmpeg_bundle import pyinstaller_media_args
+    subprocess.run([sys.executable, "-m", "PyInstaller", *pyinstaller_command(arch),
+                    *pyinstaller_media_args(arch)], cwd=ROOT, check=True)
     # A plain onedir tree is not a valid nested macOS bundle: codesign treats
     # dotted data directories (such as *.dist-info) as malformed code bundles.
     # Let PyInstaller's BUNDLE arrange Frameworks/Resources and their symlinks.
@@ -44,6 +46,7 @@ def build_backend(destination, arch=None):
 
 
 if __name__ == "__main__":
+    sys.path.insert(0, str(ROOT))
     parser = argparse.ArgumentParser()
     parser.add_argument("--destination", type=Path, required=True)
     parser.add_argument("--target-arch")

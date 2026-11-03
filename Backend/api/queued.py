@@ -37,13 +37,14 @@ def media_lane(store, workspace_id):
 def load_media_workspace(store, workspace_id):
     workspace = store.load(workspace_id)
     kind = workspace["kind"]
-    if kind not in ("image", "audio"):
+    if kind not in ("image", "audio", "video"):
         raise PipelineError("INVALID_MEDIA_KIND", "媒体项目类型无效", 422)
     return workspace
 
 
 def require_model_lane(runtime, model, expected):
     lane = runtime.lane_for_model(model)
-    if lane != expected:
+    allowed = (expected,) if isinstance(expected, str) else expected
+    if lane not in allowed:
         raise PipelineError("INVALID_PROJECT_KIND", f"此接口仅接受 {expected} 项目", 422)
     return lane

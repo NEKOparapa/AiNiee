@@ -127,7 +127,7 @@ def write_model(model, options=None):
                 "bilingual": options.get("bilingual_suffix", "_bilingual")}
     if any(not isinstance(value, str) or any(character in value for character in '/\\:\x00') for value in suffixes.values()):
         raise PipelineError("INVALID_OUTPUT_PATH", "文件名后缀不能包含路径分隔符")
-    if any(cache_file.media_type in ("image", "audio") for cache_file in model.files.values()):
+    if any(cache_file.media_type in ("image", "audio", "video") for cache_file in model.files.values()):
         raise PipelineError("MEDIA_WRITE_NOT_IMPLEMENTED", "图片和音频正式输出尚未实现", 501)
     project_component = _relative_path(model.project_id)
     if len(project_component.parts) != 1:

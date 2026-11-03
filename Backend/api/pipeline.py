@@ -12,6 +12,7 @@ from Backend.api.audio_schemas import (
 from Backend.api.image_schemas import (
     ImageReadRequest,
 )
+from Backend.api.video_schemas import VideoReadRequest, VideoTranslateRequest, VideoTranslateResponse
 from Backend.api.queued import require_model_lane, run_queued
 
 
@@ -40,24 +41,44 @@ def create_pipeline_router(runtime, authorized):
             return read(body.path, body.options.model_dump())
         return await run_queued(runtime, "read/audio", action, lane="audio", prefer=prefer)
 
+    @router.post("/read/video", response_model=ModelResponse)
+    async def read_video(body: VideoReadRequest, prefer: str | None = Header(default=None)):
+        def action(context):
+            from Backend.application.video_read_service import read_video as read
+            return read(body.path, body.options.model_dump(), context=context)
+        return await run_queued(runtime, "read/video", action, lane="video", prefer=prefer)
+
+    @router.post("/video/translate", response_model=VideoTranslateResponse)
+    async def translate_video(body: VideoTranslateRequest, prefer: str | None = Header(default=None)):
+        def action(context):
+            from Backend.application.video_translation_service import translate_video as run
+            return run(body.path, read_options=body.read_options.model_dump(),
+                       transcription=body.transcription.model_dump(exclude_none=True),
+                       translation=body.translation.model_dump(exclude_none=True),
+                       output=body.output.model_dump(exclude_unset=True), context=context)
+        return await run_queued(runtime, "video/translate", action, lane="video", prefer=prefer)
+
     @router.post("/transcribe", response_model=ModelResponse)
     async def transcribe(body: TranscribeRequest, prefer: str | None = Header(default=None)):
         model = body.model.model_dump()
-        require_model_lane(runtime, model, "audio")
+        lane = require_model_lane(runtime, model, ("audio", "video"))
         def action(context):
             from Backend.application.transcription_service import transcribe_model
             return transcribe_model(model, body.config.model_dump(exclude_none=True), context=context)
-        return await run_queued(runtime, "transcribe", action, lane="audio", prefer=prefer,
+        return await run_queued(runtime, "transcribe", action, lane=lane, prefer=prefer,
                           project_id=model.get("project_id"))
 
     @router.post("/write/subtitles", response_model=WriteResponse)
     async def write_subtitles(body: SubtitleWriteRequest, prefer: str | None = Header(default=None)):
         model = body.model.model_dump()
-        require_model_lane(runtime, model, "audio")
+        lane = require_model_lane(runtime, model, ("audio", "video"))
         def action(context):
             from Backend.application.subtitle_service import write_subtitles as write
+            if lane == "video":
+                from Backend.application.video_translation_service import video_subtitle_options
+                return write(model, video_subtitle_options(body.options.model_dump(exclude_unset=True)))
             return write(model, body.options.model_dump())
-        return await run_queued(runtime, "write/subtitles", action, lane="audio", prefer=prefer,
+        return await run_queued(runtime, "write/subtitles", action, lane=lane, prefer=prefer,
                           project_id=model.get("project_id"))
 
     @router.post("/audio/translate", response_model=AudioTranslateResponse)

@@ -87,6 +87,8 @@ def _checkpoint(cache_file, prepared, resolved):
     }
     if resolved.api_format == "VolcengineASRFast":
         identity["resource_id"] = resolved.resource_id
+    if cache_file.media_type == "video":
+        identity["video_audio"] = cache_file.extra["video_audio"]["identity"]
     previous = cache_file.extra.get(CHECKPOINT_KEY)
     completed = {}
     reusable = (not resolved.retranscribe and isinstance(previous, dict)
@@ -107,8 +109,10 @@ def _checkpoint(cache_file, prepared, resolved):
     return checkpoint
 
 
-def transcribe_long_audio(cache_file, path, resolved, context, requester):
+def transcribe_long_audio(cache_file, path, resolved, context, requester, *, audio_reference=None, audio_metadata=None):
     """Keep completed chunks on the operation's model, even after cancellation."""
+    audio_reference = cache_file.source_ref if audio_reference is None else audio_reference
+    audio_metadata = cache_file.media_metadata if audio_metadata is None else audio_metadata
     report = {"total": 0, "cached_chunks": 0, "succeeded": 0, "failed": 0, "cancelled_chunks": 0,
               "chunks": [], "errors": [], "warnings": [], "operation_errors": [], "usage": empty_usage()}
     with prepare_audio_chunks(
@@ -116,11 +120,11 @@ def transcribe_long_audio(cache_file, path, resolved, context, requester):
         chunk_overlap_ms=round(resolved.chunk_overlap_seconds * 1000),
         vad_threshold=resolved.vad_threshold, context=context,
     ) as prepared:
-        if prepared.duration_ms != cache_file.media_metadata["duration_ms"]:
+        if prepared.duration_ms != audio_metadata["duration_ms"]:
             # Container duration estimates may drift, especially with VBR audio.
             # The decoded sample count is authoritative once the source matches.
             report["warnings"].append({"code": "ASR_DURATION_CORRECTED", "message": "已按完整解码后的样本数量校正音频时长"})
-        if file_sha256(path).lower() != cache_file.source_ref["sha256"].lower():
+        if file_sha256(path).lower() != audio_reference["sha256"].lower():
             cache_file.extra.pop(CHECKPOINT_KEY, None)
             raise PipelineError("ASR_SOURCE_CHANGED", "准备分片期间音频原文件发生变化，请重新读取", 409)
         if not prepared.chunks:

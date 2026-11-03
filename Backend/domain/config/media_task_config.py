@@ -12,13 +12,14 @@ DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
     "vad_threshold": 0.35,
     "export": {"format": "srt", "mode": "bilingual"},
 }
+DEFAULT_VIDEO_TRANSLATION_SETTINGS = copy.deepcopy(DEFAULT_AUDIO_TRANSLATION_SETTINGS)
 DEFAULT_IMAGE_TRANSLATION_SETTINGS = {
     "generation": {
         "size": "auto", "seed": None, "prompt_extend": True, "prompt": "", "watermark": False,
     },
     "export": {"format": "png"},
 }
-MEDIA_EXPORT_FORMATS = {"audio": ("srt", "vtt", "ass", "lrc"), "image": ("png", "jpeg", "webp")}
+MEDIA_EXPORT_FORMATS = {"audio": ("srt", "vtt", "ass", "lrc"), "video": ("srt", "vtt", "ass", "lrc"), "image": ("png", "jpeg", "webp")}
 AUDIO_EXPORT_MODES = ("bilingual", "translated", "source")
 
 
@@ -64,6 +65,13 @@ def migrate_media_task_settings(config):
         changed = _fill_missing(audio, DEFAULT_AUDIO_TRANSLATION_SETTINGS,
                                 {key: value for key, value in legacy.items() if key != "export"}) or changed
 
+    if "video_translation_settings" not in config:
+        config["video_translation_settings"] = {}
+        changed = True
+    video = config["video_translation_settings"]
+    if isinstance(video, dict):
+        changed = _fill_missing(video, DEFAULT_VIDEO_TRANSLATION_SETTINGS, {}) or changed
+
     if "image_translation_settings" not in config:
         config["image_translation_settings"] = {}
         changed = True
@@ -96,12 +104,12 @@ def _settings_object(settings, defaults, label):
 
 
 def _validate_export_settings(settings, kind):
-    defaults = (DEFAULT_AUDIO_TRANSLATION_SETTINGS if kind == "audio" else DEFAULT_IMAGE_TRANSLATION_SETTINGS)["export"]
+    defaults = (DEFAULT_AUDIO_TRANSLATION_SETTINGS if kind in ("audio", "video") else DEFAULT_IMAGE_TRANSLATION_SETTINGS)["export"]
     values = _settings_object(settings, defaults, "导出设置")
     if not isinstance(values["format"], str) or values["format"] not in MEDIA_EXPORT_FORMATS[kind]:
-        label = "字幕" if kind == "audio" else "图片"
+        label = "字幕" if kind in ("audio", "video") else "图片"
         raise ValueError(f"{label}导出格式必须为 {'、'.join(MEDIA_EXPORT_FORMATS[kind])}")
-    if kind == "audio" and (not isinstance(values["mode"], str) or values["mode"] not in AUDIO_EXPORT_MODES):
+    if kind in ("audio", "video") and (not isinstance(values["mode"], str) or values["mode"] not in AUDIO_EXPORT_MODES):
         raise ValueError("字幕导出模式必须为 bilingual、translated 或 source")
 
 
@@ -160,5 +168,7 @@ def validate_media_task_settings(config):
     """Validate only task options; absent or empty provider keys never block saving."""
     if "audio_translation_settings" in config:
         validate_audio_translation_settings(config["audio_translation_settings"])
+    if "video_translation_settings" in config:
+        validate_audio_translation_settings(config["video_translation_settings"])
     if "image_translation_settings" in config:
         validate_image_translation_settings(config["image_translation_settings"])

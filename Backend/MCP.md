@@ -1,6 +1,6 @@
 # MCP 使用说明
 
-AiNiee 在同一个后端提供 MCP 工具，可提交文档、图片和音频翻译任务，并查询或取消任务。安装与启动方式见 [后端说明](README.md)。
+AiNiee 在同一个后端提供 MCP 工具，可提交文档、图片、音频和视频翻译任务，并查询或取消任务。安装与启动方式见 [后端说明](README.md)。
 
 ## 连接
 
@@ -11,19 +11,20 @@ AiNiee 在同一个后端提供 MCP 工具，可提交文档、图片和音频�
 
 路径均指向**后端机器**上的文件或目录，输出也保存在后端。远程客户端应使用后端可访问的路径。模型、语言和接口配置默认继承后端在提交时保存的设置；可在请求中覆盖，优先使用已有接口的 `provider_id`。
 
-## 7 个工具
+## 8 个工具
 
-下表列出 `tools/call` 的 `arguments`。三个提交工具统一用 `request` 包裹；查询和取消工具直接传参数。schema 以外的字段会被拒绝，完整嵌套结构以 `tools/list` 返回的 schema 为准。
+下表列出 `tools/call` 的 `arguments`。四个提交工具统一用 `request` 包裹；查询和取消工具直接传参数。schema 以外的字段会被拒绝，完整嵌套结构以 `tools/list` 返回的 schema 为准。
 
 | 工具 | 参数 | 返回数据 |
 | --- | --- | --- |
 | `submit_document_translation` | `request`：必填 `path`；可选 `read_options`、`translation`、`output`、`request_id` | `job`，文档队列 |
 | `submit_image_generation` | `request`：必填 `path`、`output`；可选 `read_options`、`generation`、`request_id` | `job`，图片队列，整图生成翻译 |
 | `submit_audio_translation` | `request`：必填 `path`、`output`；可选 `read_options`、`transcription`、`translation`、`request_id` | `job`，音频队列，转录 → 翻译 → 字幕 |
+| `submit_video_translation` | `request`：必填 `path`、`output`；可选 `read_options`、`transcription`、`translation`、`request_id` | `job`，视频队列，默认音轨提取 → 转录 → 翻译 → 字幕 |
 | `get_job` | 必填 `job_id`；可选 `include_result`，布尔值，默认 `false` | `job`；启用后包含 `job.result` |
-| `list_jobs` | 可选 `lane`：`document` / `image` / `audio`；`limit`：1–200 的整数，默认 50 | `jobs`，省略完整结果 |
+| `list_jobs` | 可选 `lane`：`document` / `image` / `audio` / `video`；`limit`：1–200 的整数，默认 50 | `jobs`，省略完整结果 |
 | `cancel_job` | 必填 `job_id` | `job`，取消后的状态 |
-| `get_queues` | `{}` | `queues`，三类队列的 `running` 与 `queued` |
+| `get_queues` | `{}` | `queues`，四类队列的 `running` 与 `queued` |
 
 返回数据位于工具结果的 `structuredContent`，同时提供等价的 JSON 文本 `content`。
 
@@ -31,7 +32,7 @@ AiNiee 在同一个后端提供 MCP 工具，可提交文档、图片和音频�
 
 - 文档 `read_options.format` 默认 `AutoType`；`pages: "1-3,5"` 仅适用于 `AutoType` 或 `BabeldocPdf`，混合目录中只影响 PDF。`exclude_rule` 用于排除文件。
 - 文档 `output` 省略或为 `null` 时仅返回翻译后的模型；传入对象时执行导出。`output.output_dir` 可指定目录，`mode` 可选 `translated`、`bilingual`、`both`，默认 `translated`。
-- 整图生成和音频必须提供 `output.output_dir`。图片的 `output.format` 可选 `png`、`jpeg`、`webp`，默认 `png`；音频可选 `srt`、`vtt`、`lrc`、`ass`，默认 `srt`，`output.mode` 默认 `translated`，也可选 `source`、`bilingual`。
+- 整图生成、音频和视频必须提供 `output.output_dir`。图片的 `output.format` 可选 `png`、`jpeg`、`webp`，默认 `png`；音频可选 `srt`、`vtt`、`lrc`、`ass`，默认 `srt`，`output.mode` 默认 `translated`，也可选 `source`、`bilingual`。
 - `translation` 常用字段为 `provider_id`、`source_language`、`target_language`、`user_thread_counts`。整图生成的语言和接口覆盖放在 `generation` 中。
 - `request_id` 可省略；提供时须为 16–80 位英文字母、数字、下划线或连字符，将直接作为任务 ID。整图生成在 MCP 中也使用它，不传 REST 的 `operation_id`。
 
@@ -76,7 +77,7 @@ AiNiee 在同一个后端提供 MCP 工具，可提交文档、图片和音频�
 
 ## 排队、重试与取消
 
-- MCP、REST 与桌面共用 `document`、`image`、`audio` 三个队列；各队列一次执行一个任务，三个队列可并行。同类任务忙碌时继续排队，查询和取消无需等待业务队列。
+- MCP、REST 与桌面共用 `document`、`image`、`audio`、`video` 四个队列；各队列一次执行一个任务，四个队列可并行。同类任务忙碌时继续排队，查询和取消无需等待业务队列。
 - MCP 断线不会取消任务。任务记录与结果持久保存；后端重启后未完成任务标为 `interrupted`，不会自动重新执行。
 - `request_id` 在所有队列及入口之间共用任务 ID 空间。重复 ID 返回工具错误 `DUPLICATE_JOB_ID`，包括已有任务结束后；不会返回原结果，也不会再次执行。提交响应丢失时，先用原 ID 调用 `get_job`，确认后再决定是否使用新 ID 提交。
 - `cancel_job` 取消排队任务时直接变为 `cancelled`；运行中任务先变为 `cancelling`，等待在途调用及保存收尾。继续查询直到终态。取消不会撤回已完成的模型调用或文件写入，重复取消不会改变终态记录。
@@ -97,3 +98,5 @@ python -m Backend --host 0.0.0.0 --port 3389
 多个值用逗号分隔。Host 填具体主机名或 IP，可附端口，例如 `192.168.1.20:3389`；Origin 填 `http://` 或 `https://` 加主机及可选端口。可用 `:*` 匹配任意端口，不支持 `*` 或域名通配符，也不能带路径、查询参数或凭据。设置会追加到本机默认允许列表；未携带 Origin 的请求仍会检查 Host 和令牌。
 
 跨网络部署使用 HTTPS 反向代理，客户端连接如 `https://translate.example.com/mcp`。此服务面向可信环境，工具能够调用收费模型并访问后端文件，不提供多用户文件隔离。
+
+视频翻译依赖后端 PATH 中的 `ffmpeg` 和 `ffprobe`。调用结构与音频相同，视频任务单独读取 `video_translation_settings`；默认输出 SRT 双语字幕，显式 `output.format/mode` 优先。转录接口只接收提取音频，不接收视频画面。

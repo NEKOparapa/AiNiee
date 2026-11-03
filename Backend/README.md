@@ -1,6 +1,6 @@
 # 后端接口说明
 
-AiNiee 后端提供文档、图片和音频处理接口，以及桌面工作区、配置和任务管理接口。MCP 接入见 [MCP.md](MCP.md)。
+AiNiee 后端提供文档、图片、音频和视频处理接口，以及桌面工作区、配置和任务管理接口。MCP 接入见 [MCP.md](MCP.md)。
 
 ## 连接与调用约定
 
@@ -13,7 +13,7 @@ python -m Backend --host 127.0.0.1 --port 3389
 - 默认地址：`http://127.0.0.1:3389`；完整字段、类型和默认值见运行后的 [交互文档](http://127.0.0.1:3389/docs) 与 [OpenAPI](http://127.0.0.1:3389/openapi.json)。
 - 请求体使用 JSON。设置 `AINIEE_API_TOKEN` 后，HTTP 和 WebSocket 请求须携带 `Authorization: Bearer <令牌>`；监听非本机地址必须设置令牌。
 - 所有输入、输出及导入导出路径均属于**后端所在机器**；路径参数不会上传客户端文件。
-- 文档、图片、音频分别使用 `document`、`image`、`audio` 队列。同类任务串行，不同类可并行；后端使用单进程、单 worker。
+- 文档、图片、音频、视频分别使用 `document`、`image`、`audio`、`video` 队列。同类任务串行，不同类可并行；后端使用单进程、单 worker。
 
 ## 任务查询与取消
 
@@ -21,7 +21,7 @@ python -m Backend --host 127.0.0.1 --port 3389
 | --- | --- |
 | `GET /health` | 返回服务名称与协议版本 |
 | `GET /api/status` | 当前文档状态、进度，以及全局 `any_busy`、`queues`；`busy` 仅表示文档队列 |
-| `GET /api/queues` | 返回三类队列的运行任务和等待任务，字段为 `queues` |
+| `GET /api/queues` | 返回四类队列的运行任务和等待任务，字段为 `queues` |
 | `GET /api/jobs` | 返回 `jobs` 列表；可选 `lane`、`limit`（1–200，默认 50），不含完整结果 |
 | `GET /api/jobs/{job_id}` | 返回 `job`，包含 `state`、`progress`、`result` 和 `error` |
 | `POST /api/jobs/{job_id}/cancel` | 取消指定任务，返回更新后的 `job` |
@@ -37,7 +37,7 @@ python -m Backend --host 127.0.0.1 --port 3389
 | 接口 | 主要参数与用途 |
 | --- | --- |
 | `POST /api/v2/read/document` | `path`，可选 `options.format/exclude_rule/pages`；读取文档或目录，返回模型与读取报告 |
-| `POST /api/v2/translate` | `model`，可选 `config`；翻译文档或音频转录模型中的文本 |
+| `POST /api/v2/translate` | `model`，可选 `config`；翻译文档、音频或视频转录模型中的文本 |
 | `POST /api/v2/write` | `model`，可选 `options.output_dir/mode/overwrite`；将文档模型写出为文件 |
 
 典型流程：`read/document` → 将返回的 `model` 交给 `translate` → 将更新后的 `model` 交给 `write`。
@@ -76,23 +76,32 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 转录使用独立的转录平台配置。字幕格式支持 `srt/vtt/lrc/ass`，模式支持 `translated/source/bilingual`；完整流程返回 `status/model/files/report`。长音频自动分片处理，依赖 FFmpeg。
 
-## 图片与音频工作区
+## 视频接口
+
+| 接口 | 主要参数与用途 |
+| --- | --- |
+| `POST /api/v2/read/video` | `path`、可选 `options.exclude_rule`；探测本地视频或目录，建立 `Video` 模型，不立即提取音频 |
+| `POST /api/v2/video/translate` | `path`、`output.output_dir`；可选 `read_options/transcription/translation`，执行读取 → 提取音轨 → 转录 → 翻译 → 字幕导出 |
+
+支持 MP4、MKV、MOV、AVI、WebM、M4V、WMV、FLV。自动构建的 Windows/macOS 发布包已内置 `ffmpeg`、`ffprobe`，用户无需另外安装或配置 PATH。后端优先使用自身 PyInstaller 包内 `media-tools` 目录中的工具，找不到时才查找系统 PATH；源码运行仍需在后端机器安装 FFmpeg。选择标记为默认的音轨；没有默认标记时选择第一条。只向转录接口上传提取的 16 kHz 单声道 PCM WAV；保留音轨相对视频的起始偏移，字幕使用视频播放时间轴。不执行画面 OCR、配音或字幕烧录。
+## 媒体工作区
 
 需要保存项目状态、编辑音频转录结果或预览文件时使用这些接口。
 
 | 接口 | 主要参数与用途 |
 | --- | --- |
-| `POST /api/v2/media/import` | `kind: image/audio`、`paths`，可选 `exclude_rule`；导入并创建工作区 |
+| `POST /api/v2/media/import` | `kind: image/audio/video`、`paths`，可选 `exclude_rule`；导入并创建工作区 |
 | `GET /api/v2/media` | 返回 `workspaces` 历史列表；可选 `kind`、`limit`（1–100，默认 20） |
 | `GET /api/v2/media/{workspace_id}` | 获取工作区模型、文件信息与处理状态 |
 | `POST /api/v2/media/{workspace_id}/model` | `model`、可选 `preview_files`；保存编辑后的模型 |
 | `POST /api/v2/media/{workspace_id}/run` | `stage`、`operation_id`，可选 `config/options`；运行一个处理阶段并保存结果 |
 | `DELETE /api/v2/media/{workspace_id}` | 删除工作区 |
-| `GET /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 预览 `source` 或 `translated` 文件，支持 Range 请求 |
+| `GET /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 预览 `source`、`translated` 或视频 `preview` 文件，支持 Range 请求 |
+| `POST /api/v2/media/{workspace_id}/files/{file_id}/video-preview` | 请求体 `{}` 或 `operation_id`；准备仅含选定音轨的视频预览，视频流直接复制，返回 `url` |
 | `HEAD /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 获取预览文件响应头 |
 | `POST /api/v2/media/operations/{operation_id}/stop` | 停止指定 API 媒体任务 |
 
-图片 `stage` 支持 `generate`、`export`，以及仅复制已有生图产物的 `preview`；音频支持 `recognize`、`translate`、`export`。导入图片只读取原图，生成阶段传 `config`，预览或导出阶段传 `options`。导出要求已有有效生成结果；旧 OCR 阶段与接口已移除。`operation_id` 必须为 16–80 位字母、数字、下划线或连字符。
+图片 `stage` 支持 `generate`、`export`，以及仅复制已有生图产物的 `preview`；音频和视频支持 `recognize`、`translate`、`export`。导入图片只读取原图，生成阶段传 `config`，预览或导出阶段传 `options`。导出要求已有有效生成结果；旧 OCR 阶段与接口已移除。`operation_id` 必须为 16–80 位字母、数字、下划线或连字符。
 
 ## 桌面当前项目接口
 
@@ -111,7 +120,7 @@ python -m Backend --host 127.0.0.1 --port 3389
 | `POST /api/tasks/table/proofread` | `file_path/items_to_proofread` 或 `proofread_jobs`；校对指定条目，**202** |
 | `POST /api/tasks/glossary/translate` | `table_id/prompt_dictionary_data`、可选 `request_id`；翻译术语，**202** |
 | `POST /api/tasks/api-test` | `api_url/api_key/api_format/model` 等接口配置；测试连接，**202** |
-| `POST /api/tasks/stop` | 停止文档队列中桌面发起的当前或首个等待任务，不停止图片和音频任务 |
+| `POST /api/tasks/stop` | 停止文档队列中桌面发起的当前或首个等待任务，不停止图片、音频和视频任务 |
 | `POST /api/project/export` | 可选 `export_path`；导出当前项目文件，**202** |
 | `POST /api/project/save` | 保存当前项目缓存 |
 | `POST /api/check/{kind}` | `kind` 为 `language/rule/terminology`；请求体传对应检查参数 |

@@ -12,8 +12,8 @@ from Backend.infrastructure.transcription.provider import SUPPORTED_FORMATS, req
 from Backend.infrastructure.transcription.volcengine import FAST_FORMATS, FAST_MAX_BYTES
 
 
-def _audio_source(cache_file):
-    metadata = cache_file.media_metadata
+def _audio_source(cache_file, reference=None, metadata=None):
+    metadata = cache_file.media_metadata if metadata is None else metadata
     duration = metadata.get("duration_ms")
     if type(duration) is not int or duration <= 0:
         raise PipelineError("ASR_INVALID_AUDIO", "音频缺少有效时长，请重新读取文件", 400)
@@ -23,7 +23,7 @@ def _audio_source(cache_file):
     sample_rate = metadata.get("sample_rate")
     if type(sample_rate) is not int or sample_rate <= 0:
         raise PipelineError("ASR_INVALID_AUDIO", "音频缺少有效采样率，请重新读取文件", 400)
-    reference = cache_file.source_ref
+    reference = cache_file.source_ref if reference is None else reference
     if not reference.get("verified") or not reference.get("path") or not reference.get("sha256"):
         raise PipelineError("ASR_SOURCE_UNVERIFIED", "转录需要已校验的本地音频引用，请先读取音频", 400)
     path = Path(reference["path"])
@@ -51,10 +51,10 @@ def transcribe_model(model, config=None, context=None) -> dict:
     """
     project = parse_model(model)
     context = context or ExecutionContext()
-    audio_files = [cache_file for cache_file in project.files.values() if cache_file.media_type == "audio"]
+    audio_files = [cache_file for cache_file in project.files.values() if cache_file.media_type in ("audio", "video")]
     if not audio_files:
         raise PipelineError("ASR_NO_AUDIO", "中间模型中没有音频文件", 400)
-    resolved = resolve_transcription_config(config)
+    resolved = resolve_transcription_config(config, kind="video" if any(f.media_type == "video" for f in audio_files) else "audio")
     request_config = resolved.to_request_config()
     next_index = max((item.text_index for item in project.items_iter()), default=-1) + 1
     report = {
@@ -78,6 +78,10 @@ def transcribe_model(model, config=None, context=None) -> dict:
         request_started = False
         chunk_report = None
         try:
+            if cache_file.media_type == "video":
+                from Backend.infrastructure.transcription.video_audio import prepare_video_audio, verified_video_source
+                # A transcript must never be reused against a modified video.
+                verified_video_source(cache_file)
             has_checkpoint = isinstance(cache_file.extra.get("transcription_checkpoint"), dict)
             previous = cache_file.extra.get("transcription", {})
             complete_empty = (isinstance(previous, dict) and previous.get("status") == "complete"
@@ -87,21 +91,26 @@ def transcribe_model(model, config=None, context=None) -> dict:
                 report["skipped"] += 1
                 report["files"].append({**identity, "status": "skipped", "segment_count": len(cache_file.items)})
             else:
-                path, audio_format, sample_rate, duration_ms = _audio_source(cache_file)
+                audio_reference, audio_metadata = cache_file.source_ref, cache_file.media_metadata
+                if cache_file.media_type == "video":
+                    artifact = prepare_video_audio(project.project_id, cache_file, context)
+                    audio_reference, audio_metadata = artifact["source_ref"], artifact["media_metadata"]
+                path, audio_format, sample_rate, duration_ms = _audio_source(cache_file, audio_reference, audio_metadata)
                 if context.is_cancelled():
                     report["cancelled_files"] = len(audio_files) - ordinal
                     break
                 if (duration_ms > 300000 or resolved.api_format == "VolcengineASRFast" and
                       (audio_format not in FAST_FORMATS or path.stat().st_size > FAST_MAX_BYTES)):
                     from Backend.application.long_transcription_service import transcribe_long_audio
-                    outcome = transcribe_long_audio(cache_file, path, resolved, context, request_transcription)
+                    outcome = transcribe_long_audio(cache_file, path, resolved, context, request_transcription,
+                                                    audio_reference=audio_reference, audio_metadata=audio_metadata)
                     chunk_report = outcome["report"]
                     for key in report["usage"]:
                         report["usage"][key] += chunk_report["usage"].get(key, 0)
                     report["operation_errors"].extend(chunk_report["operation_errors"])
                     # Validate even an incomplete attempt before returning its
                     # checkpoint; results from a changed source cannot be reused.
-                    if file_sha256(path).lower() != cache_file.source_ref["sha256"].lower():
+                    if file_sha256(path).lower() != audio_reference["sha256"].lower():
                         raise PipelineError("ASR_SOURCE_CHANGED", "转录期间音频原文件发生变化，请重新读取", 409)
                     if outcome["status"] == "cancelled":
                         raise PipelineError("ASR_CANCELLED", "转录已取消", 409)
@@ -122,8 +131,10 @@ def transcribe_model(model, config=None, context=None) -> dict:
                     for key in ("duration", "input_tokens", "output_tokens", "total_tokens"):
                         report["usage"][key] += result.get("usage", {}).get(key, 0)
                 request_started = False
-                if chunk_report is None and file_sha256(path).lower() != cache_file.source_ref["sha256"].lower():
+                if chunk_report is None and file_sha256(path).lower() != audio_reference["sha256"].lower():
                     raise PipelineError("ASR_SOURCE_CHANGED", "转录期间音频原文件发生变化，请重新读取", 409)
+                if cache_file.media_type == "video":
+                    verified_video_source(cache_file)
                 old_indices = [item.text_index for item in cache_file.items]
                 items = []
                 for index, segment in enumerate(result["segments"]):
@@ -137,14 +148,15 @@ def transcribe_model(model, config=None, context=None) -> dict:
                         item_id=uuid.uuid5(uuid.NAMESPACE_URL, f"ainiee:asr:{cache_file.file_id}:{index}:{start_ms}:{end_ms}").hex,
                         text_index=text_index, source_text=segment["text"], translated_text="",
                         translation_status=TranslationStatus.UNTRANSLATED, model="",
-                        locator={"kind": "audio", "index": index, "start_ms": start_ms, "end_ms": end_ms,
+                        locator={"kind": cache_file.media_type, "index": index, "start_ms": start_ms, "end_ms": end_ms,
                                  "speaker_id": segment.get("speaker_id")},
                     ))
                 # Only after all segments and the source fingerprint are valid.
                 cache_file.items = items
                 cache_file.__dict__.pop("items_index_dict", None)
                 cache_file.extra.pop("transcription_checkpoint", None)
-                cache_file.media_metadata["duration_ms"] = duration_ms
+                if cache_file.media_type == "audio":
+                    cache_file.media_metadata["duration_ms"] = duration_ms
                 language = result.get("language")
                 if (not language and resolved.api_format == "DashScope" and len(resolved.language_hints) == 1
                         and not resolved.speaker_diarization_enabled):
@@ -209,7 +221,7 @@ def transcribe_model(model, config=None, context=None) -> dict:
         try:
             # Include reused transcripts; short and merged long recordings both
             # reach this boundary before their final model is saved or returned.
-            ensure_media_language_metadata(project, media_types=("audio",))
+            ensure_media_language_metadata(project, media_types=("audio", "video"))
         except PipelineError as error:
             # Local postprocessing must retain paid subtitles and provider usage.
             report["operation_errors"].append({"code": error.code, "message": error.message})

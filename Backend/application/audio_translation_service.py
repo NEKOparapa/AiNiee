@@ -13,6 +13,12 @@ from Backend.domain.config.transcription_config import resolve_transcription_con
 
 def translate_audio(path, *, read_options=None, transcription=None, translation=None,
                     output=None, context=None):
+    return translate_speech_media(path, kind="audio", read_options=read_options, transcription=transcription,
+                                  translation=translation, output=output, context=context)
+
+
+def translate_speech_media(path, *, kind, read_options=None, transcription=None, translation=None,
+                           output=None, context=None):
     """Read -> transcribe -> translate -> export, returning every stage's report.
 
     No global project or configuration is changed. A failed later stage returns
@@ -21,11 +27,18 @@ def translate_audio(path, *, read_options=None, transcription=None, translation=
     """
     context = context or ExecutionContext()
     # Reject invalid provider/output settings before making a paid request.
-    asr_config = resolve_transcription_config(transcription)
+    asr_config = resolve_transcription_config(transcription, kind=kind)
     translation_config = resolve_translation_config(translation)
     output_options = validate_subtitle_options(output)
-    read_result = read_audio(path, read_options)
+    if kind == "video":
+        from Backend.application.video_read_service import read_video
+        read_result = read_video(path, read_options, context=context)
+    else:
+        read_result = read_audio(path, read_options)
     project = read_result["model"]
+    if read_result["status"] == "cancelled":
+        return {"status": "cancelled", "model": project, "files": [],
+                "report": {"stage": "read", "stage_status": {"read": "cancelled"}, "read": read_result["report"]}}
     # The audio file list is enough to plan destinations, even before ASR fills
     # items. Known collisions must not incur provider charges.
     output_options = validate_subtitle_targets(project, output_options)
@@ -68,7 +81,7 @@ def translate_audio(path, *, read_options=None, transcription=None, translation=
         except Exception as error:
             # Only stage inputs/configuration fail before reading. Afterwards,
             # retain the completed transcript/translations with a safe error.
-            detail = {"code": error.code if isinstance(error, PipelineError) else "AUDIO_STAGE_FAILED",
+            detail = {"code": error.code if isinstance(error, PipelineError) else f"{kind.upper()}_STAGE_FAILED",
                       "message": redact(str(error))}
             reports[stage] = {"errors": [detail]}
             outcomes[stage] = "failed"

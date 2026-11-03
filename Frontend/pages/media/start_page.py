@@ -27,8 +27,8 @@ class MediaDropCard(SimpleCardWidget, ConfigMixin):
         self.setMinimumHeight(248)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self._dragging = False
-        self._title = self.tra("将图片拖到这里" if kind == "image" else "将音频拖到这里")
-        icon = FluentIcon.PHOTO if kind == "image" else FluentIcon.MUSIC
+        self._title = self.tra("将图片拖到这里" if kind == "image" else "将视频拖到这里" if kind == "video" else "将音频拖到这里")
+        icon = FluentIcon.PHOTO if kind == "image" else FluentIcon.VIDEO if kind == "video" else FluentIcon.MUSIC
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
@@ -48,7 +48,7 @@ class MediaDropCard(SimpleCardWidget, ConfigMixin):
         self.title_label.setAlignment(Qt.AlignCenter)
         self.title_label.setWordWrap(True)
         layout.addWidget(self.title_label)
-        formats = "PNG · JPG · WebP" if kind == "image" else "MP3 · WAV · FLAC · M4A · OGG"
+        formats = "PNG · JPG · WebP" if kind == "image" else "MP4 · MKV · MOV · AVI · WebM · M4V · WMV · FLV" if kind == "video" else "MP3 · WAV · FLAC · M4A · OGG"
         caption = CaptionLabel(formats, self)
         caption.setAlignment(Qt.AlignCenter)
         caption.setTextColor("#707070", "#a6a6a6")
@@ -58,7 +58,7 @@ class MediaDropCard(SimpleCardWidget, ConfigMixin):
         buttons = QHBoxLayout()
         buttons.setSpacing(10)
         buttons.addStretch(1)
-        self.pick_files = PrimaryPushButton(icon, self.tra("选择图片" if kind == "image" else "选择音频"), self)
+        self.pick_files = PrimaryPushButton(icon, self.tra("选择图片" if kind == "image" else "选择视频" if kind == "video" else "选择音频"), self)
         self.pick_folder = PushButton(FluentIcon.FOLDER, self.tra("文件夹"), self)
         self.pick_zip = PushButton(FluentIcon.ZIP_FOLDER, "ZIP", self)
         for button in (self.pick_files, self.pick_folder, self.pick_zip):
@@ -269,7 +269,7 @@ class MediaStartPage(QWidget, ConfigMixin):
         current = self.history_list.currentItem()
         selected_id = current.data(Qt.UserRole) if current else None
         self.history_list.clear()
-        icon = FluentIcon.PHOTO if self.kind == "image" else FluentIcon.MUSIC
+        icon = FluentIcon.PHOTO if self.kind == "image" else FluentIcon.VIDEO if self.kind == "video" else FluentIcon.MUSIC
         for row in rows:
             if not isinstance(row, dict) or not row.get("workspace_id"):
                 continue

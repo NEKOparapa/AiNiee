@@ -58,7 +58,7 @@ class MediaWorkflowSelector(QWidget, ConfigMixin):
         self.grid.setVerticalSpacing(4)
         layout.addLayout(self.grid)
 
-        definitions = (("recognize", "转录字幕"), ("translate", "翻译字幕")) if kind == "audio" else (
+        definitions = (("recognize", "转录字幕"), ("translate", "翻译字幕")) if kind in ("audio", "video") else (
             ("generate", "生成译图"),
         )
         self._cards = {}
@@ -68,7 +68,7 @@ class MediaWorkflowSelector(QWidget, ConfigMixin):
             card.check.toggled.connect(lambda checked: self.selectionChanged.emit())
             self._cards[stage] = card
         self._arrows = []
-        for _ in range(1 if kind == "audio" else 0):
+        for _ in range(1 if kind in ("audio", "video") else 0):
             arrow = IconWidget(FluentIcon.RIGHT_ARROW, self)
             arrow.setFixedSize(16, 16)
             arrow.setAttribute(Qt.WA_TransparentForMouseEvents)
