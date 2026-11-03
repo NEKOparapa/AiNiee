@@ -355,7 +355,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             self.tra("接口管理"),
             NavigationItemPosition.SCROLL,
         )
-        self.interface_management_item.clicked.connect(lambda: self.interface_management_item.setExpanded(True))
         self.platform_page = PlatformPage("platform_page", self)
         self.platform_page.header_card.titleLabel.setText(self.tra("翻译接口"))
         self.addSubInterface(
@@ -392,7 +391,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             self.tra("文译设置"),
             NavigationItemPosition.SCROLL,
         )
-        self.text_translation_settings_item.clicked.connect(lambda: self.text_translation_settings_item.setExpanded(True))
         self.task_settings_page = TaskSettingsPage("task_settings_page", self)
         self.addSubInterface(
             self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"),
@@ -429,8 +427,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             self.image_translation_settings_navigation, FluentIcon.PHOTO,
             self.tra("图译设置"), NavigationItemPosition.SCROLL,
         )
-        self.image_translation_settings_item.clicked.connect(
-            lambda: self.image_translation_settings_item.setExpanded(True))
         self.image_translation_settings_page = ImageTranslationSettingsPage("image_translation_settings_page", self)
         self.addSubInterface(
             self.image_translation_settings_page, FluentIcon.SETTING, self.tra("任务设置"),
