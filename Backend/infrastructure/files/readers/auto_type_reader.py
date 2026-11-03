@@ -104,7 +104,7 @@ class AutoTypeReader(BaseSourceReader):
         return '*'
 
     def _get_extension(self, file_path: Path):
-        return file_path.suffix.lstrip(".")
+        return file_path.suffix.lstrip(".").lower()
 
     def can_read_by_extension(self, file_path: Path) -> bool:
         return self._get_extension(file_path) in self._support_files

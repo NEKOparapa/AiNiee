@@ -41,7 +41,7 @@ def _verify_legacy_source(cache_file, source):
     """An unversioned cache cannot establish identity by hashing a same-named file."""
     from Backend.application.read_service import _make_reader
     pages = cache_file.extra.get("pdf", {}).get("parse_options", {}).get("pages")
-    with _make_reader(cache_file.file_project_type, source.parent, include_pdf=True, pages=pages) as reader:
+    with _make_reader(cache_file.file_project_type, source.parent, pages=pages) as reader:
         fresh = reader.on_read_source(source, reader.pre_read_source(source))
     if not fresh or len(fresh.items) != len(cache_file.items):
         raise PipelineError("SOURCE_MISMATCH", "旧缓存与源文件的条目数量不一致，请重新读取源文件")

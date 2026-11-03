@@ -60,6 +60,7 @@ charset-normalizer>=2.0.0
 cryptography>=36.0.0
 peewee>=3.17.8
 psutil>=7.0.0
+# Keep in sync with the PDF runtime check; 1.28.0 can abort on page rendering.
 pymupdf==1.26.7
 rich>=13.9.4
 toml>=0.10.2

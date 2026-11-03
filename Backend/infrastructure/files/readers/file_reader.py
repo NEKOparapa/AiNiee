@@ -137,15 +137,20 @@ class FileReader():
             init_kwargs_factory=ikfn,
         )
 
-    def _get_reader_init_params(self, project_type, label_input_path):
+    def _get_reader_init_params(self, project_type, label_input_path, *, pdf_parse_options=None):
         # 这些类型在 BaseReader 中定义，BaseReader 又会顺带 import mediapipe 等，
         # 因此推迟到 read_files 真正调用时才 import。
         from Backend.infrastructure.files.readers.base_reader import InputConfig, ReaderInitParams
 
         input_config = InputConfig(Path(label_input_path))
         if project_type == ProjectType.AUTO_TYPE:
-            reader_init_params_factory = partial(self._get_reader_init_params, label_input_path=label_input_path)
+            reader_init_params_factory = partial(
+                self._get_reader_init_params, label_input_path=label_input_path,
+                pdf_parse_options=pdf_parse_options,
+            )
             return ReaderInitParams(input_config=input_config, reader_init_params_factory=reader_init_params_factory)
+        if project_type == ProjectType.BABELDOC_PDF:
+            return ReaderInitParams(input_config=input_config, parse_options=dict(pdf_parse_options or {}))
         return ReaderInitParams(input_config=input_config)
 
     # 根据文件类型读取文件，并返回缓存对象

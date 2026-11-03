@@ -70,7 +70,7 @@ class BaseSourceReader(ABC):
         """读取文件之前的操作，可以是检测文件编码等"""
 
         # 限定文件类型，只检测txt，srt，vtt，lrc等文件编码，检测大型文件编码会很慢，例如epub，trans
-        if file_path.suffix in [".txt", ".srt", ".vtt", ".lrc"]:
+        if file_path.suffix.lower() in [".txt", ".srt", ".vtt", ".lrc"]:
             # 检测文件编码
             metadata = PreReadMetadata(encoding=detect_file_encoding(file_path))
         else:
@@ -178,7 +178,7 @@ class BaseSourceReader(ABC):
 
     def can_read_by_extension(self, file_path: Path):
         """根据文件后缀判断是否可读"""
-        return file_path.suffix.replace('.', '', 1) == self.support_file
+        return file_path.suffix.lstrip(".").lower() == self.support_file.lower()
 
     def can_read_by_content(self, file_path: Path) -> bool:
         """根据文件内容判断是否可读"""

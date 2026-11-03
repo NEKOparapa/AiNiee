@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 
 from Backend.api.pipeline_schemas import (
-    DocumentReadRequest, ModelResponse, PdfReadRequest,
+    DocumentReadRequest, ModelResponse,
     TranslateRequest, WriteRequest, WriteResponse,
 )
 from Backend.api.audio_schemas import (
@@ -25,12 +25,6 @@ def create_pipeline_router(runtime, authorized):
         from Backend.application.read_service import read_document as read
         with runtime.operation("read/document", context=ExecutionContext()):
             return to_wire(read(body.path, body.options.model_dump()))
-
-    @router.post("/read/pdf", response_model=ModelResponse)
-    def read_pdf(body: PdfReadRequest):
-        from Backend.application.read_service import read_pdf as read
-        with runtime.operation("read/pdf", context=ExecutionContext()):
-            return to_wire(read(body.path, body.options.model_dump(exclude_none=True)))
 
     @router.post("/read/image", response_model=ModelResponse)
     def read_image(body: ImageReadRequest):

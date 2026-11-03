@@ -1,4 +1,4 @@
-"""Explicit contracts for the six intermediate-model operations."""
+"""Explicit contracts for document reads, model translation, and file writes."""
 from typing import Any, Literal
 
 from pydantic import Field
@@ -10,11 +10,7 @@ from Backend.domain.models.intermediate import IntermediateModel
 class DocumentReadOptions(RequestModel):
     format: str = "AutoType"
     exclude_rule: str = ""
-
-
-class PdfReadOptions(RequestModel):
-    exclude_rule: str = ""
-    pages: str | None = None
+    pages: str | None = Field(default=None, description="PDF 页范围；AutoType 下应用于每个 PDF，其他文件不受影响")
 
 
 class EmptyReadOptions(RequestModel):
@@ -24,11 +20,6 @@ class EmptyReadOptions(RequestModel):
 class DocumentReadRequest(RequestModel):
     path: str = Field(min_length=1)
     options: DocumentReadOptions = Field(default_factory=DocumentReadOptions)
-
-
-class PdfReadRequest(RequestModel):
-    path: str = Field(min_length=1)
-    options: PdfReadOptions = Field(default_factory=PdfReadOptions)
 
 
 class MediaReadRequest(RequestModel):

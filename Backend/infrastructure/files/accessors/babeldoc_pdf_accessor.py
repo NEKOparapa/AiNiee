@@ -5,7 +5,7 @@ from concurrent.futures import Executor, Future
 from concurrent.futures.thread import _WorkItem
 from pathlib import Path
 
-from Backend.infrastructure.compat.babeldoc import ensure_optional_imports
+from Backend.infrastructure.compat.babeldoc import ensure_optional_imports, ensure_pdf_runtime
 
 ensure_optional_imports()
 
@@ -178,6 +178,7 @@ class TranslationStage:
 
 class BabeldocPdfAccessor:
     def __init__(self, tmp_directory: Path, output_config: OutputConfig | None, parse_options=None) -> None:
+        ensure_pdf_runtime()
         self.tmp_directory = tmp_directory
         self.output_config = output_config
         self.parse_options = dict(parse_options or {})

@@ -4,7 +4,6 @@ from tempfile import TemporaryDirectory
 from Backend.domain.models.cache_file import CacheFile
 from Backend.domain.models.cache_item import CacheItem
 from Backend.domain.models.cache_project import ProjectType
-from Backend.infrastructure.files.accessors.babeldoc_pdf_accessor import BabeldocPdfAccessor
 from Backend.infrastructure.files.readers.base_reader import (
     BaseSourceReader,
     InputConfig,
@@ -25,8 +24,19 @@ class BabeldocPdfReader(BaseSourceReader):
 
     def _ensure_accessor(self):
         if self.file_accessor is None:
-            self._temporary = TemporaryDirectory(prefix="ainiee-pdf-read-")
-            self.file_accessor = BabeldocPdfAccessor(Path(self._temporary.name), None, self.parse_options)
+            from Backend.infrastructure.compat.babeldoc import ensure_pdf_runtime
+            ensure_pdf_runtime()
+            # AutoType constructs every reader; load PDF dependencies only when used.
+            from Backend.infrastructure.files.accessors.babeldoc_pdf_accessor import BabeldocPdfAccessor
+
+            temporary = TemporaryDirectory(prefix="ainiee-pdf-read-")
+            try:
+                accessor = BabeldocPdfAccessor(Path(temporary.name), None, self.parse_options)
+            except BaseException:
+                temporary.cleanup()
+                raise
+            self._temporary = temporary
+            self.file_accessor = accessor
 
     def __exit__(self, exc_type, exc, exc_tb):
         if self._temporary is not None:

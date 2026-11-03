@@ -1,10 +1,13 @@
 import threading
 
+from PyQt5.QtCore import QSignalBlocker
 from PyQt5.QtWidgets import QLayout, QVBoxLayout, QWidget
 from qfluentwidgets import MessageBox, StateToolTip, pyqtSignal
 
 from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
+from Frontend.core.log_system import redact
+from Frontend.services.backend_client import BackendError
 from Frontend.services.backend_paths import default_input_dir
 from Frontend.core.log import LogMixin
 from Frontend.pages.workspace.startup.folder_drop_card import FolderDropCard
@@ -63,18 +66,27 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
     def add_widget_projecttype(self, parent, config) -> None:
         translated_pairs = [(self.tra(project_type), project_type) for project_type in self.support_project_types]
+        confirmed_value = config.get("translation_project", "AutoType")
 
         def init(widget) -> None:
-            current_config = self.load_config()
-            current_value = current_config.get("translation_project", "AutoType")
-            index = next((i for i, (_, value) in enumerate(translated_pairs) if value == current_value), 0)
+            index = next((i for i, (_, value) in enumerate(translated_pairs) if value == confirmed_value), 0)
             widget.set_current_index(max(0, index))
 
         def current_text_changed(widget, text: str) -> None:
+            nonlocal confirmed_value
             value = next((value for display, value in translated_pairs if display == text), "AutoType")
-            current_config = self.load_config()
-            current_config["translation_project"] = value
-            self.save_config(current_config)
+            try:
+                current_config = self.load_config()
+                confirmed_value = current_config.get("translation_project", "AutoType")
+                current_config["translation_project"] = value
+                self.save_config(current_config)
+            except BackendError as error:
+                # Restore the last confirmed selection without issuing another save.
+                with QSignalBlocker(widget.combo_box):
+                    init(widget)
+                self._show_backend_error("更新项目类型失败", error)
+                return
+            confirmed_value = value
 
         options = [display for display, _ in translated_pairs]
         parent.addWidget(
@@ -89,9 +101,13 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
 
     def add_widget_folder_drop(self, parent: QLayout, config: dict) -> None:
         def widget_callback(path: str) -> None:
-            current_config = self.load_config()
-            current_config["label_input_path"] = path.strip()
-            self.save_config(current_config)
+            try:
+                current_config = self.load_config()
+                current_config["label_input_path"] = path.strip()
+                self.save_config(current_config)
+            except BackendError as error:
+                self._show_backend_error("设置输入路径失败", error)
+                return
             self.folder_path_changed("new")
 
         initial_path = config.get("label_input_path", str(default_input_dir()))
@@ -100,6 +116,10 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             path_changed=widget_callback,
         )
         parent.addWidget(self.drag_card)
+
+    def _show_backend_error(self, action: str, error: BackendError) -> None:
+        self.error(action, error)
+        self.error_toast(self.tra("错误"), f"{self.tra(action)}：{redact(str(error))}")
 
     def refresh_project_histories(self) -> None:
         self.history_refresh_token += 1
@@ -234,7 +254,8 @@ class StartupPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             project_name = self.cache_manager.project.project_name
             self.loadSuccess.emit(project_name, mode)
         except Exception as error:
-            error_message = "翻译项目数据载入失败，请检查项目类型与输入文件夹设置。"
+            detail = redact(str(error).strip()) or type(error).__name__
+            error_message = f"{self.tra('翻译项目数据载入失败')}：{detail}"
             self.error(error_message, error)
             self.loadFailed.emit(error_message)
 

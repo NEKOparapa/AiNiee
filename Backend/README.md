@@ -21,6 +21,8 @@ python -m pip install --no-deps -r requirements_no_deps.txt
 python -m Backend --host 127.0.0.1 --port 3389
 ```
 
+PDF 解析使用项目固定的 `pymupdf==1.26.7`。已在真实 PDF 上复现 PyMuPDF 1.28.0 渲染页面时发生原生堆损坏，导致整个后端退出，随后桌面显示 `WinError 10061`。读取和写出 PDF 前会检查版本，不匹配时返回 `PDF_DEPENDENCY_INCOMPATIBLE`；请在后端使用的 Python 环境执行 `python -m pip install --no-deps "pymupdf==1.26.7"` 并重启后端。普通文档读取不受 PDF 版本检查影响。
+
 前端使用独立环境和独立终端：
 
 ```powershell
@@ -131,8 +133,7 @@ WebSocket 消息类型为 `connected`、`status`、`notification`、`log`、`set
 
 | 接口 | 输入与结果 |
 | --- | --- |
-| `POST /api/v2/read/document` | `path`、`options.format/exclude_rule` → 文档模型与读取报告；PDF 使用专用接口 |
-| `POST /api/v2/read/pdf` | `path`、可选 `options.pages/exclude_rule` → BabelDOC 模型与报告 |
+| `POST /api/v2/read/document` | `path`、可选 `options.format/exclude_rule/pages` → 文档模型与读取报告；自动识别包含 PDF 的单文件或混合目录 |
 | `POST /api/v2/read/image` | 读取本地静态图片或目录，记录尺寸、方向和源文件指纹 |
 | `POST /api/v2/ocr` | 独立在线 OCR，返回原文、像素坐标和阅读顺序 |
 | `POST /api/v2/write/image` | 擦字、回填译文，保存图片、遮罩及中间模型 |
@@ -147,6 +148,8 @@ WebSocket 消息类型为 `connected`、`status`、`notification`、`log`、`set
 | `POST /api/v2/write` | `model`、可选 `options` → 实际生成文件清单与写出报告 |
 | `POST /api/v2/write/subtitles` | `model`、`options.output_dir/format/mode` → SRT、VTT、LRC 或 ASS 字幕 |
 | `POST /api/v2/audio/translate` | `path/read_options/transcription/translation/output` → 串行完成音频翻译，返回模型、字幕文件及分阶段报告 |
+
+文档读取默认 `format: "AutoType"`，按文件类型选择读取器，PDF 使用 BabelDOC。显式指定 `format: "BabeldocPdf"` 时仅读取 PDF，其他指定格式仍只读取匹配文件。可选 `pages`（例如 `"1-3,5"`）仅用于 `AutoType` 或 `BabeldocPdf`：混合目录中每个 PDF 使用同一页范围，其他文档不受影响；省略时读取全部页。PDF 的源文件指纹、解析参数及原文顺序摘要继续保存在中间模型中，供后续翻译和写出使用。扫描件仍不支持，混合目录中的单文件失败会记录在报告中并保留其他文件的读取结果。
 
 读取和翻译响应包含 `status`、`model`、`report`；写出响应包含 `status`、`files`、`report`。执行结果的 `status` 为 `success`、`partial`、`failed`，取消的翻译返回 `cancelled`。执行前错误使用非 2xx HTTP 响应，并提供 `error.code` 和 `error.message`；HTTP 200 时仍需检查业务状态及报告。
 
@@ -195,6 +198,12 @@ with httpx.Client(base_url="http://127.0.0.1:3389", headers=headers,
 ```
 
 ## 验证
+
+统一文档/PDF 读取入口的独立回归测试（模拟 PDF 解析与语言检测，不下载模型）：
+
+```powershell
+python -m pytest Tests/test_document_read.py -q
+```
 
 ```powershell
 python Tests/run_all.py

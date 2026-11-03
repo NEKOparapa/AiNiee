@@ -24,18 +24,16 @@ def _validate_options(options, allowed):
     return options
 
 
-def _make_reader(project_type, root, *, include_pdf=False, pages=None):
+def _make_reader(project_type, root, *, pages=None):
     if project_type in RETIRED_PROJECT_TYPES:
         raise PipelineError("FORMAT_REMOVED", "Office 转换格式已移除；PDF 请重新使用 BabelDOC 读取，DOC 请先转换为 DOCX")
     registry = FileReader()
-    if not include_pdf:
-        registry.reader_factory_dict.pop(ProjectType.BABELDOC_PDF, None)
     if project_type not in registry.reader_factory_dict:
         raise PipelineError("UNSUPPORTED_FORMAT", f"不支持的文件格式: {project_type}")
     entry = registry.reader_factory_dict[project_type]
-    params = registry._get_reader_init_params(project_type, str(root))
-    if project_type == ProjectType.BABELDOC_PDF:
-        params["parse_options"] = {"pages": pages} if pages else {}
+    params = registry._get_reader_init_params(
+        project_type, str(root), pdf_parse_options={"pages": pages} if pages else {},
+    )
     return entry.resolve_factory()(**params)
 
 
@@ -137,6 +135,8 @@ def _read(path, options, *, kind):
     pages = options.get("pages")
     if pages is not None and (not isinstance(pages, str) or not pages.strip()):
         raise PipelineError("VALIDATION_ERROR", "pages 必须为非空字符串或 null")
+    if pages is not None and project_type not in (ProjectType.AUTO_TYPE, ProjectType.BABELDOC_PDF):
+        raise PipelineError("VALIDATION_ERROR", "pages 仅适用于 AutoType 或 BabeldocPdf 格式")
     files = sorted(input_path.rglob("*")) if input_path.is_dir() else [input_path]
     project = CacheProject(
         project_type=project_type, project_name=input_path.stem,
@@ -148,7 +148,7 @@ def _read(path, options, *, kind):
     try:
         with ExitStack() as stack:
             try:
-                reader = stack.enter_context(_make_reader(project_type, root, include_pdf=kind in ("pdf", "legacy"), pages=pages))
+                reader = stack.enter_context(_make_reader(project_type, root, pages=pages))
             except (ImportError, ModuleNotFoundError) as exc:
                 raise PipelineError("CAPABILITY_UNAVAILABLE", f"读取器依赖不可用: {exc}", 503) from exc
             patterns.extend(reader.exclude_rules)
@@ -158,9 +158,6 @@ def _read(path, options, *, kind):
                 relative = source.relative_to(root).as_posix()
                 if any(fnmatch.fnmatch(relative if "/" in rule else source.name, rule) for rule in patterns):
                     report["skipped_files"].append({"path": relative, "reason": "excluded"})
-                    continue
-                if kind == "document" and source.suffix.lower() == ".pdf":
-                    report["skipped_files"].append({"path": relative, "reason": "use_read_pdf"})
                     continue
                 try:
                     if source.suffix.lower() == ".doc":
@@ -193,6 +190,8 @@ def _read(path, options, *, kind):
                     project.files[relative] = cache_file
                     report["read_files"] += 1
                     report["item_count"] += len(cache_file.items)
+                except ImportError as exc:
+                    report["errors"].append({"path": relative, "code": "CAPABILITY_UNAVAILABLE", "message": f"读取器依赖不可用: {exc}"})
                 except Exception as exc:
                     report["errors"].append({"path": relative, "code": getattr(exc, "code", "READ_FAILED"), "message": str(exc)})
     finally:
@@ -201,13 +200,15 @@ def _read(path, options, *, kind):
     if not project.files:
         errors = report["errors"]
         code = errors[0]["code"] if len(errors) == 1 else "NO_READABLE_FILES"
-        raise PipelineError(code, "没有成功读取的文件", details=report)
+        message = f"没有成功读取的文件：{errors[0]['message']}" if len(errors) == 1 else "没有成功读取的文件"
+        status_code = 503 if code in ("CAPABILITY_UNAVAILABLE", "PDF_DEPENDENCY_INCOMPATIBLE") else 400
+        raise PipelineError(code, message, status_code, details=report)
     project = normalize_project(project)
     return {"status": "partial" if report["errors"] else "success", "model": project, "report": report}
 
 
 def read_document(path, options=None):
-    return _read(path, _validate_options(options, {"format", "exclude_rule"}), kind="document")
+    return _read(path, _validate_options(options, {"format", "exclude_rule", "pages"}), kind="document")
 
 
 def read_pdf(path, options=None):
