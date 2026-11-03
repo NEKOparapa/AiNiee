@@ -21,6 +21,10 @@ def digest(value):
 
 
 def item_text_identity(file):
+    """Verify old cached artifacts that depended on editable OCR text items.
+
+    New single-step requests never read or fingerprint those item translations.
+    """
     file = to_wire(file)
     return digest([{key: item.get(key) for key in ("item_id", "source_text", "translated_text", "locator")}
                    for item in file.get("items", [])])

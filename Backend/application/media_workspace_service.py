@@ -111,15 +111,6 @@ def _stamp(path):
     return {"size": info.st_size, "mtime_ns": info.st_mtime_ns}
 
 
-def _content_identity(file):
-    value = {"source": file["source_ref"], "items": file["items"]}
-    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-
-
-def _image_mode(model):
-    return model.get("extra", {}).get("image_translation_mode", "ocr")
-
-
 def _generation_identity(file):
     generation = file.get("extra", {}).get("image_generation", {})
     generation = generation if isinstance(generation, dict) else {}
@@ -138,7 +129,7 @@ def _generation_matches(model, file):
     if not isinstance(settings, dict) or not isinstance(selected, dict):
         return False
     return all(selected.get(key) == settings.get(key)
-               for key in ("source_language", "target_language", "text_mode", "prompt"))
+               for key in ("source_language", "target_language", "prompt", "translation_prompt"))
 
 
 def _generation_root(model, file):
@@ -149,42 +140,11 @@ def _generation_root(model, file):
     return root
 
 
-def _stage_artifact_matches(file, stage, registered):
-    try:
-        state = file["extra"]["image_pipeline"][stage]
-        artifact = state["artifacts"]["image"]
-        return (registered and state.get("status") in ("complete", "partial")
-                and str(Path(artifact["path"]).resolve()) == registered.get("path")
-                and artifact.get("sha256") == registered.get("sha256"))
-    except (AttributeError, KeyError, TypeError, OSError, ValueError):
-        return False
-
-
 def _selected_preview(document, file):
-    if _image_mode(document["model"]) == "generation":
-        registered = document.get("generation_previews", {}).get(file["file_id"])
-        usable = registered and _generation_matches(document["model"], file)
-        identity = _generation_identity(file)
-    else:
-        registered = document.get("previews", {}).get(file["file_id"])
-        usable = _stage_artifact_matches(file, "render", registered)
-        identity = _content_identity(file)
+    registered = document.get("generation_previews", {}).get(file["file_id"])
+    usable = registered and _generation_matches(document["model"], file)
+    identity = _generation_identity(file)
     return registered if usable and registered.get("content_identity") == identity else None
-
-
-def _selected_repair(document, file):
-    if _image_mode(document["model"]) != "ocr":
-        return None
-    registered = document.get("repaired_previews", {}).get(file["file_id"])
-    return registered if (registered and registered.get("content_identity") == _content_identity(file)
-                          and _stage_artifact_matches(file, "repair", registered)) else None
-
-
-def _preview_root(directory):
-    root = (directory / "preview").resolve()
-    if not root.is_relative_to(directory.resolve()):
-        raise PipelineError("MEDIA_INVALID_PREVIEW", "媒体预览目录不能越出工作区", 409)
-    return root
 
 
 def _zip_relative(name):
@@ -277,17 +237,20 @@ class MediaWorkspaceStore:
             raise PipelineError("MEDIA_WORKSPACE_NOT_FOUND", "媒体工作区不存在或无法读取", 404) from error
         if not isinstance(document, dict) or document.get("workspace_id") != workspace_id:
             raise PipelineError("MEDIA_WORKSPACE_INVALID", "媒体工作区信息不匹配", 409)
+        if document.get("kind") == "image":
+            # Existing files and artifacts remain on disk; retired OCR metadata
+            # is no longer a selectable translation workflow.
+            document["model"].setdefault("extra", {})["image_translation_mode"] = "generation"
         return directory, document
 
     def _response(self, directory, document):
         files = []
         for storage_path, file in document["model"]["files"].items():
-            preview = _selected_preview(document, file)
+            preview = _selected_preview(document, file) if document["kind"] == "image" else None
             base = f"/api/v2/media/{document['workspace_id']}/files/{file['file_id']}"
             entry = {"file_id": file["file_id"], "storage_path": storage_path,
                      "source_url": base + "/source", "translated_url": base + "/translated" if preview else None}
             if document["kind"] == "image":
-                entry["repaired_url"] = base + "/repaired" if _selected_repair(document, file) else None
                 state = file.get("extra", {}).get("image_generation", {})
                 state = state if isinstance(state, dict) else {}
                 status = state.get("status", "pending")
@@ -442,31 +405,16 @@ class MediaWorkspaceStore:
             report["cancelled"] = context.is_cancelled()
             status = "cancelled" if report["cancelled"] else "partial" if report["errors"] or report["operation_errors"] else "success"
             if kind == "image":
-                detections = [f.extra.get("text_detection", {}) for f in project.files.values()]
-                report["detected_files"] = sum(d.get("status") == "complete" for d in detections)
-                report["region_count"] = sum(d.get("region_count", 0) for d in detections if d.get("status") == "complete")
-                report["empty_files"] = sum(bool(d.get("empty")) for d in detections if d.get("status") == "complete")
-                if not report["cancelled"] and report["detected_files"] < len(project.files):
-                    status = "partial" if report["detected_files"] else "failed"
-                read_errors = [error for error in report["errors"] if error.get("stage", "read") == "read"]
-                read_status = "partial" if read_errors else "success"
-                detection_errors = [error for error in report["errors"] if error.get("stage") == "detect"]
-                detect_status = ("cancelled" if report["cancelled"] else "partial" if report["detected_files"] and
-                                 (detection_errors or report["operation_errors"]) else "failed" if detection_errors or
-                                 report["operation_errors"] or report["detected_files"] < len(project.files) else "success")
-                report["stage_status"] = {"read": read_status, "detect": detect_status}
-                report["detection"] = {key: report[key] for key in ("detected_files", "region_count", "empty_files", "cancelled")}
-                report["detection"].update(status=detect_status, errors=detection_errors,
-                                           operation_errors=list(report["operation_errors"]))
-                project.extra.setdefault("media_workflow", {}).setdefault("stages", {}).update({
-                    "read": {"status": read_status}, "detect": {"status": detect_status}})
+                project.extra["image_translation_mode"] = "generation"
+                report["stage_status"] = {"read": status}
+                project.extra.setdefault("media_workflow", {}).setdefault("stages", {})["read"] = {"status": status}
             model = to_wire(normalize_project(project))
             report["total_duration_ms"] = sum(f.media_metadata.get("duration_ms", 0) for f in project.files.values())
             (directory / "preview").mkdir()
             timestamp = _now()
             document = {"workspace_id": workspace_id, "kind": kind, "model": model,
                         "status": status, "report": report,
-                        "created_at": timestamp, "updated_at": timestamp, "previews": {},
+                        "created_at": timestamp, "updated_at": timestamp, "generation_previews": {},
                         "sources": {f["file_id"]: {"path": f["source_ref"]["path"], "sha256": f["source_ref"]["sha256"],
                                     "storage_path": name, "stamp": _stamp(Path(f["source_ref"]["path"]))}
                                     for name, f in model["files"].items()}}
@@ -484,7 +432,7 @@ class MediaWorkspaceStore:
             directory, document = self._read(workspace_id)
             return self._response(directory, document)
 
-    def save_model(self, workspace_id, model, *, preview_files=None, status=None, report=None):
+    def save_model(self, workspace_id, model, *, status=None, report=None):
         clean = to_wire(parse_model(model))
         with self.lock:
             directory, document = self._read(workspace_id)
@@ -492,8 +440,7 @@ class MediaWorkspaceStore:
                     or clean["project_type"] != document["model"]["project_type"]):
                 raise PipelineError("MEDIA_MODEL_MISMATCH", "中间模型不属于此媒体工作区", 409)
             if document["kind"] == "image":
-                if _image_mode(clean) not in ("ocr", "generation"):
-                    raise PipelineError("MEDIA_INVALID_MODE", "图片翻译模式无效", 422)
+                clean.setdefault("extra", {})["image_translation_mode"] = "generation"
                 if not isinstance(clean.get("extra", {}).get("image_generation_options", {}), dict):
                     raise PipelineError("MEDIA_INVALID_MODE", "生图选项必须是对象", 422)
             sources = document["sources"]
@@ -507,34 +454,9 @@ class MediaWorkspaceStore:
                         or file["source_ref"]["path"] != registered["path"]
                         or file["source_ref"]["sha256"] != registered["sha256"]):
                     raise PipelineError("MEDIA_MODEL_MISMATCH", "工作区源文件引用不能被修改", 409)
-            if preview_files is not None:
-                if not isinstance(preview_files, list):
-                    raise PipelineError("MEDIA_INVALID_PREVIEW", "预览产物必须是列表", 422)
-                by_id = {f["file_id"]: f for f in clean["files"].values()}
-                preview_root = _preview_root(directory)
-                for exported in preview_files:
-                    file = by_id.get(exported.get("file_id")) if isinstance(exported, dict) else None
-                    try:
-                        preview = Path(exported["path"]).resolve(strict=True)
-                        if (document["kind"] != "image" or file is None or not preview.is_file()
-                                or not preview.is_relative_to(preview_root) or preview.suffix.lower() not in IMAGE_EXTENSIONS):
-                            raise ValueError("not a workspace preview")
-                        repaired = (exported.get("variant") == "repaired"
-                                    or isinstance(report, dict) and report.get("stage") == "repair")
-                        stage = "repair" if repaired else "render"
-                        render = file.get("extra", {}).get("image_pipeline", {}).get(stage, {})
-                        artifact = render.get("artifacts", {}).get("image", {})
-                        digest = file_sha256(preview)
-                        if str(preview) != str(Path(artifact.get("path", "")).resolve()) or digest != artifact.get("sha256"):
-                            raise ValueError("not the rendered artifact")
-                    except (OSError, TypeError, KeyError, ValueError) as error:
-                        raise PipelineError("MEDIA_INVALID_PREVIEW", "预览图片必须是本工作区已渲染的产物", 422) from error
-                    registrations = document.setdefault("repaired_previews" if repaired else "previews", {})
-                    registrations[file["file_id"]] = {"path": str(preview), "sha256": digest,
-                        "stamp": _stamp(preview), "content_identity": _content_identity(file)}
             # Canonical generation artifacts already live in a controlled cache.
             # Register each completed page during checkpoints, independent of the
-            # OCR renderer and without copying or re-generating the image.
+            # other processing and without copying or re-generating the image.
             if document["kind"] == "image":
                 from Backend.application.image_generation_service import generation_artifact_current
                 registrations = document.setdefault("generation_previews", {})
@@ -579,11 +501,11 @@ class MediaWorkspaceStore:
             registered = document["sources"].get(file_id)
             if not registered:
                 raise PipelineError("MEDIA_ASSET_NOT_FOUND", "媒体文件不存在", 404)
-            if variant in ("translated", "repaired"):
+            if variant == "translated":
                 file = next((f for f in document["model"]["files"].values() if f["file_id"] == file_id), None)
-                registered = _selected_repair(document, file) if variant == "repaired" else _selected_preview(document, file)
+                registered = _selected_preview(document, file)
                 if not registered:
-                    raise PipelineError("MEDIA_PREVIEW_NOT_READY", "处理结果尚未生成或内容已更新，请重新修复或渲染", 404)
+                    raise PipelineError("MEDIA_PREVIEW_NOT_READY", "译图尚未生成或内容已更新，请重新生成", 404)
             elif variant != "source":
                 raise PipelineError("MEDIA_ASSET_NOT_FOUND", "媒体预览类型不存在", 404)
             try:
@@ -591,9 +513,8 @@ class MediaWorkspaceStore:
                 path = saved.resolve(strict=True)
                 if path != saved or not path.is_file() or _stamp(path) != registered["stamp"]:
                     raise ValueError("changed registered asset")
-                if variant in ("translated", "repaired"):
-                    allowed = (_generation_root(document["model"], file) if variant == "translated" and _image_mode(document["model"]) == "generation"
-                               else _preview_root(directory))
+                if variant == "translated":
+                    allowed = _generation_root(document["model"], file)
                     if not path.is_relative_to(allowed):
                         raise ValueError("preview escaped workspace")
             except (OSError, ValueError) as error:

@@ -10,7 +10,7 @@ from starlette.concurrency import run_in_threadpool
 
 from Backend.api.mcp_schemas import (
     DocumentTranslationRequest, MCPAudioTranslationRequest, MCPImageGenerationRequest,
-    MCPImageTranslationRequest, MCPJobListQuery, MCPJobQuery,
+    MCPJobListQuery, MCPJobQuery,
 )
 from Backend.api.schemas import RequestModel
 from Backend.application.mcp_service import MCPTranslationService
@@ -41,7 +41,6 @@ def create_mcp_server(runtime):
         name: create_model(name + "Arguments", __base__=RequestModel, request=(schema, ...))
         for name, schema in (
             ("submit_document_translation", DocumentTranslationRequest),
-            ("submit_image_translation", MCPImageTranslationRequest),
             ("submit_image_generation", MCPImageGenerationRequest),
             ("submit_audio_translation", MCPAudioTranslationRequest),
         )
@@ -110,20 +109,11 @@ def create_mcp_server(runtime):
         """
         return await invoke(service.submit_document, "job", request.model_dump(exclude_unset=True))
 
-    @server.tool(title="提交图片 OCR 翻译", annotations=submit_hints)
-    async def submit_image_translation(request: MCPImageTranslationRequest) -> CallToolResult:
-        """Queue image import → detect → OCR → translate → repair → render → export.
-
-        Supply a backend-local path and output.output_dir. OCR and translation inherit
-        backend settings; optional request_id identifies this submission.
-        """
-        return await invoke(service.submit_image, "job", request.model_dump(exclude_unset=True))
-
     @server.tool(title="提交整图生成翻译", annotations=submit_hints)
     async def submit_image_generation(request: MCPImageGenerationRequest) -> CallToolResult:
         """Queue whole-image translation with the saved generation provider, then export.
 
-        Shares the image queue with OCR translation. Supply backend-local path and
+        Uses the shared image queue. Supply backend-local path and
         output.output_dir; optional generation settings override the saved provider.
         """
         return await invoke(service.submit_image_generation, "job", request.model_dump(exclude_unset=True))

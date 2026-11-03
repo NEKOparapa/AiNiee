@@ -59,18 +59,16 @@ class MediaWorkflowSelector(QWidget, ConfigMixin):
         layout.addLayout(self.grid)
 
         definitions = (("recognize", "转录字幕"), ("translate", "翻译字幕")) if kind == "audio" else (
-            ("detect", "文本检测"), ("recognize", "OCR 识别"),
-            ("translate", "AI 翻译"), ("preview", "译文填回"),
             ("generate", "生成译图"),
         )
         self._cards = {}
         for index, (stage, title) in enumerate(definitions):
             card = _WorkflowStep(title, 1 if stage == "generate" else index + 1, self)
-            card.check.setChecked(stage != "detect")
+            card.check.setChecked(True)
             card.check.toggled.connect(lambda checked: self.selectionChanged.emit())
             self._cards[stage] = card
         self._arrows = []
-        for _ in range(1 if kind == "audio" else 3):
+        for _ in range(1 if kind == "audio" else 0):
             arrow = IconWidget(FluentIcon.RIGHT_ARROW, self)
             arrow.setFixedSize(16, 16)
             arrow.setAttribute(Qt.WA_TransparentForMouseEvents)
@@ -81,16 +79,14 @@ class MediaWorkflowSelector(QWidget, ConfigMixin):
         self.hint_label.setTextColor("#9a5a00", "#e5b35e")
         self.hint_label.hide()
         layout.addWidget(self.hint_label)
-        self.configure("ocr")
+        self.configure("generation" if kind == "image" else "audio")
 
     def configure(self, mode):
-        mode = "generation" if self.kind != "audio" and mode == "generation" else "ocr"
+        mode = "generation" if self.kind == "image" else "audio"
         if mode == self._mode:
             return
         self._mode = mode
-        self._visible_stages = (("generate",) if mode == "generation" else
-                                ("recognize", "translate") if self.kind == "audio" else
-                                ("detect", "recognize", "translate", "preview"))
+        self._visible_stages = ("generate",) if self.kind == "image" else ("recognize", "translate")
         self._columns = 0
         self._reflow(self.width())
         self.set_hint("")

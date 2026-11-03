@@ -1,7 +1,7 @@
 """One-page DashScope image translation experiment; no OCR or text translator.
 
 Requires the project's httpx and Pillow dependencies. Credentials come from
-DASHSCOPE_API_KEY or the existing Bailian OCR profile (authentication only).
+DASHSCOPE_API_KEY or an existing DashScope image-generation profile.
 No automatic generation retries. --download-only reuses a saved response.
 Example: python Tools/probe_image_translation.py --output-dir Data/ImageGenerationQA/new-run
 Protocol: https://help.aliyun.com/zh/model-studio/qwen-image-generation-and-editing-api-reference
@@ -51,8 +51,10 @@ def scrub(text, key=""):
 
 def credentials(args):
     config = json.loads(args.config.read_text(encoding="utf-8-sig")) if args.config.is_file() else {}
-    name = args.provider or config.get("active_ocr_platform", "bailian_ocr")
-    profile = config.get("ocr_platforms", {}).get(name, {})
+    name = args.provider or config.get("active_image_generation_platform", "bailian_image")
+    profile = config.get("image_generation_platforms", {}).get(name, {})
+    if profile and profile.get("api_format", "DashScope") != "DashScope":
+        raise ValueError("Select a DashScope image-generation profile with --provider")
     endpoint = args.endpoint or profile.get("api_url") or DEFAULT_ENDPOINT
     host = urlsplit(endpoint)
     if host.scheme != "https" or host.username or host.password or host.query or host.fragment:
@@ -63,8 +65,8 @@ def credentials(args):
         raise ValueError("Expected the native DashScope multimodal generation endpoint")
     key = os.environ.get("DASHSCOPE_API_KEY") or profile.get("api_key", "")
     if not isinstance(key, str) or not key.strip():
-        raise ValueError("Set DASHSCOPE_API_KEY or select a configured Bailian OCR profile")
-    return endpoint, key.strip(), "environment" if os.environ.get("DASHSCOPE_API_KEY") else f"ocr_platforms.{name}"
+        raise ValueError("Set DASHSCOPE_API_KEY or select a configured DashScope image-generation profile")
+    return endpoint, key.strip(), "environment" if os.environ.get("DASHSCOPE_API_KEY") else f"image_generation_platforms.{name}"
 
 
 def prepare(args):
@@ -148,7 +150,7 @@ def main():
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--model", default="qwen-image-3.0-pro")
     parser.add_argument("--config", type=Path, default=ROOT / "Data/config.json")
-    parser.add_argument("--provider", help="Existing OCR profile used only for Bailian credentials")
+    parser.add_argument("--provider", help="Existing DashScope image-generation profile")
     parser.add_argument("--endpoint")
     parser.add_argument("--size", help="DashScope format, e.g. 1248*1632")
     parser.add_argument("--seed", type=int, default=20261102)

@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from Backend.api.mcp_schemas import (
     DocumentTranslationRequest, MCPAudioTranslationRequest, MCPImageGenerationRequest,
-    MCPImageTranslationRequest, MCPJobListQuery, MCPJobQuery,
+    MCPJobListQuery, MCPJobQuery,
 )
 from Backend.application.execution_context import ExecutionContext
 from Backend.application.pipeline_common import PipelineError
@@ -119,17 +119,6 @@ class MCPTranslationService:
         body = _validate(DocumentTranslationRequest, requestdict)
         return self._submit("mcp/document.translate", "document", body,
                             lambda context: _document_pipeline(body, context))
-
-    def submit_image(self, requestdict):
-        body = _validate(MCPImageTranslationRequest, requestdict)
-        def action(context):
-            from Backend.application.image_translation_service import translate_image
-            _progress(context, "read", state="running")
-            return translate_image(body.path, read_options=body.read_options.model_dump(),
-                                   ocr=body.ocr.model_dump(exclude_none=True),
-                                   translation=body.translation.model_dump(exclude_none=True),
-                                   output=body.output.model_dump(exclude_none=True), context=context)
-        return self._submit("mcp/image.translate", "image", body, action)
 
     def submit_image_generation(self, requestdict):
         body = _validate(MCPImageGenerationRequest, requestdict)

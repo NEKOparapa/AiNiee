@@ -52,6 +52,9 @@ class MediaProviderForm(QWidget, ConfigMixin):
         self.model_edit = LineEdit(self)
         self.model_edit.setPlaceholderText(self.tra("请输入模型名称或 Endpoint ID"))
         self._add_field("模型名称", self.model_edit)
+        self.protocol_hint = CaptionLabel(self.tra("填写 Gemini API 基地址，模型名称单独填写。"), self)
+        self.protocol_hint.setWordWrap(True)
+        self.fields.addWidget(self.protocol_hint)
         self.fields.addStretch(1)
         for editor in (self.name_edit, self.url_edit, self.key_edit, self.app_id_edit,
                        self.resource_id_edit, self.model_edit):
@@ -97,6 +100,10 @@ class MediaProviderForm(QWidget, ConfigMixin):
         self.resource_id_row.setVisible(volcengine_asr)
         self.key_edit.setPlaceholderText(self.tra("请输入 API Key 或 Access Token") if volcengine_asr
                                         else self.tra("请输入此接口的 API Key"))
+        gemini = self.kind == "image_generation" and format_ == "Gemini"
+        self.protocol_hint.setVisible(gemini)
+        self.url_edit.setPlaceholderText("https://generativelanguage.googleapis.com" if gemini else "https://")
+        self.model_edit.setPlaceholderText("gemini-3-pro-image" if gemini else self.tra("请输入模型名称或 Endpoint ID"))
 
     def load(self, data):
         values = normalize_media_provider(self.kind, data)

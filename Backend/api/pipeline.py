@@ -10,10 +10,9 @@ from Backend.api.audio_schemas import (
     SubtitleWriteRequest, TranscribeRequest,
 )
 from Backend.api.image_schemas import (
-    ImageReadRequest, ImageDetectRequest, OcrRequest, ImageWriteRequest, ImageTranslateRequest, ImagePipelineResponse,
+    ImageReadRequest,
 )
 from Backend.api.queued import require_model_lane, run_queued
-from Backend.application.image_workflow import record_image_stage
 
 
 def create_pipeline_router(runtime, authorized):
@@ -33,71 +32,6 @@ def create_pipeline_router(runtime, authorized):
             from Backend.application.image_read_service import read_image as read
             return read(body.path, body.options.model_dump(), context=context)
         return await run_queued(runtime, "read/image", action, lane="image", prefer=prefer)
-
-    @router.post("/ocr", response_model=ModelResponse)
-    async def ocr(body: OcrRequest, prefer: str | None = Header(default=None)):
-        model = body.model.model_dump()
-        require_model_lane(runtime, model, "image")
-        def action(context):
-            from Backend.application.ocr_service import ocr_model
-            record_image_stage(model, "recognize", "running")
-            result = ocr_model(model, body.config.model_dump(exclude_none=True), context=context)
-            record_image_stage(result["model"], "recognize", result["status"])
-            return result
-        return await run_queued(runtime, "ocr", action, lane="image", prefer=prefer,
-                          project_id=model.get("project_id"))
-
-    @router.post("/image/detect", response_model=ModelResponse)
-    async def detect_image(body: ImageDetectRequest, prefer: str | None = Header(default=None)):
-        model = body.model.model_dump()
-        require_model_lane(runtime, model, "image")
-        def action(context):
-            from Backend.application.image_detection_service import detect_images
-            return detect_images(model, context=context)
-        return await run_queued(runtime, "image/detect", action, lane="image", prefer=prefer,
-                          project_id=model.get("project_id"))
-
-    async def image_stage(body, stage, prefer):
-        model = body.model.model_dump()
-        require_model_lane(runtime, model, "image")
-        def action(context):
-            from Backend.application.image_render_service import repair_images, render_images, export_images
-            service = {"repair": repair_images, "render": render_images, "export": export_images}[stage]
-            return service(model, body.options.model_dump(exclude_none=True, exclude_unset=True), context=context)
-        return await run_queued(runtime, "image/" + stage, action, lane="image", prefer=prefer,
-                          project_id=model.get("project_id"))
-
-    @router.post("/image/repair", response_model=ImagePipelineResponse)
-    async def repair_image(body: ImageWriteRequest, prefer: str | None = Header(default=None)):
-        return await image_stage(body, "repair", prefer)
-
-    @router.post("/image/render", response_model=ImagePipelineResponse)
-    async def render_image(body: ImageWriteRequest, prefer: str | None = Header(default=None)):
-        return await image_stage(body, "render", prefer)
-
-    @router.post("/image/export", response_model=ImagePipelineResponse)
-    async def export_image(body: ImageWriteRequest, prefer: str | None = Header(default=None)):
-        return await image_stage(body, "export", prefer)
-
-    @router.post("/write/image", response_model=ImagePipelineResponse)
-    async def write_image(body: ImageWriteRequest, prefer: str | None = Header(default=None)):
-        model = body.model.model_dump()
-        require_model_lane(runtime, model, "image")
-        def action(context):
-            from Backend.application.image_write_service import write_images
-            return write_images(model, body.options.model_dump(exclude_none=True), context=context)
-        return await run_queued(runtime, "write/image", action, lane="image", prefer=prefer,
-                          project_id=model.get("project_id"))
-
-    @router.post("/image/translate", response_model=ImagePipelineResponse)
-    async def translate_image(body: ImageTranslateRequest, prefer: str | None = Header(default=None)):
-        def action(context):
-            from Backend.application.image_translation_service import translate_image as run
-            return run(body.path, read_options=body.read_options.model_dump(),
-                       ocr=body.ocr.model_dump(exclude_none=True),
-                       translation=body.translation.model_dump(exclude_none=True),
-                       output=body.output.model_dump(exclude_none=True), context=context)
-        return await run_queued(runtime, "image/translate", action, lane="image", prefer=prefer)
 
     @router.post("/read/audio", response_model=ModelResponse)
     async def read_audio(body: AudioReadRequest, prefer: str | None = Header(default=None)):
@@ -140,13 +74,12 @@ def create_pipeline_router(runtime, authorized):
     async def translate(body: TranslateRequest, prefer: str | None = Header(default=None)):
         model = body.model.model_dump()
         lane = runtime.lane_for_model(model)
+        if lane == "image":
+            from Backend.application.pipeline_common import PipelineError
+            raise PipelineError("IMAGE_GENERATION_REQUIRED", "图片翻译仅支持单步生图接口", 422)
         def action(context):
             from Backend.application.translation_service import translate_model
-            if lane == "image":
-                record_image_stage(model, "translate", "running")
             result = translate_model(model, body.config.model_dump(exclude_none=True), context=context)
-            if lane == "image":
-                record_image_stage(result["model"], "translate", result["status"])
             return result
         return await run_queued(runtime, "translate", action, lane=lane, prefer=prefer,
                           project_id=model.get("project_id"))

@@ -76,7 +76,7 @@ def _language_stats(cache_file):
 
 
 def ensure_media_language_metadata(project, *, media_types=("audio", "image")):
-    """Fill missing OCR/ASR language metadata without changing text or statuses.
+    """Fill missing recognized-text language metadata without changing content or statuses.
 
     Unlike document readers, recognition creates items after the read stage.
     The shared language filter must not mistake their absent metadata for a

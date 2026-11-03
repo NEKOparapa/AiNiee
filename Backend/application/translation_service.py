@@ -156,6 +156,8 @@ def translate_model(model, config=None, context=None) -> dict:
     caller owns admission control; this function never touches Runtime's cache.
     """
     project = parse_model(model)
+    if project.project_type == "Image" or any(file.media_type == "image" for file in project.files.values()):
+        raise PipelineError("IMAGE_GENERATION_REQUIRED", "图片翻译仅支持单步生图接口", 422)
     resolved = resolve_translation_config(config)
     context = context or ExecutionContext()
     previous_target = (project.translation_context or {}).get("target_language")

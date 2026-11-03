@@ -130,7 +130,8 @@ class MediaMonitoringPanel(QWidget, ConfigMixin):
         self.counts_card.setToolTip(
             f"{self.tra('已完成')} {completed:,} / {total:,} {self.tra(unit)}")
         self._set_count(self.files_card, self._count(files))
-        self._set_count(self.recognized_card, self._count(recognized))
+        self.recognized_card.titleLabel.setText(self.tra("已生成译图" if generation else "已识别文件"))
+        self._set_count(self.recognized_card, completed if generation else self._count(recognized))
 
         try:
             seconds = float(elapsed)

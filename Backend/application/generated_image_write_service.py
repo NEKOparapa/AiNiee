@@ -89,7 +89,7 @@ def write_generated_images(model, options=None, context=None):
             saved = file.extra.get("image_generation", {}).get("settings", {})
             if (not isinstance(requested, dict) or not isinstance(saved, dict)
                     or any(requested.get(key) != saved.get(key) for key in
-                           ("source_language", "target_language", "text_mode", "prompt"))):
+                           ("source_language", "target_language", "prompt", "translation_prompt"))):
                 raise PipelineError("IMAGE_GENERATION_REQUIRED", "生图选项已变化，请重新生成后导出", 409)
             pixels, source = verified_generated_image(file)
             try:

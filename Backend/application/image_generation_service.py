@@ -10,7 +10,7 @@ import uuid
 from Backend.application.execution_context import ExecutionContext
 from Backend.application.pipeline_common import PipelineError
 from Backend.core.paths import project_cache_root
-from Backend.domain.config.image_generation_config import ImageGenerationConfig, resolve_image_generation_config
+from Backend.domain.config.image_generation_config import resolve_image_generation_config
 from Backend.domain.models.intermediate import parse_model
 from Backend.infrastructure.files.pipeline_support import file_sha256
 from Backend.infrastructure.images.source import verified_image
@@ -54,22 +54,18 @@ def _accumulate_usage(report, usage):
             report["usage"][key] = report["usage"].get(key, 0) + value
 
 
-def generate_image_model(model, config=None, context=None, *, prompt_is_explicit=None):
+def generate_image_model(model, config=None, context=None):
     project = parse_model(model)
     resolved = resolve_image_generation_config(config)
     context = context or ExecutionContext()
     files = [file for file in project.files.values() if file.media_type == "image"]
     if not files:
         raise PipelineError("IMAGE_GENERATION_NO_IMAGES", "中间模型中没有图片", 400)
-    selected = {row["file_id"] for row in resolved.replacements}
-    if selected - {file.file_id for file in files}:
-        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "替换清单含不属于此模型的file_id", 422)
     project.extra["image_translation_mode"] = "generation"
-    settings = {key: getattr(resolved, key) for key in ("source_language", "target_language", "text_mode")}
-    # Keep inherited task defaults out of the project's explicit prompt override.
-    if prompt_is_explicit is None:
-        prompt_is_explicit = isinstance(config, ImageGenerationConfig) or isinstance(config, dict) and "prompt" in config
-    settings["prompt"] = resolved.prompt if prompt_is_explicit else ""
+    # Persist the effective options used for this generation, including an
+    # inherited task prompt, so preview and export compare the same snapshot.
+    # A later request without a prompt still resolves the latest task default.
+    settings = {key: getattr(resolved, key) for key in ("source_language", "target_language", "prompt", "translation_prompt")}
     project.extra["image_generation_options"] = dict(settings)
     report = {"total": len(files), "succeeded": 0, "skipped": 0, "failed": 0, "cancelled": False,
               "cancelled_files": 0, "files": [], "errors": [], "warnings": [], "operation_errors": [],
@@ -92,11 +88,6 @@ def generate_image_model(model, config=None, context=None, *, prompt_is_explicit
         if context.is_cancelled():
             break
         identity = {"file_id": file.file_id, "path": file.storage_path}
-        if resolved.text_mode == "specified" and selected and file.file_id not in selected:
-            report["skipped"] += 1
-            report["files"].append({**identity, "status": "skipped", "reason": "not_selected"})
-            processed += 1
-            continue
         state, ledger, root = {}, None, None
         paid_started = False
 
@@ -139,6 +130,11 @@ def generate_image_model(model, config=None, context=None, *, prompt_is_explicit
                 try:
                     pixels, _ = verified_generated_image(file)
                     pixels.close()
+                    # A matching complete prompt can reuse an artifact created
+                    # before prompt-library snapshots were recorded.
+                    if state.get("settings") != prepared["settings"]:
+                        state["settings"] = copy.deepcopy(prepared["settings"])
+                        checkpoint()
                     report["skipped"] += 1
                     outputs.append(_output(file, state))
                     report["files"].append({**identity, "status": "skipped", "reason": "cached", "request_id": state.get("request_id", "")})
@@ -149,8 +145,10 @@ def generate_image_model(model, config=None, context=None, *, prompt_is_explicit
                         raise
             reusable = (not resolved.regenerate and previous.get("result_url")
                         and previous.get("status") in ("complete", "generated_pending_download", "download_failed"))
+            inline_image = None
             if reusable:
                 state = copy.deepcopy(previous)
+                state["settings"] = copy.deepcopy(prepared["settings"])
                 state["status"] = "generated_pending_download"
                 state.pop("error", None)
             else:
@@ -158,7 +156,7 @@ def generate_image_model(model, config=None, context=None, *, prompt_is_explicit
                          "identity": prepared["identity"], "settings": prepared["settings"],
                          "text_source": prepared["text_source"], "text_identity": prepared["text_identity"],
                          "source_sha256": file.source_ref["sha256"], "provider_id": resolved.provider_id,
-                         "model": resolved.model, "text_mode": resolved.text_mode, "attempt_id": uuid.uuid4().hex,
+                         "model": resolved.model, "attempt_id": uuid.uuid4().hex,
                          "request_id": "", "usage": {}}
                 if latest.get("artifact"):
                     state["previous_artifact"] = copy.deepcopy(latest["artifact"])
@@ -178,15 +176,23 @@ def generate_image_model(model, config=None, context=None, *, prompt_is_explicit
                 paid_started = True
                 report["usage"]["requests"] += 1
                 result = request_generation(prepared["data"], prompt=prepared["prompt"], size=prepared["size"], config=resolved.to_request_config())
+                inline_image = result.pop("inline_image", None)
                 state.update(result)
-                state["status"] = "generated_pending_download"
                 _accumulate_usage(report, result.get("usage", {}))
-                # Persist the signed result URL before any download attempt.
-                checkpoint()
+                if inline_image is None:
+                    state["status"] = "generated_pending_download"
+                    # Persist remote URLs before a download. Inline bytes are
+                    # instead atomically saved below and never enter JSON state.
+                    checkpoint()
             # Cancellation after the paid POST does not discard its result.
-            # Finish this file's download, then stop before sending another page.
-            report["usage"]["downloads"] += 1
-            downloaded = download_image(state["result_url"])
+            # Finish saving this image before sending another page. If an inline
+            # image cannot be saved, request_in_flight becomes unknown: retrying
+            # the operation must not silently issue a second charged POST.
+            if inline_image is not None:
+                downloaded = inline_image
+            else:
+                report["usage"]["downloads"] += 1
+                downloaded = download_image(state["result_url"])
             destination = directory / state["fingerprint"] / f"{state['attempt_id']}.png"
             atomic_bytes(destination, downloaded["data"], root=root, protected=protected)
             artifact = {"path": str(destination), "sha256": hashlib.sha256(downloaded["data"]).hexdigest(),

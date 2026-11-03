@@ -11,14 +11,13 @@ AiNiee 在同一个后端提供 MCP 工具，可提交文档、图片和音频�
 
 路径均指向**后端机器**上的文件或目录，输出也保存在后端。远程客户端应使用后端可访问的路径。模型、语言和接口配置默认继承后端在提交时保存的设置；可在请求中覆盖，优先使用已有接口的 `provider_id`。
 
-## 8 个工具
+## 7 个工具
 
-下表列出 `tools/call` 的 `arguments`。四个提交工具统一用 `request` 包裹；查询和取消工具直接传参数。schema 以外的字段会被拒绝，完整嵌套结构以 `tools/list` 返回的 schema 为准。
+下表列出 `tools/call` 的 `arguments`。三个提交工具统一用 `request` 包裹；查询和取消工具直接传参数。schema 以外的字段会被拒绝，完整嵌套结构以 `tools/list` 返回的 schema 为准。
 
 | 工具 | 参数 | 返回数据 |
 | --- | --- | --- |
 | `submit_document_translation` | `request`：必填 `path`；可选 `read_options`、`translation`、`output`、`request_id` | `job`，文档队列 |
-| `submit_image_translation` | `request`：必填 `path`、`output`；可选 `read_options`、`ocr`、`translation`、`request_id` | `job`，图片队列，OCR → 翻译 → 回填 |
 | `submit_image_generation` | `request`：必填 `path`、`output`；可选 `read_options`、`generation`、`request_id` | `job`，图片队列，整图生成翻译 |
 | `submit_audio_translation` | `request`：必填 `path`、`output`；可选 `read_options`、`transcription`、`translation`、`request_id` | `job`，音频队列，转录 → 翻译 → 字幕 |
 | `get_job` | 必填 `job_id`；可选 `include_result`，布尔值，默认 `false` | `job`；启用后包含 `job.result` |
@@ -32,7 +31,7 @@ AiNiee 在同一个后端提供 MCP 工具，可提交文档、图片和音频�
 
 - 文档 `read_options.format` 默认 `AutoType`；`pages: "1-3,5"` 仅适用于 `AutoType` 或 `BabeldocPdf`，混合目录中只影响 PDF。`exclude_rule` 用于排除文件。
 - 文档 `output` 省略或为 `null` 时仅返回翻译后的模型；传入对象时执行导出。`output.output_dir` 可指定目录，`mode` 可选 `translated`、`bilingual`、`both`，默认 `translated`。
-- 图片、整图生成和音频必须提供 `output.output_dir`。两类图片的 `output.format` 可选 `png`、`jpeg`、`webp`，默认 `png`；音频可选 `srt`、`vtt`、`lrc`、`ass`，默认 `srt`，`output.mode` 默认 `translated`，也可选 `source`、`bilingual`。
+- 整图生成和音频必须提供 `output.output_dir`。图片的 `output.format` 可选 `png`、`jpeg`、`webp`，默认 `png`；音频可选 `srt`、`vtt`、`lrc`、`ass`，默认 `srt`，`output.mode` 默认 `translated`，也可选 `source`、`bilingual`。
 - `translation` 常用字段为 `provider_id`、`source_language`、`target_language`、`user_thread_counts`。整图生成的语言和接口覆盖放在 `generation` 中。
 - `request_id` 可省略；提供时须为 16–80 位英文字母、数字、下划线或连字符，将直接作为任务 ID。整图生成在 MCP 中也使用它，不传 REST 的 `operation_id`。
 

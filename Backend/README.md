@@ -37,7 +37,7 @@ python -m Backend --host 127.0.0.1 --port 3389
 | 接口 | 主要参数与用途 |
 | --- | --- |
 | `POST /api/v2/read/document` | `path`，可选 `options.format/exclude_rule/pages`；读取文档或目录，返回模型与读取报告 |
-| `POST /api/v2/translate` | `model`，可选 `config`；翻译文档、图片 OCR 或音频转录模型中的文本 |
+| `POST /api/v2/translate` | `model`，可选 `config`；翻译文档或音频转录模型中的文本 |
 | `POST /api/v2/write` | `model`，可选 `options.output_dir/mode/overwrite`；将文档模型写出为文件 |
 
 典型流程：`read/document` → 将返回的 `model` 交给 `translate` → 将更新后的 `model` 交给 `write`。
@@ -49,22 +49,21 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 ## 图片接口
 
-两种完整流程分别为 OCR 识别后翻译回填，以及直接调用生图接口翻译整图。各阶段也可单独调用。
+图片统一使用单步整图翻译：将原图与翻译提示词一次发送给生图模型，由模型完成识别、翻译、擦字和原位回填。读取图片只建立文件模型，不再调用本地检测或 OCR 服务。
 
 | 接口 | 主要参数与用途 |
 | --- | --- |
-| `POST /api/v2/read/image` | `path`、可选 `options.exclude_rule`；读取图片或目录并完成本地文本检测，返回检测区域与待识别条目，不调用在线 OCR |
-| `POST /api/v2/image/detect` | `model`；对已导入图片补做或重新执行本地文本检测 |
-| `POST /api/v2/ocr` | `model`、可选 `config`；复用检测区域识别原文，再按阅读顺序合并对白 |
-| `POST /api/v2/image/repair` | `model`、`options.output_dir`；按可安全回填的文字区域擦除原文，保存修复图和排版计划 |
-| `POST /api/v2/image/render` | `model`、`options.output_dir`；复用有效修复图，将译文排入原文位置 |
-| `POST /api/v2/image/export` | `model`、`options.output_dir`；复制或转码有效译图，不重新修复或渲染 |
-| `POST /api/v2/write/image` | `model`、`options.output_dir`；兼容的一键修复 → 渲染 → 导出，可设置字体、方向、擦除方式及图片格式 |
-| `POST /api/v2/image/translate` | `path`、`output.output_dir`；可选 `read_options/ocr/translation`，顺序执行完整七步并保存检查点 |
+| `POST /api/v2/read/image` | `path`、可选 `options.exclude_rule`；读取图片或目录，建立原图文件模型 |
 | `POST /api/v2/image/generate-translation` | `model`、可选 `config/operation_id`；调用生图接口生成译图，返回含产物引用的模型 |
 | `POST /api/v2/write/generated-image` | `model`、`options.output_dir`；导出生图产物及可选中间模型 |
 | `POST /api/v2/image/generate-pipeline` | `path`、`output.output_dir`；可选 `read_options/generation/operation_id`，执行读取 → 生图翻译 → 导出 |
 | `POST /api/v2/image/operations/{operation_id}/stop` | 按提交时的操作 ID 停止对应 API 任务；也可使用通用任务取消接口 |
+
+生图接口独立配置，支持阿里云 DashScope、火山 Volcengine Ark 和 Gemini 官方接口。Gemini 使用官方 `generateContent` 协议，在请求中发送原图与提示词，直接保存响应中的图片；不需要先上传至公开图床。模型返回的文字不会作为成功译图。
+
+默认提示词要求逐个文字区域对应原位替换，完整清除可读原文、不跨气泡混合对白、不新增人物或气泡，并保留分镜、画面颜色与品牌标志。模型仍可能漏译或改动画面，应在导出前检查译图。任务失败或结果未知时不会自动重复付费请求。
+
+`GET /api/config/prompt-presets/image_translation` 返回内置图片翻译指令。根配置 `image_translation_user_prompt_data` 保存自定义提示词库，`image_translation_prompt_selection.last_selected_id` 选择正在使用的条目。生成时读取选中条目的正文，替换默认指令，并自动加入源语言、目标语言与原图；旧版 `image_translation_settings.generation.prompt` 仍作为补充要求兼容。提示词修改在下次生成生效，已有译图仍可预览、导出。图译提示词配置与文译提示词相互独立。
 
 ## 音频接口
 
@@ -79,7 +78,7 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 ## 图片与音频工作区
 
-需要保存中间状态、编辑识别结果或预览文件时使用这些接口。
+需要保存项目状态、编辑音频转录结果或预览文件时使用这些接口。
 
 | 接口 | 主要参数与用途 |
 | --- | --- |
@@ -89,11 +88,11 @@ python -m Backend --host 127.0.0.1 --port 3389
 | `POST /api/v2/media/{workspace_id}/model` | `model`、可选 `preview_files`；保存编辑后的模型 |
 | `POST /api/v2/media/{workspace_id}/run` | `stage`、`operation_id`，可选 `config/options`；运行一个处理阶段并保存结果 |
 | `DELETE /api/v2/media/{workspace_id}` | 删除工作区 |
-| `GET /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 预览 `source`、`repaired` 或 `translated` 文件，支持 Range 请求 |
+| `GET /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 预览 `source` 或 `translated` 文件，支持 Range 请求 |
 | `HEAD /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 获取预览文件响应头 |
 | `POST /api/v2/media/operations/{operation_id}/stop` | 停止指定 API 媒体任务 |
 
-`stage` 支持 `detect`（仅图片）、`recognize`（OCR/转录）、`translate`、`repair`、`render`、`generate`（仅图片）、兼容的 `preview`（修复并渲染）、`export`。导入图片自动完成 `read` 与 `detect`，无需再提交检测步骤。识别/翻译/生图阶段传 `config`；修复/渲染/预览/导出阶段传 `options`。修复和渲染目录由工作区管理；OCR 导出要求已有有效译图。`operation_id` 必须为 16–80 位字母、数字、下划线或连字符。
+图片 `stage` 支持 `generate`、`export`，以及仅复制已有生图产物的 `preview`；音频支持 `recognize`、`translate`、`export`。导入图片只读取原图，生成阶段传 `config`，预览或导出阶段传 `options`。导出要求已有有效生成结果；旧 OCR 阶段与接口已移除。`operation_id` 必须为 16–80 位字母、数字、下划线或连字符。
 
 ## 桌面当前项目接口
 

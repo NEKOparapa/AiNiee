@@ -6,7 +6,6 @@ from starlette.concurrency import run_in_threadpool
 from pydantic import Field, ValidationError
 
 from Backend.api.schemas import RequestModel
-from Backend.api.image_schemas import OcrOptions, ImageWriteOptions
 from Backend.api.image_generation_schemas import ImageGenerationOptions, GeneratedImageWriteOptions
 from Backend.api.audio_schemas import TranscriptionOptions, SubtitleOptions
 from Backend.api.pipeline_schemas import TranslationOptions
@@ -17,7 +16,7 @@ from Backend.core.log_system import redact
 
 
 class MediaRunRequest(RequestModel):
-    stage: Literal["detect", "recognize", "translate", "repair", "render", "generate", "preview", "export"]
+    stage: Literal["recognize", "translate", "generate", "preview", "export"]
     operation_id: str = Field(pattern=r"^[A-Za-z0-9_-]{16,80}$")
     config: dict[str, Any] = Field(default_factory=dict)
     options: dict[str, Any] = Field(default_factory=dict)
@@ -26,7 +25,7 @@ class MediaRunRequest(RequestModel):
 def _validated(schema, values):
     try:
         validated = schema.model_validate(values)
-        result = validated.model_dump(exclude_none=True, exclude_unset=schema is ImageWriteOptions)
+        result = validated.model_dump(exclude_none=True, exclude_unset=True)
         # An explicit null seed requests randomness over a saved fixed seed.
         if schema is ImageGenerationOptions and "seed" in validated.model_fields_set:
             result["seed"] = validated.seed
@@ -51,56 +50,38 @@ def create_media_operation_router(runtime, authorized):
         store = get_media_store(runtime)
         lane = await run_in_threadpool(media_lane, store, workspace_id)
         def action(context):
-            from Backend.application.ocr_service import ocr_model
-            from Backend.application.transcription_service import transcribe_model
-            from Backend.application.translation_service import translate_model
-            from Backend.application.image_render_service import repair_images, render_images, export_images
-            from Backend.application.image_detection_service import detect_images
-            from Backend.application.image_workflow import record_image_stage
             from Backend.application.image_generation_service import generate_image_model
             from Backend.application.generated_image_write_service import write_generated_images
-            from Backend.application.subtitle_service import write_subtitles
             # Reload only after reaching the front of the project's queue.
             workspace = store.load(workspace_id)
             image = workspace["kind"] == "image"
-            mode = workspace["model"].get("extra", {}).get("image_translation_mode", "ocr")
-            if body.stage in ("detect", "repair", "render") and not image:
-                raise PipelineError("INVALID_MEDIA_STAGE", "文本检测、图像修复和文字渲染仅支持图片工作区", 422)
+            if image and body.stage not in ("generate", "preview", "export"):
+                raise PipelineError("INVALID_MEDIA_STAGE", "图片翻译仅支持单步生图、预览和导出", 422)
             if body.stage == "recognize":
-                config = _validated(OcrOptions if image else TranscriptionOptions, body.config)
+                config = _validated(TranscriptionOptions, body.config)
             elif body.stage == "translate":
                 config = _validated(TranslationOptions, body.config)
             elif body.stage == "generate":
                 if not image:
                     raise PipelineError("INVALID_MEDIA_STAGE", "生图流程仅支持图片工作区", 422)
                 config = _validated(ImageGenerationOptions, body.config)
-                mode = "generation"
             elif body.config:
                 raise PipelineError("INVALID_MEDIA_OPTIONS", "此步骤不接受识别或翻译配置", 422)
-            if body.stage in ("detect", "recognize", "translate", "generate") and body.options:
+            if body.stage in ("recognize", "translate", "generate") and body.options:
                 raise PipelineError("INVALID_MEDIA_OPTIONS", "此步骤不接受导出选项", 422)
             output_values = dict(body.options)
-            if image and body.stage in ("repair", "render", "preview", "export"):
-                mode = output_values.pop("mode", mode)
-                if mode not in ("ocr", "generation"):
-                    raise PipelineError("INVALID_MEDIA_OPTIONS", "图片导出模式无效", 422)
-            if image and body.stage in ("detect", "recognize", "translate", "repair", "render"):
-                mode = "ocr"
             if image:
-                workspace["model"].setdefault("extra", {})["image_translation_mode"] = mode
-            if body.stage in ("repair", "render", "preview"):
+                workspace["model"].setdefault("extra", {})["image_translation_mode"] = "generation"
+            if body.stage == "preview":
                 if not image:
                     raise PipelineError("INVALID_MEDIA_STAGE", "音频字幕可直接预览，无需生成图片", 422)
-                options = _validated(GeneratedImageWriteOptions if mode == "generation" else ImageWriteOptions,
-                                     {**output_values, "output_dir": workspace["preview_dir"] + ("/generation" if mode == "generation" else ""),
-                                                        "format": "png", "overwrite": True, "save_model": False})
+                options = _validated(GeneratedImageWriteOptions,
+                                     {**output_values, "output_dir": workspace["preview_dir"] + "/generation",
+                                      "format": "png", "overwrite": True, "save_model": False})
             elif body.stage == "export":
-                schema = (GeneratedImageWriteOptions if mode == "generation" else ImageWriteOptions) if image else SubtitleOptions
-                options = _validated(schema, output_values)
+                options = _validated(GeneratedImageWriteOptions if image else SubtitleOptions, output_values)
 
             prepared = {"model": workspace["model"]}
-            if image and mode == "ocr":
-                record_image_stage(prepared["model"], body.stage, "running")
 
             def checkpoint(*unused):
                 store.save_model(workspace_id, to_wire(prepared["model"]))
@@ -120,36 +101,22 @@ def create_media_operation_router(runtime, authorized):
             context.on_progress = progress
             result = None
             try:
-                if body.stage == "detect":
-                    result = detect_images(prepared["model"], context=context)
-                elif body.stage == "recognize":
-                    result = (ocr_model if image else transcribe_model)(prepared["model"], config, context=context)
+                if body.stage == "recognize":
+                    from Backend.application.transcription_service import transcribe_model
+                    result = transcribe_model(prepared["model"], config, context=context)
                 elif body.stage == "translate":
+                    from Backend.application.translation_service import translate_model
                     result = translate_model(prepared["model"], config, context=context)
                 elif body.stage == "generate":
                     result = generate_image_model(prepared["model"], config, context=context)
-                elif body.stage == "preview" and mode == "ocr":
-                    # The legacy preview action is repair + composition. Its
-                    # registered asset must be the canonical rendered artifact,
-                    # not an export copy with a different path.
-                    result = repair_images(prepared["model"], options, context=context)
-                    repair_report = result["report"]
-                    if result["status"] not in ("failed", "cancelled") and not repair_report.get("operation_errors"):
-                        result = render_images(result["model"], options, context=context)
-                        result["report"]["repair"] = repair_report
                 elif image:
-                    writer = (write_generated_images if mode == "generation" else
-                              {"repair": repair_images, "render": render_images,
-                               "export": export_images}[body.stage])
-                    result = writer(prepared["model"], options, context=context)
+                    result = write_generated_images(prepared["model"], options, context=context)
                 else:
+                    from Backend.application.subtitle_service import write_subtitles
                     result = write_subtitles(prepared["model"], options)
                 model = to_wire(result.get("model", prepared["model"]))
-                if image and mode == "ocr":
-                    record_image_stage(model, body.stage, result["status"])
                 prepared["model"] = model
                 workspace = store.save_model(workspace_id, model,
-                    preview_files=result.get("files", []) if body.stage in ("repair", "render", "preview") and mode == "ocr" else None,
                     status=result["status"], report={"stage": body.stage, **result["report"]})
                 return {"status": result["status"], "workspace": workspace,
                         "report": result["report"], "files": result.get("files", [])}
@@ -159,8 +126,6 @@ def create_media_operation_router(runtime, authorized):
                     {"code": getattr(error, "code", "MEDIA_STAGE_FAILED"), "message": redact(str(error))}]
                 # Retain the latest in-memory paid results on exceptional exits too.
                 latest = to_wire(prepared["model"])
-                if image and mode == "ocr":
-                    record_image_stage(latest, body.stage, "failed")
                 try:
                     workspace = store.save_model(workspace_id, latest, status="failed", report=report)
                 except Exception as save_error:

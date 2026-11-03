@@ -1,4 +1,4 @@
-"""Compact provider lists shared by transcription, OCR and image generation."""
+"""Compact provider lists shared by transcription and image generation."""
 
 import copy
 from uuid import uuid4

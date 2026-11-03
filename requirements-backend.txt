@@ -11,8 +11,6 @@ google-genai>=2.12.1
 tiktoken>=0.13.0
 numpy>=2.5.1
 Pillow>=10.4
-# Also used by the image renderer; keep the same OpenCV distribution as RapidOCR.
-opencv-python>=4.10
 openpyxl>=3.1.5
 beautifulsoup4>=4.15.0
 lxml>=6.1.1
@@ -46,7 +44,8 @@ sounddevice>=0.4.4
 
 # BabelDOC
 # onnx 新版本打包后不能运行，这里使用 onnx==1.16.1 onnxruntime==1.20.1
-# rapidocr-onnxruntime 依赖了 opencv-python，所以去除了 opencv-python-headless
+# PDF layout processing still requires OpenCV; image translation uses cloud generation.
+opencv-python>=4.10
 # 不使用 babeldoc.document_il.midend.detect_scanned_file.DetectScannedFile 所以去除 scikit-image>=0.25.2
 # BabelDOC 0.6.x imports BitStream, which was removed in bitstring 5.0.
 bitstring>=4.3.0,<5
@@ -74,7 +73,6 @@ tenacity>=9.0.0
 freetype-py>=2.5.1
 tiktoken>=0.9.0
 levenshtein>=0.27.1
-rapidocr-onnxruntime>=1.4.4
 pyzstd
 rtree
 uharfbuzz>=0.50.2

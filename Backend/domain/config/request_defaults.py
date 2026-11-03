@@ -7,7 +7,7 @@ def normalize_request_timeouts(config: dict) -> bool:
     """Replace retired timeout settings in-place, returning whether they changed."""
     changed = False
     targets = [config]
-    for key in ("transcription_platforms", "ocr_platforms", "image_generation_platforms"):
+    for key in ("transcription_platforms", "image_generation_platforms"):
         platforms = config.get(key)
         if isinstance(platforms, dict):
             targets.extend(platform for platform in platforms.values() if isinstance(platform, dict))

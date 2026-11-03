@@ -29,10 +29,10 @@ from Frontend.pages.workspace.edit_view_page import EditViewPage
 from Frontend.platform.macos import about_message, app_menu_title, command_shortcut
 from Frontend.pages.providers.platform_page import PlatformPage
 from Frontend.pages.providers.transcription_page import TranscriptionPage
-from Frontend.pages.providers.ocr_page import OcrPage
 from Frontend.pages.providers.image_generation_page import ImageGenerationPage
 from Frontend.pages.media.workspace_page import ImageTranslationPage, AudioTranslationPage
 from Frontend.pages.prompts.extraction.extraction_prompt_page import ExtractionPromptPage
+from Frontend.pages.prompts.image_translation_prompt_page import ImageTranslationPromptPage
 from Frontend.pages.logs.log_view_page import LogViewPage
 from Frontend.pages.settings.advanced_settings_page import AdvancedSettingsPage
 from Frontend.pages.settings.app_settings_page import AppSettingsPage
@@ -366,11 +366,6 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             self.transcription_page, FluentIcon.MICROPHONE, self.tra("转录接口"),
             parent=self.interface_management_navigation,
         )
-        self.ocr_page = OcrPage("ocr_page", self)
-        self.addSubInterface(
-            self.ocr_page, FluentIcon.PHOTO, self.tra("OCR 接口"),
-            parent=self.interface_management_navigation,
-        )
         self.image_generation_page = ImageGenerationPage("image_generation_page", self)
         self.addSubInterface(
             self.image_generation_page, FluentIcon.PHOTO, self.tra("生图接口"),
@@ -420,10 +415,25 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             self.audio_translation_settings_page, FluentIcon.MICROPHONE,
             self.tra("音译设置"), NavigationItemPosition.SCROLL,
         )
+        self.add_image_translation_setting_pages()
+
+    def add_image_translation_setting_pages(self) -> None:
+        self.image_translation_settings_navigation = BaseNavigationItem("image_translation_settings_navigation", self)
+        self.image_translation_settings_item = self.addSubInterface(
+            self.image_translation_settings_navigation, FluentIcon.PHOTO,
+            self.tra("图译设置"), NavigationItemPosition.SCROLL,
+        )
+        self.image_translation_settings_item.clicked.connect(
+            lambda: self.image_translation_settings_item.setExpanded(True))
         self.image_translation_settings_page = ImageTranslationSettingsPage("image_translation_settings_page", self)
         self.addSubInterface(
-            self.image_translation_settings_page, FluentIcon.PHOTO,
-            self.tra("图译设置"), NavigationItemPosition.SCROLL,
+            self.image_translation_settings_page, FluentIcon.SETTING, self.tra("任务设置"),
+            parent=self.image_translation_settings_navigation,
+        )
+        self.image_translation_prompt_page = ImageTranslationPromptPage("image_translation_prompt_page", self)
+        self.addSubInterface(
+            self.image_translation_prompt_page, FluentIcon.BOOK_SHELF, self.tra("翻译提示词"),
+            parent=self.image_translation_settings_navigation,
         )
 
     # 添加提示词设置

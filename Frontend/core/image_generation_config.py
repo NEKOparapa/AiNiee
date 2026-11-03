@@ -1,4 +1,4 @@
-"""Pure validation for image-editing providers, independent of OCR credentials."""
+"""Pure validation for image-editing providers, independent of text-model credentials."""
 import copy
 import re
 from urllib.parse import urlsplit
@@ -19,6 +19,22 @@ DEFAULT_IMAGE_GENERATION_PLATFORM = {
 MAX_SEED = 2147483647
 
 
+def validate_gemini_connection(api_url, model, api_key=""):
+    """Validate native Gemini connection fields without importing the backend."""
+    try:
+        address = urlsplit(api_url)
+        valid = (address.scheme in ("http", "https") and address.hostname
+                 and not (address.username or address.password or address.query or address.fragment)
+                 and address.path.rstrip("/") in ("", "/v1beta"))
+        _ = address.port
+    except (ValueError, TypeError):
+        valid = False
+    if not valid or not isinstance(model, str) or not re.fullmatch(r"(?:models/)?[A-Za-z0-9][A-Za-z0-9._-]{0,127}", model):
+        raise ValueError("Gemini 请填写 API 基地址（可含 /v1beta）和有效模型名称。")
+    if not isinstance(api_key, str) or any(not 33 <= ord(char) <= 126 for char in api_key):
+        raise ValueError("Gemini API 密钥必须为不含空白的 ASCII 文本。")
+
+
 def normalize_generation_size(value, api_format=None):
     """Validate a shared size, or restrict it to one provider protocol."""
     if not isinstance(value, str):
@@ -26,10 +42,13 @@ def normalize_generation_size(value, api_format=None):
     value = value.strip().lower()
     if value == "auto":
         return value
-    if api_format != "DashScope" and value.upper() in ("1K", "1.5K", "2K"):
+    presets = {"DashScope": (), "VolcengineArk": ("1K", "1.5K", "2K"), "Gemini": ("1K", "2K", "4K")}
+    if value.upper() in presets.get(api_format, ("1K", "1.5K", "2K", "4K")):
         return value.upper()
+    if api_format == "Gemini":
+        raise ValueError("Gemini 输出尺寸需为 auto、1K、2K 或 4K。")
     if len(value) > 32 or not re.fullmatch(r"[1-9]\d*\s*[x*]\s*[1-9]\d*", value, flags=re.ASCII):
-        raise ValueError("输出尺寸需为 auto 或 宽*高；Seedream 另支持 1K、1.5K、2K。")
+        raise ValueError("输出尺寸需为 auto 或 宽*高；Seedream 支持 1K、1.5K、2K，Gemini 支持 1K、2K、4K。")
     width, height = (int(part.strip()) for part in re.split(r"[x*]", value))
     pixels, ratio = width * height, max(width, height) / min(width, height)
     dashscope = width % 16 == height % 16 == 0 and 512 ** 2 <= pixels <= 2048 ** 2 and ratio <= 8
@@ -60,8 +79,8 @@ def validate_image_generation_platform(data, *, require_api_key=False):
     result = normalize_image_generation_platform(data)
     if not result["name"]:
         raise ValueError("请输入生图接口名称。")
-    if result["api_format"] not in ("DashScope", "VolcengineArk"):
-        raise ValueError("请选择 DashScope 或 VolcengineArk 图像编辑接口。")
+    if result["api_format"] not in ("DashScope", "VolcengineArk", "Gemini"):
+        raise ValueError("请选择 DashScope、VolcengineArk 或 Gemini 图像编辑接口。")
     try:
         parsed = urlsplit(result["api_url"])
         valid_url = (parsed.scheme in ("http", "https") and bool(parsed.hostname)
@@ -78,6 +97,8 @@ def validate_image_generation_platform(data, *, require_api_key=False):
         raise ValueError("生图接口密钥不能包含换行。")
     if require_api_key and not result["api_key"]:
         raise ValueError("请先填写并保存接口密钥，再激活此生图接口。")
+    if result["api_format"] == "Gemini":
+        validate_gemini_connection(result["api_url"], result["model"], result["api_key"])
     if type(result["prompt_extend"]) is not bool:
         raise ValueError("自动改写必须是开启或关闭。")
     seed = result["seed"]

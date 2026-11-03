@@ -4,7 +4,6 @@ import copy
 import math
 
 from Frontend.core.image_generation_config import MAX_SEED, normalize_generation_size
-from Frontend.core.ocr_config import READING_ORDERS
 
 
 DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
@@ -17,12 +16,6 @@ DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
     "export": {"format": "srt", "mode": "bilingual"},
 }
 DEFAULT_IMAGE_TRANSLATION_SETTINGS = {
-    "ocr": {
-        "recognition_mode": "regions",
-        "reading_order": "auto",
-        "group_lines": True,
-        "refine_text": False,
-    },
     "generation": {
         "size": "auto",
         "seed": None,
@@ -88,7 +81,7 @@ def _active_provider(config, providers_key, active_key):
 def _merge_image_settings(target, source):
     for section in target:
         if section in source:
-            values = _require_object(source[section], "图片翻译的识别、生成和导出设置必须是对象。")
+            values = _require_object(source[section], "图片翻译的生成和导出设置必须是对象。")
             _merge_known(target[section], values)
     return target
 
@@ -104,10 +97,9 @@ def read_audio_translation_settings(config):
 
 
 def read_image_translation_settings(config):
-    """Read OCR and image-generation task options without copying credentials."""
+    """Read image-generation task options without copying credentials."""
     _require_object(config, "图片翻译配置必须是对象。")
     result = copy.deepcopy(DEFAULT_IMAGE_TRANSLATION_SETTINGS)
-    _merge_known(result["ocr"], _active_provider(config, "ocr_platforms", "active_ocr_platform"))
     _merge_known(result["generation"], _active_provider(
         config, "image_generation_platforms", "active_image_generation_platform"))
     current = _require_object(config.get("image_translation_settings", {}), "图片翻译设置必须是对象。")
@@ -152,21 +144,6 @@ def normalize_image_translation_settings(values):
     """Normalize image task options without accepting provider-only fields."""
     _require_object(values, "图片翻译设置必须是对象。")
     result = _merge_image_settings(copy.deepcopy(DEFAULT_IMAGE_TRANSLATION_SETTINGS), values)
-    ocr = result["ocr"]
-    if ocr["recognition_mode"] not in ("page", "regions"):
-        raise ValueError("请选择本地定位分区识别或整页识别。")
-    if not isinstance(ocr["reading_order"], str):
-        raise ValueError("阅读顺序必须是文本。")
-    ocr["reading_order"] = ocr["reading_order"].strip()
-    if ocr["reading_order"] not in READING_ORDERS:
-        raise ValueError("请选择自动、从左向右或漫画从右向左的阅读顺序。")
-    if type(ocr["group_lines"]) is not bool:
-        raise ValueError("合并文字行必须是开启或关闭。")
-    if type(ocr["refine_text"]) is not bool:
-        raise ValueError("复核气泡原文必须是开启或关闭。")
-    if ocr["refine_text"] and not ocr["group_lines"]:
-        raise ValueError("复核气泡原文需要先开启“合并相邻文字行”。")
-
     generation = result["generation"]
     if not isinstance(generation["size"], str) or not isinstance(generation["prompt"], str):
         raise ValueError("输出尺寸和补充翻译要求必须是文本。")

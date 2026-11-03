@@ -10,9 +10,9 @@ from Backend.infrastructure.config.migration import migrate_config_if_needed, mi
 from Backend.domain.text.regex import RegexSwitchHelper
 from Backend.domain.config.tables import TableConfigHelper
 from Backend.domain.config.prompt_selection import TranslationPromptConfigHelper
+from Backend.domain.config.image_translation_prompt import validate_image_translation_prompts
 from Backend.domain.config.media_task_config import migrate_media_task_settings, validate_media_task_settings
 from Backend.domain.config.transcription_config import validate_transcription_platform
-from Backend.domain.config.ocr_config import validate_ocr_platform
 from Backend.domain.config.image_generation_config import validate_image_generation_platform
 from Backend.domain.config.request_defaults import normalize_request_timeouts
 
@@ -24,6 +24,7 @@ class ConfigStore:
         "http_server_enable", "http_listen_address", "http_callback_url",
         "response_conversion_toggle", "opencc_preset",
         "polishing_pre_line_counts", "label_polish_output_path",
+        "ocr_platforms", "active_ocr_platform",
     ))
 
     def initialize_config(self):
@@ -46,6 +47,11 @@ class ConfigStore:
             return json.load(reader)
 
     def get_prompt_presets(self, kind):
+        if kind == "image_translation":
+            from Backend.domain.config.image_translation_prompt import (
+                DEFAULT_IMAGE_TRANSLATION_PROMPT, DEFAULT_IMAGE_TRANSLATION_PROMPT_ID,
+            )
+            return {DEFAULT_IMAGE_TRANSLATION_PROMPT_ID: DEFAULT_IMAGE_TRANSLATION_PROMPT}
         from Backend.domain.prompts.prompt_builder_enum import PromptBuilderEnum
         if kind == "translation":
             from Backend.domain.prompts.prompt_builder import PromptBuilder
@@ -77,8 +83,9 @@ class ConfigStore:
         if not isinstance(profile, dict):
             raise ValueError("配置文件的根节点必须是 JSON 对象")
         ConfigStore._validate_mcp_settings(profile)
+        validate_image_translation_prompts(profile)
         validate_media_task_settings(profile)
-        for key in ("platforms", "api_settings", "response_check_switch", "transcription_platforms", "ocr_platforms", "image_generation_platforms"):
+        for key in ("platforms", "api_settings", "response_check_switch", "transcription_platforms", "image_generation_platforms"):
             if key in profile and not isinstance(profile[key], dict):
                 raise ValueError(f"配置字段 {key} 必须是 JSON 对象")
         if any(not isinstance(value, dict) for value in profile.get("platforms", {}).values()):
@@ -87,10 +94,6 @@ class ConfigStore:
             raise ValueError("配置字段 active_transcription_platform 必须是字符串")
         for identifier, platform in profile.get("transcription_platforms", {}).items():
             validate_transcription_platform(identifier, platform)
-        if "active_ocr_platform" in profile and not isinstance(profile["active_ocr_platform"], str):
-            raise ValueError("配置字段 active_ocr_platform 必须是字符串")
-        for identifier, platform in profile.get("ocr_platforms", {}).items():
-            validate_ocr_platform(identifier, platform)
         if "active_image_generation_platform" in profile and not isinstance(profile["active_image_generation_platform"], str):
             raise ValueError("配置字段 active_image_generation_platform 必须是字符串")
         for identifier, platform in profile.get("image_generation_platforms", {}).items():
@@ -114,6 +117,7 @@ class ConfigStore:
                 profile = json.load(reader)
         except (OSError, ValueError) as error:
             raise ValueError("无法在后端读取配置文件，请检查文件路径和 JSON 格式") from error
+        migrate_media_task_settings(profile)
         self._validate_profile(profile)
         # Apply explicitly imported table collections as well as ordinary settings.
         # update_config holds the lock across read/normalization/atomic replacement.
@@ -253,6 +257,7 @@ class ConfigStore:
                 old[key] = value
 
             self._validate_mcp_settings(old)
+            validate_image_translation_prompts(old)
             media_changed = migrate_media_task_settings(old)
             timeout_changed = normalize_request_timeouts(old)
             validate_media_task_settings(old)
@@ -284,7 +289,7 @@ class ConfigStore:
         for key, value in new.items():
             # Provider IDs form a user-owned collection. Once initialized, an
             # intentionally deleted default provider must not return at startup.
-            if key in ("transcription_platforms", "ocr_platforms", "image_generation_platforms") and key in old:
+            if key in ("transcription_platforms", "image_generation_platforms") and key in old:
                 continue
             if isinstance(value, dict) and isinstance(old.get(key), dict):
                 old[key] = self.fill_config(old[key], value)

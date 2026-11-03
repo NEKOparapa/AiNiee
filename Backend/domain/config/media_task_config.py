@@ -13,7 +13,6 @@ DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
     "export": {"format": "srt", "mode": "bilingual"},
 }
 DEFAULT_IMAGE_TRANSLATION_SETTINGS = {
-    "ocr": {"recognition_mode": "regions", "reading_order": "auto", "group_lines": True, "refine_text": False},
     "generation": {
         "size": "auto", "seed": None, "prompt_extend": True, "prompt": "", "watermark": False,
     },
@@ -45,13 +44,17 @@ def _fill_missing(target, defaults, legacy):
 
 
 def migrate_media_task_settings(config):
-    """Fill missing task fields from active legacy providers, without removing them.
+    """Remove retired image OCR settings and fill task fields from saved providers.
 
     Run before merging application defaults. Existing task values, including false,
     empty strings and null seeds, always win. Malformed objects are left intact so
     validation can report them rather than silently discarding user settings.
     """
     changed = False
+    for key in ("ocr_platforms", "active_ocr_platform"):
+        if key in config:
+            config.pop(key)
+            changed = True
     if "audio_translation_settings" not in config:
         config["audio_translation_settings"] = {}
         changed = True
@@ -66,8 +69,10 @@ def migrate_media_task_settings(config):
         changed = True
     image = config["image_translation_settings"]
     if isinstance(image, dict):
+        if "ocr" in image:
+            image.pop("ocr")
+            changed = True
         for group, collection, active_key in (
-            ("ocr", "ocr_platforms", "active_ocr_platform"),
             ("generation", "image_generation_platforms", "active_image_generation_platform"),
         ):
             if group not in image:
@@ -126,28 +131,19 @@ def validate_image_translation_settings(settings):
     from Backend.domain.config.image_generation_config import validate_size
 
     groups = _settings_object(settings, DEFAULT_IMAGE_TRANSLATION_SETTINGS, "图译设置")
-    ocr = _settings_object(groups["ocr"], DEFAULT_IMAGE_TRANSLATION_SETTINGS["ocr"], "图片识别设置")
-    if ocr["recognition_mode"] not in ("page", "regions"):
-        raise ValueError("图片识别方式必须为 page 或 regions")
-    if ocr["reading_order"] not in ("auto", "ltr", "manga_rtl"):
-        raise ValueError("阅读顺序必须为 auto、ltr 或 manga_rtl")
-    for key in ("group_lines", "refine_text"):
-        if type(ocr[key]) is not bool:
-            raise ValueError(f"图片识别设置 {key} 必须是布尔值")
-    if ocr["refine_text"] and not ocr["group_lines"]:
-        raise ValueError("复核气泡原文需要先开启“合并相邻文字行”。")
-
     generation = _settings_object(
         groups["generation"], DEFAULT_IMAGE_TRANSLATION_SETTINGS["generation"], "图片生成设置")
     if not isinstance(generation["size"], str):
         raise ValueError("生图尺寸必须为 auto 或 宽*高")
-    try:
-        validate_size(generation["size"])
-    except PipelineError:
+    size_error = None
+    for api_format in ("DashScope", "VolcengineArk", "Gemini"):
         try:
-            validate_size(generation["size"], "VolcengineArk")
+            validate_size(generation["size"], api_format)
+            break
         except PipelineError as error:
-            raise ValueError(error.message) from None
+            size_error = error
+    else:
+        raise ValueError(size_error.message) from None
     seed = generation["seed"]
     if seed is not None and (type(seed) is not int or not 0 <= seed <= 2147483647):
         raise ValueError("生图随机种子必须为空或 0 至 2147483647 的整数")

@@ -1,5 +1,5 @@
 """Media import, persistence, and authenticated preview assets."""
-from typing import Any, Literal
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, Query
 from fastapi.responses import FileResponse
@@ -22,7 +22,6 @@ class MediaImportRequest(RequestModel):
 
 class MediaSaveRequest(RequestModel):
     model: IntermediateModel
-    preview_files: list[dict[str, Any]] | None = None
 
 
 def create_media_router(runtime, authorized):
@@ -53,7 +52,7 @@ def create_media_router(runtime, authorized):
             current = load_media_workspace(store, workspace_id)
             if current["updated_at"] != revision:
                 raise PipelineError("MEDIA_WORKSPACE_CHANGED", "项目在等待保存期间已更新，请刷新后重新保存", 409)
-            return store.save_model(workspace_id, body.model.model_dump(), preview_files=body.preview_files)
+            return store.save_model(workspace_id, body.model.model_dump())
         return await run_queued(runtime, f"media/{workspace_id}/save", action, lane=lane,
                           prefer=prefer, project_id=workspace_id)
 
@@ -68,7 +67,7 @@ def create_media_router(runtime, authorized):
 
     @router.get("/{workspace_id}/files/{file_id}/{variant}")
     @router.head("/{workspace_id}/files/{file_id}/{variant}")
-    def preview(workspace_id: str, file_id: str, variant: Literal["source", "translated", "repaired"]):
+    def preview(workspace_id: str, file_id: str, variant: Literal["source", "translated"]):
         path = store.asset(workspace_id, file_id, variant)
         # Starlette's FileResponse handles byte ranges and HEAD for QMediaPlayer.
         return FileResponse(path, filename=path.name, content_disposition_type="inline", headers={"Cache-Control": "no-cache"})

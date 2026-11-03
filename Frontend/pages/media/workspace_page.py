@@ -9,7 +9,7 @@ from uuid import uuid4
 from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (QAbstractItemView, QFileDialog, QFrame, QHeaderView, QHBoxLayout,
     QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
-from qfluentwidgets import (BodyLabel, CaptionLabel, ComboBox, FluentIcon, IconWidget,
+from qfluentwidgets import (CaptionLabel, ComboBox, FluentIcon, IconWidget,
     MessageBox, PrimaryPushButton, SearchLineEdit, SimpleCardWidget,
     SingleDirectionScrollArea, StrongBodyLabel, TransparentPushButton, TreeWidget)
 
@@ -62,7 +62,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._disposed = False
         self._dirty = False
         self._pending_edits = {}
-        self._pending_image_extra = {}
         self._pending_generation_options = {}
         self._updating_image_options = False
         self._file_rows = {}
@@ -107,9 +106,10 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._refresh_status_visibility()
 
     def _refresh_status_visibility(self, *unused):
-        in_translation = (self.stack.currentWidget() is self.work_page
-                          and self.workflow_stack.currentWidget() is self.translation_page)
-        self.status_label.setVisible(bool(self._status_message) and not in_translation)
+        hide_footer = (self.stack.currentWidget() is self.work_page
+                       and (self.kind == "image"
+                            or self.workflow_stack.currentWidget() is self.translation_page))
+        self.status_label.setVisible(bool(self._status_message) and not hide_footer)
 
     def _build_ui(self):
         outer = QVBoxLayout(self)
@@ -165,8 +165,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         outer.addWidget(self.status_label)
         self.stack.currentChanged.connect(self._refresh_status_visibility)
         self.workflow_stack.currentChanged.connect(self._refresh_status_visibility)
-        if self.kind == "image":
-            self._update_image_controls()
         self._refresh_metrics()
 
     def _build_translation_page(self):
@@ -187,16 +185,16 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.monitoring = MediaMonitoringPanel(content)
         body.addWidget(self.monitoring)
 
-        options_card = SimpleCardWidget(content)
-        options_card.setBorderRadius(12)
-        options = QVBoxLayout(options_card)
-        options.setContentsMargins(18, 14, 18, 14)
-        options.setSpacing(12)
-        if self.kind == "image":
-            self._build_image_options(options)
-        self.workflow_selector = MediaWorkflowSelector(self.kind, options_card)
-        options.addWidget(self.workflow_selector)
-        body.addWidget(options_card)
+        self.workflow_selector = None
+        if self.kind == "audio":
+            options_card = SimpleCardWidget(content)
+            options_card.setBorderRadius(12)
+            options = QVBoxLayout(options_card)
+            options.setContentsMargins(18, 14, 18, 14)
+            options.setSpacing(12)
+            self.workflow_selector = MediaWorkflowSelector(self.kind, options_card)
+            options.addWidget(self.workflow_selector)
+            body.addWidget(options_card)
         body.addStretch(1)
         scroller.setWidget(content)
         layout.addWidget(scroller, 1)
@@ -241,7 +239,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         bottom.addWidget(self.language_card)
         bottom.addStretch(1)
         layout.addLayout(bottom)
-        self.workflow_selector.selectionChanged.connect(self._refresh_metrics)
+        if self.workflow_selector is not None:
+            self.workflow_selector.selectionChanged.connect(self._refresh_metrics)
         if self.kind == "image":
             self.source_combo.currentIndexChanged.connect(self._generation_preferences_changed)
             self.target_combo.currentIndexChanged.connect(self._generation_preferences_changed)
@@ -268,12 +267,14 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         title.setAlignment(Qt.AlignCenter)
         files.addWidget(title)
         self.file_tree = TreeWidget(files_card)
-        self.file_tree.setHeaderLabels([self.tra("文件"), self.tra("已译/条目")])
+        self.file_tree.setHeaderLabels([self.tra("文件")] if self.kind == "image"
+                                       else [self.tra("文件"), self.tra("已译/条目")])
         self.file_tree.setHeaderHidden(True)
         self.file_tree.header().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.file_tree.header().setSectionResizeMode(1, QHeaderView.Fixed)
-        self.file_tree.setColumnWidth(1, 60)
-        self.file_tree.setColumnHidden(1, True)
+        if self.kind == "audio":
+            self.file_tree.header().setSectionResizeMode(1, QHeaderView.Fixed)
+            self.file_tree.setColumnWidth(1, 60)
+            self.file_tree.setColumnHidden(1, True)
         self.file_tree.setMinimumWidth(200)
         self.file_tree.setIndentation(16)
         self.file_tree.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -294,13 +295,14 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             from Frontend.pages.media.image_preview import ImagePreview
             self.preview = ImagePreview(editor_card)
             self.preview_button = self.preview.refresh_button
-            self.preview_button.clicked.connect(lambda: self.run_stages(["preview"]))
+            self.preview_button.clicked.connect(lambda: self.preview.refresh_translated())
         else:
             from Frontend.pages.media.audio_preview import AudioPreview
             self.preview = AudioPreview(editor_card)
             self.preview_button = TransparentPushButton(editor_card)
             self.preview_button.hide()
-        self.preview.translationEdited.connect(self._translation_edited)
+        if self.kind == "audio":
+            self.preview.translationEdited.connect(self._translation_edited)
         editor.addWidget(self.preview, 1)
         splitter.addWidget(sidebar)
         splitter.addWidget(editor_card)
@@ -331,63 +333,12 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         for index in range(root.childCount()):
             visit(root.child(index))
 
-    def _build_image_options(self, layout):
-        row = QHBoxLayout()
-        row.addWidget(BodyLabel(self.tra("翻译流程"), self))
-        self.image_mode_combo = ComboBox(self)
-        self.image_mode_combo.addItem(self.tra("OCR翻译"), userData="ocr")
-        self.image_mode_combo.addItem(self.tra("生图直译"), userData="generation")
-        self.image_mode_combo.setMinimumWidth(210)
-        row.addWidget(self.image_mode_combo)
-        row.addStretch()
-        layout.addLayout(row)
-        self.image_mode_combo.currentIndexChanged.connect(self._image_mode_changed)
-
     def _image_mode(self):
-        return self.image_mode_combo.currentData() if self.kind == "image" else "ocr"
-
-    def _update_image_controls(self, *unused):
-        if self.kind != "image":
-            return
-        generation = self._image_mode() == "generation"
-        self.workflow_selector.configure("generation" if generation else "ocr")
-        self.preview_button.setVisible(not generation)
-        self.file_tree.setHeaderLabels([self.tra("文件"), self.tra("生成状态" if generation else "已译/条目")])
-        self.file_tree.setColumnWidth(1, 88 if generation else 60)
-        self.file_tree.setColumnHidden(1, not generation)
-        update_preview = getattr(self.preview, "set_generation_mode", None)
-        if update_preview:
-            update_preview(generation)
-        self._refresh_metrics()
-
-    def _image_mode_changed(self, *unused):
-        if self._updating_image_options or self.busy or not self.workspace:
-            return
-        mode = self._image_mode()
-        self._run_state = ""
-        self._live_progress = {}
-        extra = self.workspace["model"].setdefault("extra", {})
-        extra["image_translation_mode"] = mode
-        self._pending_image_extra["image_translation_mode"] = mode
-        self._updating_image_options = True
-        try:
-            options = extra.get("image_generation_options", {})
-            values = options if mode == "generation" else self.workspace["model"].get("translation_context", {})
-            for combo, key in ((self.source_combo, "source_language"), (self.target_combo, "target_language")):
-                index = combo.findData(values.get(key))
-                if index >= 0:
-                    combo.setCurrentIndex(index)
-        finally:
-            self._updating_image_options = False
-        self._update_image_controls()
-        if mode == "generation":
-            self._record_generation_options()
-        self._mark_options_dirty()
+        return "generation" if self.kind == "image" else "audio"
 
     def _record_generation_options(self):
         options = self.workspace["model"].setdefault("extra", {}).setdefault("image_generation_options", {})
-        values = {"text_mode": "direct", "prompt": "",
-                  "source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData()}
+        values = {"source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData()}
         for key, value in values.items():
             if options.get(key) != value:
                 self._pending_generation_options[key] = value
@@ -397,7 +348,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if self.kind != "image" or self._updating_image_options or self.busy or not self.workspace or self._image_mode() != "generation":
             return
         self._record_generation_options()
-        self._update_image_controls()
         if self._pending_generation_options:
             self._mark_options_dirty()
 
@@ -410,10 +360,13 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._refresh_tree_progress()
         self._file_selected(self._file_rows.get(self._selected_id) or self.file_tree.currentItem())
 
+    def _selected_stages(self):
+        return ["generate"] if self.kind == "image" else self.workflow_selector.selected_stages()
+
     def _run_primary(self):
         if self.busy or not self.workspace:
             return
-        stages = self.workflow_selector.selected_stages()
+        stages = self._selected_stages()
         if not stages:
             return
         self.run_stages(stages)
@@ -445,10 +398,10 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                        self.save_button, self.translate_button,
                        self.preview_button, self.export_button, self.source_combo, self.target_combo):
             widget.setEnabled(not value)
-        self.preview.set_editable(not value)
-        self.workflow_selector.set_busy(value)
-        if self.kind == "image":
-            self.image_mode_combo.setEnabled(not value)
+        if self.kind == "audio":
+            self.preview.set_editable(not value)
+        if self.workflow_selector is not None:
+            self.workflow_selector.set_busy(value)
         self.stop_button.setEnabled(value and cancellable)
         self.import_stop_button.setVisible(value and cancellable and self.stack.currentWidget() is self.start_page)
         self.import_stop_button.setEnabled(value and cancellable)
@@ -510,14 +463,12 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             return
         self._active_stage = stage
         self._live_progress = {}
-        labels = {"recognize": "正在识别原文…" if self.kind == "image" else "正在转录字幕…",
-                  "detect": "正在检测文字…", "repair": "正在修复图片…", "render": "正在渲染译文…",
-                  "translate": "正在翻译…", "preview": "正在填回译文…",
+        labels = {"recognize": "正在转录字幕…",
+                  "translate": "正在翻译…",
                   "generate": "正在生成图片译文…", "export": "正在导出…"}
         self._stage_label = self.tra(labels.get(stage, "正在处理…"))
-        self._run_state = {"recognize": "识别中" if self.kind == "image" else "转录中",
-                           "detect": "检测中", "repair": "修复中", "render": "渲染中",
-                           "translate": "翻译中", "preview": "回填中", "generate": "生成中",
+        self._run_state = {"recognize": "转录中",
+                           "translate": "翻译中", "generate": "生成中",
                            "export": "导出中"}.get(stage, "处理中")
         self._set_status(self._stage_label)
         self._refresh_metrics()
@@ -548,14 +499,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 return int(current), int(total)
             return None
 
-        if progress.get("operation") == "ocr_region":
-            regions = counts("region_current", "region_total")
-            if regions:
-                detail = self.tra("识别区域 {0} / {1}").format(*regions)
-                pages = counts("current", "total")
-                if pages:
-                    detail = self.tra("第 {0} / {1} 页，").format(*pages) + detail
-                return f"{self._stage_label} {detail}"
         for current_key, total_key in (("completed_chunks", "total_chunks"), ("line", "total_line"),
                                        ("current", "total"), ("completed_files", "total_files")):
             value = counts(current_key, total_key)
@@ -585,7 +528,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 return
             if self._run_state == "排队中":
                 if owner.operation_kind == "import":
-                    self._run_state = "检测中" if self.kind == "image" else "读取中"
+                    self._run_state = "读取中"
                 else:
                     self._stage_changed(self._active_stage)
             progress = job.get("progress", {})
@@ -600,10 +543,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 return
             self._live_progress = progress
             self._refresh_metrics()
-            if self.kind == "image" and self._image_mode() == "generation":
-                row = self._file_rows.get(progress.get("file_id"))
-                if row:
-                    row.setText(1, self.tra(self._generation_status_label(progress.get("status", "request_in_flight"))))
             message = self._progress_message(progress)
             if message:
                 self._set_status(message)
@@ -678,7 +617,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 else:
                     self._show_report(workspace.get("status", "failed"), workspace.get("report", {}))
 
-            self._stage_label = self.tra("正在读取图片并检测文字…" if self.kind == "image" else "正在读取文件…")
+            self._stage_label = self.tra("正在读取图片…" if self.kind == "image" else "正在读取文件…")
             self._start_worker(action, completed, self._stage_label, cancellable=True)
 
     def load_workspace(self, identifier):
@@ -742,8 +681,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             languages = model.get("translation_context", {})
             if self.kind == "image":
                 extra = model.get("extra", {})
-                mode = extra.get("image_translation_mode", "ocr")
-                self.image_mode_combo.setCurrentIndex(max(0, self.image_mode_combo.findData(mode)))
                 options = extra.get("image_generation_options", {})
                 if self._image_mode() == "generation":
                     languages = {**languages, **{key: options[key] for key in ("source_language", "target_language") if key in options}}
@@ -754,7 +691,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                     combo.setCurrentIndex(index)
         finally:
             self._updating_image_options = False
-        self._update_image_controls()
         self._selecting = True
         self.file_tree.clear()
         self._file_rows = {}
@@ -767,7 +703,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 if key not in folders:
                     folders[key] = QTreeWidgetItem(parent, [part])
                 parent = folders[key]
-            row = QTreeWidgetItem(parent, [parts[-1], self._file_progress(file)])
+            columns = [parts[-1]] if self.kind == "image" else [parts[-1], self._file_progress(file)]
+            row = QTreeWidgetItem(parent, columns)
             row.setData(0, Qt.UserRole, file["file_id"])
             self._file_rows[file["file_id"]] = row
             row.setToolTip(0, path)
@@ -784,16 +721,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._filter_files()
         self._refresh_metrics()
 
-    @staticmethod
-    def _generation_status_label(status):
-        return {"prepared": "待生成", "request_in_flight": "生成中", "unknown": "结果待确认",
-                "generated_pending_download": "待下载", "download_failed": "下载失败",
-                "complete": "已生成", "failed": "失败", "stale": "需重新生成",
-                "unavailable": "译图待恢复"}.get(status, "待生成")
-
     def _file_progress(self, file):
-        if self.kind == "image" and self._image_mode() == "generation":
-            return self.tra(self._generation_status_label(self._generation_status(file)))
         items = file.get("items", [])
         translated = sum(i.get("translation_status") in (1, 2) and bool(i.get("translated_text")) for i in items)
         return f"{translated}/{len(items)}" if items else self.tra("待读取原文")
@@ -811,9 +739,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             return
         for file in self.workspace["model"]["files"].values():
             row = self._file_rows.get(file["file_id"])
-            if row:
+            if row and self.kind == "audio":
                 row.setText(1, self._file_progress(file))
-            if file["file_id"] == self._selected_id:
+            if self.kind == "audio" and file["file_id"] == self._selected_id:
                 items = file.get("items", [])
                 translated = sum(item.get("translation_status") in (1, 2)
                                  and bool(str(item.get("translated_text") or "").strip()) for item in items)
@@ -827,7 +755,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         for file in files:
             extra = file.get("extra", {})
             items = file.get("items", [])
-            recognition = extra.get("ocr" if self.kind == "image" else "transcription", {})
+            recognition = extra.get("transcription", {}) if self.kind == "audio" else {}
             identified = recognition.get("status") == "complete"
             if self.kind == "audio" and not extra.get("transcription_checkpoint"):
                 identified = identified or any(str(item.get("source_text", "")).strip() for item in items)
@@ -863,10 +791,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                               for file in self.workspace["model"]["files"].values()}
                              if generation and self.workspace else None)
         states = workflow_states(self.workspace, self.kind, mode, generation_states)
-        if not generation and (self._pending_edits or self._pending_image_extra):
-            for stage in ("repair", "render", "export", "preview"):
-                if stage in states:
-                    states[stage] = {"status": self.tra("待更新"), "detail": self.tra("译文已修改，需重新执行译文填回"), "active": False}
         for key, value in self._stage_results.items():
             if key in states:
                 states[key] = {**states[key], **value}
@@ -882,20 +806,20 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                                              "status": self.tra("停止中" if self._worker.cancelled.is_set()
                                                                 else "排队中" if self._run_state == "排队中" else "处理中"),
                                              "active": True}
-        self.workflow_selector.set_states(states)
+        if self.workflow_selector is not None:
+            self.workflow_selector.set_states(states)
 
-        selected = self.workflow_selector.selected_stages()
-        available = ["generate"] if generation else ["recognize", "translate"] + (["preview"] if self.kind == "image" else [])
-        labels = {"recognize": "开始转录" if self.kind == "audio" else "开始识别",
-                  "detect": "检测文字", "repair": "修复图片", "render": "渲染译文",
-                  "translate": "开始翻译", "preview": "译文填回", "generate": "生成译图"}
+        selected = self._selected_stages()
+        available = ["generate"] if generation else ["recognize", "translate"]
+        labels = {"recognize": "开始转录", "translate": "开始翻译", "generate": "生成译图"}
         caption = ("请选择步骤" if not selected else labels[selected[0]] if len(selected) == 1
                    else "一键翻译" if selected == available else "执行所选步骤")
         self.translate_button.setText(self.tra(caption))
         hint = prerequisite_message(self.workspace, self.kind, mode, selected) if self.workspace else ""
         if not selected:
             hint = self.tra("请至少选择一个执行步骤")
-        self.workflow_selector.set_hint("" if running else self.tra(hint))
+        if self.workflow_selector is not None:
+            self.workflow_selector.set_hint("" if running else self.tra(hint))
         self.translate_button.setEnabled(bool(self.workspace and selected) and not self.busy and not hint)
 
     def _file_selected(self, row, previous=None):
@@ -909,20 +833,16 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         asset = next((f for f in self.workspace.get("files", []) if f["file_id"] == identifier), {})
         source = self.client.asset_url(asset.get("source_url"))
         if self.kind == "image":
-            pending_mode = bool(self._pending_image_extra) or bool(self._pending_generation_options)
+            pending_mode = bool(self._pending_generation_options)
             translated = "" if pending_mode else self.client.asset_url(asset.get("translated_url"))
-            repaired = "" if pending_mode else self.client.asset_url(asset.get("repaired_url"))
-            report = self.workspace.get("report", {})
-            warnings = [entry for entry in report.get("warnings", [])
-                        if isinstance(entry, dict) and entry.get("file_id") == identifier]
-            self.preview.set_file(file, source_url=source, translated_url=translated,
-                                  repaired_url=repaired, headers=self.client.headers, render_warnings=warnings)
+            self.preview.set_file(file, source_url=source, translated_url=translated, headers=self.client.headers)
         else:
             self.preview.set_file(file, source_url=source, headers=self.client.headers)
-        self.preview.set_editable(not self.busy)
+        if self.kind == "audio":
+            self.preview.set_editable(not self.busy)
 
     def _translation_edited(self, identifier, text):
-        if self.busy or not self.workspace:
+        if self.kind != "audio" or self.busy or not self.workspace:
             return
         for file in self.workspace["model"]["files"].values():
             for item in file["items"]:
@@ -934,7 +854,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                         "translated_text": text, "translation_status": item["translation_status"], "model": item["model"]}
                     self.workspace["model"]["stats_data"] = None
                     self._run_state = ""
-                    for stage in ("translate", "repair", "render", "export", "preview", "generate"):
+                    for stage in ("translate", "export"):
                         self._stage_results.pop(stage, None)
                     self._dirty = True
                     self._set_status(self.tra("译文已修改，正在自动保存…"))
@@ -944,7 +864,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
 
     def _clear_pending_changes(self):
         self._pending_edits.clear()
-        self._pending_image_extra.clear()
         self._pending_generation_options.clear()
 
     def _prepare_checkpoint(self):
@@ -954,13 +873,12 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         dirty = self._dirty
         unpersisted_result = not self.workspace.get("persisted", True)
         edits = copy.deepcopy(self._pending_edits)
-        extra_patch = copy.deepcopy(self._pending_image_extra)
         generation_patch = copy.deepcopy(self._pending_generation_options)
 
         def prepare():
             if not dirty:
                 return self.client.load(identifier)
-            if unpersisted_result or not (edits or extra_patch or generation_patch):
+            if unpersisted_result or not (edits or generation_patch):
                 return self.client.save(identifier, model)
             latest = self.client.load(identifier)
             merged = copy.deepcopy(latest["model"])
@@ -972,11 +890,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 item.update({key: change[key] for key in ("translated_text", "translation_status", "model")})
             if edits:
                 merged["stats_data"] = None
-            if extra_patch or generation_patch:
+            if generation_patch:
                 extra = merged.setdefault("extra", {})
-                extra.update(extra_patch)
-                if generation_patch:
-                    extra.setdefault("image_generation_options", {}).update(generation_patch)
+                extra.setdefault("image_generation_options", {}).update(generation_patch)
             return self.client.save(identifier, merged)
 
         return prepare
@@ -1017,20 +933,18 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         stages = list(stages)
         if not stages:
             return
-        generation = self.kind == "image" and self._image_mode() == "generation"
-        if generation and any(stage in ("detect", "recognize", "translate", "repair", "render", "preview") for stage in stages):
-            self.warning_toast(self.tra("请切换流程"), self.tra("当前使用生图直译流程；识别和逐条翻译请切回“OCR翻译”。"))
-            return
-        if not generation and "generate" in stages:
-            self.warning_toast(self.tra("请切换流程"), self.tra("请先选择“生图直译”。"))
+        allowed = {"generate", "export"} if self.kind == "image" else {"recognize", "translate", "export"}
+        if set(stages) - allowed:
+            self.warning_toast(self.tra("不支持的步骤"), self.tra("图片翻译仅支持单步生成译图。" if self.kind == "image" else "请选择转录或翻译字幕步骤。"))
             return
         hint = prerequisite_message(self.workspace, self.kind, self._image_mode(), stages)
         if hint:
-            self.workflow_selector.set_hint(self.tra(hint))
+            if self.workflow_selector is not None:
+                self.workflow_selector.set_hint(self.tra(hint))
             self.warning_toast(self.tra("缺少前置结果"), self.tra(hint))
             return
         workspace_id = self.workspace["workspace_id"]
-        recognition_config = {"reocr": True} if self.kind == "image" else {"retranscribe": True}
+        recognition_config = {"retranscribe": True}
         if self.kind == "audio" and "recognize" in stages:
             provider_config = self._audio_recognition_config()
             if provider_config is None:
@@ -1040,19 +954,14 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         config = {"source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData(),
                   "retranslate": True}
         generation_config = {"source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData(),
-                             "regenerate": True, "text_mode": "direct", "prompt": "", "replacements": []}
+                             "regenerate": True}
         export_options = copy.deepcopy(options or {})
-        if self.kind == "image":
-            export_options["mode"] = self._image_mode()
         mode = self._image_mode()
         def action(worker):
-            if any(stage in ("repair", "render", "preview", "export") for stage in stages):
+            if "export" in stages:
                 settings = read_media_export_settings(self.client.backend.load_config(), self.kind)
                 for key, value in settings.items():
                     export_options.setdefault(key, value)
-            render_options = {key: value for key, value in export_options.items()
-                              if key in ("font_path", "font_size", "min_font_size", "max_font_size", "font_color",
-                                         "text_direction", "padding", "erase_mode", "debug_overlay")}
             # A lost HTTP response does not mean the paid call was lost. Load
             # server checkpoints unless the user actually changed local text.
             checkpoint = prepare()
@@ -1071,8 +980,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                     break
                 result = self.client.run(workspace_id, stage, worker.operation_id,
                                          config=generation_config if stage == "generate" else config if stage == "translate" else recognition_config if stage == "recognize" else {},
-                                         options=export_options if stage == "export" else
-                                                 render_options if stage in ("repair", "render", "preview") else {})
+                                         options=export_options if stage == "export" else {})
                 worker.operation_id = None
                 results.append({**result, "stage": stage})
                 checkpoint = result["workspace"]
@@ -1101,18 +1009,10 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 self._set_status(self.tra("结果已保留在页面，但未能写入项目文件，请重试保存"))
         self._planned_stages = stages
         invalidated = set(stages)
-        if "detect" in stages:
-            invalidated.update(("recognize", "translate", "repair", "render", "export", "preview", "generate"))
-        elif "recognize" in stages:
-            invalidated.update(("translate", "repair", "render", "export", "preview", "generate"))
-        elif "translate" in stages:
-            invalidated.update(("repair", "render", "export", "preview", "generate"))
-        elif "repair" in stages:
-            invalidated.update(("render", "export", "preview"))
-        elif "preview" in stages:
-            invalidated.update(("repair", "render", "export"))
-        elif "render" in stages:
-            invalidated.update(("export",))
+        if "recognize" in stages:
+            invalidated.update(("translate", "export"))
+        elif "translate" in stages or "generate" in stages:
+            invalidated.add("export")
         for stage in invalidated:
             self._stage_results.pop(stage, None)
         self._start_worker(action, done, self.tra("准备处理…"), cancellable=True)

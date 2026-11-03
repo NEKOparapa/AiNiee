@@ -31,25 +31,6 @@
         },
         "active_transcription_platform": "bailian_asr"
     },
-    "OcrPage": {
-        "ocr_platforms": {
-            "bailian_ocr": {
-                "name": "百炼文字识别",
-                "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
-                "api_key": "",
-                "model": "qwen-vl-ocr",
-                "api_format": "DashScope",
-                "request_timeout": 300,
-                "max_pixels": 8388608,
-                "max_tokens": 4096,
-                "reading_order": "auto",
-                "group_lines": true,
-                "refine_text": false,
-                "max_retries": 0
-            }
-        },
-        "active_ocr_platform": "bailian_ocr"
-    },
     "ImageGenerationPage": {
         "image_generation_platforms": {
             "bailian_image": {
@@ -60,6 +41,19 @@
                 "model": "qwen-image-3.0-pro",
                 "request_timeout": 300,
                 "prompt_extend": true,
+                "seed": null,
+                "size": "auto",
+                "prompt": ""
+            },
+            "gemini_image": {
+                "name": "Gemini 官方生图",
+                "api_format": "Gemini",
+                "api_url": "https://generativelanguage.googleapis.com",
+                "api_key": "",
+                "model": "gemini-3-pro-image",
+                "request_timeout": 300,
+                "prompt_extend": false,
+                "watermark": false,
                 "seed": null,
                 "size": "auto",
                 "prompt": ""
@@ -83,12 +77,6 @@
     },
     "ImageTranslationSettingsPage": {
         "image_translation_settings": {
-            "ocr": {
-                "recognition_mode": "regions",
-                "reading_order": "auto",
-                "group_lines": true,
-                "refine_text": false
-            },
             "generation": {
                 "size": "auto",
                 "seed": null,
@@ -100,6 +88,13 @@
                 "format": "png"
             }
         }
+    },
+    "ImageTranslationPromptPage": {
+        "image_translation_prompt_selection": {
+            "last_selected_id": "image_translation_default",
+            "prompt_content": ""
+        },
+        "image_translation_user_prompt_data": []
     },
     "AppSettingsPage": {
         "proxy_url": "",

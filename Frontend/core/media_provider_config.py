@@ -3,8 +3,7 @@
 import copy
 from urllib.parse import urlsplit
 
-from Frontend.core.image_generation_config import DEFAULT_IMAGE_GENERATION_PLATFORM
-from Frontend.core.ocr_config import DEFAULT_OCR_PLATFORM
+from Frontend.core.image_generation_config import DEFAULT_IMAGE_GENERATION_PLATFORM, validate_gemini_connection
 
 
 DEFAULT_TRANSCRIPTION_PLATFORM = {
@@ -20,12 +19,10 @@ SUPPORTED_LANGUAGE_HINTS = frozenset(
 )
 PROVIDER_FORMATS = {
     "transcription": ("DashScope", "VolcengineASRFast"),
-    "ocr": ("DashScope",),
-    "image_generation": ("DashScope", "VolcengineArk"),
+    "image_generation": ("DashScope", "VolcengineArk", "Gemini"),
 }
 PROVIDER_DEFAULTS = {
     "transcription": DEFAULT_TRANSCRIPTION_PLATFORM,
-    "ocr": DEFAULT_OCR_PLATFORM,
     "image_generation": DEFAULT_IMAGE_GENERATION_PLATFORM,
 }
 
@@ -35,7 +32,7 @@ def get_media_provider_presets(kind):
     presets = {
         "bailian": {
             **defaults, "name": "阿里云百炼", "group": "online", "icon": "dashscope",
-            "description": {"transcription": "本地音频转录", "ocr": "图片文字识别",
+            "description": {"transcription": "本地音频转录",
                             "image_generation": "图像编辑与图片翻译"}[kind],
         },
     }
@@ -57,6 +54,13 @@ def get_media_provider_presets(kind):
             "api_url": "https://ark.cn-beijing.volces.com/api/v3/images/generations",
             "api_key": "", "model": "doubao-seedream-5-0-pro-260628", "request_timeout": 300,
             "group": "online", "icon": "volcengine", "description": "火山引擎 · 豆包图像编辑与图片翻译",
+        }
+    if kind == "image_generation":
+        presets["gemini"] = {
+            "name": "Gemini 官方", "api_format": "Gemini",
+            "api_url": "https://generativelanguage.googleapis.com",
+            "api_key": "", "model": "gemini-3-pro-image", "request_timeout": 300,
+            "group": "online", "icon": "google", "description": "Google Gemini · 单步图片翻译",
         }
     presets["custom"] = {
         **defaults, "name": "自定义接口", "group": "custom", "icon": "custom",
@@ -96,7 +100,7 @@ def normalize_media_provider(kind, data=None):
         except ValueError:
             host = ""
         official = host.endswith(".aliyuncs.com") or host in (
-            "openspeech.bytedance.com", "ark.cn-beijing.volces.com",
+            "openspeech.bytedance.com", "ark.cn-beijing.volces.com", "generativelanguage.googleapis.com",
         )
         result["group"] = "online" if official else "custom"
     return result
@@ -124,6 +128,8 @@ def validate_media_provider(kind, data, *, require_credentials=False):
         raise ValueError("接口密钥必须是单行文本。")
     if require_credentials and not result["api_key"]:
         raise ValueError("请先填写接口密钥，再激活此接口。")
+    if kind == "image_generation" and result["api_format"] == "Gemini":
+        validate_gemini_connection(result["api_url"], result["model"], result["api_key"])
     if kind == "transcription" and result["api_format"] == "VolcengineASRFast":
         expected_path = "/api/v3/auc/bigmodel/recognize/flash"
         if not url.path.rstrip("/").endswith(expected_path):

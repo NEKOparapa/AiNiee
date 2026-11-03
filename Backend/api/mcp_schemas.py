@@ -5,7 +5,6 @@ from pydantic import Field
 
 from Backend.api.audio_schemas import AudioTranslateRequest
 from Backend.api.image_generation import GenerationPipelineRequest
-from Backend.api.image_schemas import ImageTranslateRequest
 from Backend.api.pipeline_schemas import DocumentReadOptions, TranslationOptions, WriteOptions
 from Backend.api.schemas import RequestModel
 
@@ -19,10 +18,6 @@ class DocumentTranslationRequest(MCPRequestId):
     read_options: DocumentReadOptions = Field(default_factory=DocumentReadOptions)
     translation: TranslationOptions = Field(default_factory=TranslationOptions)
     output: WriteOptions | None = None
-
-
-class MCPImageTranslationRequest(ImageTranslateRequest, MCPRequestId):
-    pass
 
 
 class MCPImageGenerationRequest(GenerationPipelineRequest, MCPRequestId):

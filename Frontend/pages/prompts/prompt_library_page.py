@@ -541,7 +541,7 @@ class PromptLibraryPage(QFrame, ConfigMixin, Base):
     def find_card_widget(self, prompt_id):
         return next((card for card in self.cards if card.prompt_data["id"] == prompt_id), None)
 
-    def display_prompt_details(self, prompt_data):
+    def display_prompt_details(self, prompt_data, *, persist=True):
         card = self.find_card_widget(prompt_data["id"])
         if card is None:
             return
@@ -559,10 +559,11 @@ class PromptLibraryPage(QFrame, ConfigMixin, Base):
         self.edit_prompt_button.setVisible(is_user)
         self.delete_prompt_button.setVisible(is_user)
         self.character_count_label.setText(self.tra("{count} 字符").format(count=f"{len(prompt_data['content']):,}"))
-        self.save_config({
-            self.selection_key: {"last_selected_id": prompt_data["id"], "prompt_content": prompt_data["content"]},
-            self.user_data_key: self.user_prompts,
-        })
+        if persist:
+            self.save_config({
+                self.selection_key: {"last_selected_id": prompt_data["id"], "prompt_content": prompt_data["content"]},
+                self.user_data_key: self.user_prompts,
+            })
 
     def edit_current_prompt(self):
         if self.selected_prompt_card:

@@ -9,6 +9,10 @@ from urllib.parse import urlsplit
 from Backend.application.pipeline_common import PipelineError
 from Backend.domain.config.media_task_config import migrate_media_task_settings
 from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
+from Backend.domain.config.image_translation_prompt import (
+    DEFAULT_IMAGE_TRANSLATION_PROMPT, SELECTION_KEY, USER_PROMPTS_KEY,
+    MAX_PROMPT_LENGTH, selected_image_translation_prompt,
+)
 
 DEFAULT_IMAGE_GENERATION_PROVIDER_ID = "bailian_image"
 DEFAULT_IMAGE_GENERATION_PLATFORM = {
@@ -19,6 +23,8 @@ DEFAULT_IMAGE_GENERATION_PLATFORM = {
 }
 VOLCENGINE_ARK_API_URL = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
 VOLCENGINE_SEEDREAM_MODEL = "doubao-seedream-5-0-pro-260628"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com"
+GEMINI_IMAGE_MODEL = "gemini-3-pro-image"
 
 
 @dataclass(frozen=True)
@@ -36,9 +42,9 @@ class ImageGenerationConfig:
     source_language: str = "japanese"
     target_language: str = "chinese_simplified"
     prompt: str = ""
-    text_mode: str = "direct"
-    replacements: list[dict] = field(default_factory=list)
     regenerate: bool = False
+    # Resolved from the task prompt library, not a provider or per-call override.
+    translation_prompt: str = DEFAULT_IMAGE_TRANSLATION_PROMPT
 
     @classmethod
     def read_snapshot(cls):
@@ -47,7 +53,7 @@ class ImageGenerationConfig:
         result = {"image_generation_platforms": {
             DEFAULT_IMAGE_GENERATION_PROVIDER_ID: copy.deepcopy(DEFAULT_IMAGE_GENERATION_PLATFORM)},
             "active_image_generation_platform": DEFAULT_IMAGE_GENERATION_PROVIDER_ID,
-            "image_translation_settings": {}}
+            "image_translation_settings": {}, SELECTION_KEY: {}, USER_PROMPTS_KEY: []}
         try:
             with ConfigStore.CONFIG_FILE_LOCK:
                 path = config_path()
@@ -72,6 +78,10 @@ class ImageGenerationConfig:
 def validate_size(value, api_format="DashScope"):
     if value is None or value == "auto":
         return "auto"
+    if api_format == "Gemini":
+        if isinstance(value, str) and value.upper() in ("1K", "2K", "4K"):
+            return value.upper()
+        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "Gemini生图尺寸需为auto、1K、2K或4K", 422)
     if api_format == "VolcengineArk":
         if isinstance(value, str) and value.upper() in ("1K", "1.5K", "2K"):
             return value.upper()
@@ -90,8 +100,26 @@ def validate_size(value, api_format="DashScope"):
     return value
 
 
+def gemini_endpoint(api_url, model):
+    """Resolve a native Gemini base URL without putting credentials in URLs."""
+    try:
+        address = urlsplit(api_url)
+        valid = address.scheme in ("http", "https") and address.hostname and not (
+            address.username or address.password or address.query or address.fragment)
+        valid = valid and address.path.rstrip("/") in ("", "/v1beta")
+        _ = address.port
+    except (ValueError, TypeError):
+        valid = False
+    if not valid or not isinstance(model, str) or not re.fullmatch(r"(?:models/)?[A-Za-z0-9][A-Za-z0-9._-]{0,127}", model):
+        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "Gemini请填写官方基地址（可含/v1beta）和有效模型名称", 422)
+    base = api_url.rstrip("/")
+    if not base.endswith("/v1beta"):
+        base += "/v1beta"
+    return base + "/models/" + model.removeprefix("models/") + ":generateContent"
+
+
 def resolve_image_generation_config(config=None):
-    fields = set(ImageGenerationConfig.__dataclass_fields__)
+    fields = set(ImageGenerationConfig.__dataclass_fields__) - {"translation_prompt"}
     if isinstance(config, ImageGenerationConfig):
         values = asdict(config)
     else:
@@ -114,6 +142,10 @@ def resolve_image_generation_config(config=None):
                        if key in ("size", "seed", "prompt_extend", "prompt", "watermark")})
         values.update(copy.deepcopy(overrides))
         values["provider_id"] = provider
+        try:
+            values["translation_prompt"] = selected_image_translation_prompt(snapshot)
+        except ValueError as error:
+            raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", str(error), 422) from None
     for key in ("provider_id", "api_url", "api_key", "model", "source_language", "target_language"):
         value = values[key]
         if not isinstance(value, str) or not value.strip() or any(c in value for c in "\r\n\x00"):
@@ -126,8 +158,12 @@ def resolve_image_generation_config(config=None):
         _ = address.port
     except ValueError:
         valid = False
-    if not valid or values["api_format"] not in ("DashScope", "VolcengineArk"):
-        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请使用无凭据或查询参数的HTTP(S)地址与DashScope或VolcengineArk格式", 400)
+    if not valid or values["api_format"] not in ("DashScope", "VolcengineArk", "Gemini"):
+        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请使用无凭据或查询参数的HTTP(S)地址与受支持的生图接口格式", 400)
+    if values["api_format"] == "Gemini":
+        gemini_endpoint(values["api_url"], values["model"])
+        if any(not 33 <= ord(char) <= 126 for char in values["api_key"]):
+            raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "Gemini API密钥必须为不含空白的有效文本", 422)
     timeout = values["request_timeout"]
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or not 0 < timeout <= 3600:
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "生图超时需大于0且不超过3600秒", 422)
@@ -137,21 +173,11 @@ def resolve_image_generation_config(config=None):
     if values["seed"] is not None and (type(values["seed"]) is not int or not 0 <= values["seed"] <= 2147483647):
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "seed需为0至2147483647的整数或空值", 422)
     values["size"] = validate_size(values["size"], values["api_format"])
-    if values["text_mode"] not in ("direct", "specified"):
-        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "text_mode需为direct或specified", 422)
     if not isinstance(values["prompt"], str) or len(values["prompt"]) > 10000 or "\x00" in values["prompt"]:
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "补充提示词需为不超过10000字的文本", 422)
-    replacements = values["replacements"]
-    if not isinstance(replacements, list) or len(replacements) > 1000:
-        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "指定替换清单必须为不超过1000项的列表", 422)
-    for row in replacements:
-        if not isinstance(row, dict) or set(row) - {"file_id", "source_text", "target_text", "location"}:
-            raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "指定替换项结构无效", 422)
-        for key in ("file_id", "source_text", "target_text"):
-            if not isinstance(row.get(key), str) or not row[key].strip() or len(row[key]) > 10000:
-                raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "指定替换项需要file_id、原文和译文", 422)
-        if row.get("location") is not None and (not isinstance(row["location"], str) or len(row["location"]) > 2000):
-            raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "替换位置需为文本", 422)
+    if (not isinstance(values["translation_prompt"], str) or not values["translation_prompt"].strip()
+            or len(values["translation_prompt"]) > MAX_PROMPT_LENGTH or "\x00" in values["translation_prompt"]):
+        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "图片翻译提示词需为非空且不超过10000字的文本", 422)
     return ImageGenerationConfig(**values)
 
 
@@ -169,6 +195,11 @@ def validate_image_generation_platform(identifier: str, platform: dict) -> None:
     if seed is not None and (type(seed) is not int or not 0 <= seed <= 2147483647):
         raise ValueError("生图随机种子必须为空或0至2147483647的整数")
     try:
+        api_format = platform.get("api_format", "DashScope")
+        if api_format not in ("DashScope", "VolcengineArk", "Gemini"):
+            raise ValueError("不支持的生图接口格式")
+        if api_format == "Gemini":
+            gemini_endpoint(platform.get("api_url", GEMINI_API_URL), platform.get("model", GEMINI_IMAGE_MODEL))
         validate_size(platform.get("size", "auto"), platform.get("api_format", "DashScope"))
     except PipelineError as error:
         raise ValueError(error.message) from None
