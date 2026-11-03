@@ -150,3 +150,25 @@ def resolve_image_generation_config(config=None):
         if row.get("location") is not None and (not isinstance(row["location"], str) or len(row["location"]) > 2000):
             raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "替换位置需为文本", 422)
     return ImageGenerationConfig(**values)
+
+
+def validate_image_generation_platform(identifier: str, platform: dict) -> None:
+    """验证单个生图平台配置项，抛出 ValueError 表示配置非法。"""
+    if not isinstance(identifier, str) or not identifier.strip() or not isinstance(platform, dict):
+        raise ValueError("生图接口配置必须使用非空字符串 ID 和 JSON 对象")
+    for field in ("name", "api_url", "api_key", "model", "api_format", "size", "prompt"):
+        if field in platform and not isinstance(platform[field], str):
+            raise ValueError(f"生图接口字段 {field} 必须是字符串")
+    timeout = platform.get("request_timeout", 600)
+    if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or not 0 < timeout <= 3600:
+        raise ValueError("生图接口请求超时必须大于0且不超过3600秒")
+    for field in ("prompt_extend", "watermark"):
+        if field in platform and type(platform[field]) is not bool:
+            raise ValueError(f"生图接口字段 {field} 必须是布尔值")
+    seed = platform.get("seed")
+    if seed is not None and (type(seed) is not int or not 0 <= seed <= 2147483647):
+        raise ValueError("生图随机种子必须为空或0至2147483647的整数")
+    try:
+        validate_size(platform.get("size", "auto"), platform.get("api_format", "DashScope"))
+    except PipelineError as error:
+        raise ValueError(error.message) from None

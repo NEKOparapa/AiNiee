@@ -19,6 +19,8 @@ def pyinstaller_command(arch=None):
         f"--add-data={ROOT / 'Backend' / 'resources'}{os.pathsep}Backend/resources",
         "--collect-submodules=Backend", "--collect-submodules=tiktoken_ext",
         "--collect-submodules=uvicorn", "--copy-metadata=tiktoken",
+        "--copy-metadata=pymupdf",
+        "--collect-submodules=mcp", "--copy-metadata=mcp", "--copy-metadata=mcp-types",
     ]
     for package in ("babeldoc", "mediapipe", "chardet", "sklearn", "rich", "bitstring", "magika"):
         command.append(f"--collect-all={package}")

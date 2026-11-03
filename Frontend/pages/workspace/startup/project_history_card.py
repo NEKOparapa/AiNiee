@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
@@ -56,6 +58,12 @@ class ProjectHistoryCard(ConfigMixin, CardWidget):
     def _build_meta_text(self) -> str:
         create_time = self.entry.get("project_create_time", "")
         if create_time:
+            try:
+                created = datetime.fromisoformat(create_time)
+                if created.tzinfo is not None:
+                    create_time = created.astimezone().replace(tzinfo=None).isoformat(timespec="seconds")
+            except (TypeError, ValueError, OverflowError, OSError):
+                pass
             return f"{self.tra('创建时间')}: {create_time}"
         return self.project_id
 

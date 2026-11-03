@@ -4,7 +4,7 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Type
 
-from Backend.infrastructure.cache import CacheManager
+from Backend.infrastructure.files.accessors.cache_accessor import CacheAccessor
 from Backend.domain.models.cache_project import ProjectType
 
 if TYPE_CHECKING:
@@ -192,7 +192,7 @@ class FileReader():
         json_file_path = os.path.join(folder_path, json_files[0])
 
         # 读取 JSON 文件内容
-        return CacheManager.read_from_file(json_file_path)
+        return CacheAccessor.read_from_file(json_file_path)
 
     def get_support_project_types(self) -> list[str]:
         # 把自动检测类型放到第一个

@@ -89,7 +89,7 @@ class RemoteCacheManager:
     def save_to_file(self):
         return self.client.save_project_sync()
 
-    def require_save_to_file(self, output_path=None):
+    def require_save_to_file(self):
         return self.save_to_file()
 
     def reset_project_status(self, task_mode):

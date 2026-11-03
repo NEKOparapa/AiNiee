@@ -1,4 +1,5 @@
 import re
+from functools import cache
 from types import SimpleNamespace
 
 from Backend.core.base import Base
@@ -11,32 +12,27 @@ from Backend.domain.config.task_config import TaskConfig
 from Backend.domain.prompts.prompt_builder_enum import PromptBuilderEnum
 from Backend.domain.prompts.character_helper import CharacterHelper
 
+
+@cache
+def _load_prompt(folder: str, filename: str) -> str:
+    with open(prompt_path(folder, filename), "r", encoding="utf-8") as reader:
+        return reader.read().strip()
+
+
 class PromptBuilder(Base):
     def __init__(self) -> None:
         super().__init__()
 
     # 获取默认系统提示词(未处理的)，优先从内存中读取，如果没有，则从文件中读取
+    @staticmethod
     def get_system_default(config: TaskConfig, prompt_preset) -> str:
         prompt_preset = PromptBuilderEnum.normalize_translation_preset(prompt_preset)
-        if getattr(PromptBuilder, "common_system_zh", None) == None:
-            with open(prompt_path("Translate", "common_system_zh.txt"), "r", encoding = "utf-8") as reader:
-                PromptBuilder.common_system_zh = reader.read().strip()
-        if getattr(PromptBuilder, "common_system_en", None) == None:
-            with open(prompt_path("Translate", "common_system_en.txt"), "r", encoding = "utf-8") as reader:
-                PromptBuilder.common_system_en = reader.read().strip()
-        if getattr(PromptBuilder, "cot_system_zh", None) == None:
-            with open(prompt_path("Translate", "cot_system_zh.txt"), "r", encoding = "utf-8") as reader:
-                PromptBuilder.cot_system_zh = reader.read().strip()
-        if getattr(PromptBuilder, "cot_system_en", None) == None:
-            with open(prompt_path("Translate", "cot_system_en.txt"), "r", encoding = "utf-8") as reader:
-                PromptBuilder.cot_system_en = reader.read().strip()
-        if getattr(PromptBuilder, "local_system_zh", None) == None:
-            with open(prompt_path("Translate", "local_system_zh.txt"), "r", encoding = "utf-8") as reader:
-                PromptBuilder.local_system_zh = reader.read().strip()
-        if getattr(PromptBuilder, "local_system_en", None) == None:
-            with open(prompt_path("Translate", "local_system_en.txt"), "r", encoding = "utf-8") as reader:
-                PromptBuilder.local_system_en = reader.read().strip()
-
+        common_system_zh = _load_prompt("Translate", "common_system_zh.txt")
+        common_system_en = _load_prompt("Translate", "common_system_en.txt")
+        cot_system_zh = _load_prompt("Translate", "cot_system_zh.txt")
+        cot_system_en = _load_prompt("Translate", "cot_system_en.txt")
+        local_system_zh = _load_prompt("Translate", "local_system_zh.txt")
+        local_system_en = _load_prompt("Translate", "local_system_en.txt")
 
         # 如果输入的是字典，则转换为命名空间
         if isinstance(config, dict):
@@ -45,25 +41,28 @@ class PromptBuilder(Base):
                 setattr(namespace, key, value)
             config = namespace
 
-        # 构造结果
-        if prompt_preset == PromptBuilderEnum.COMMON and config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.common_system_zh
-        elif prompt_preset == PromptBuilderEnum.COMMON and config.target_language not in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.common_system_en
-        elif prompt_preset == PromptBuilderEnum.COT and config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.cot_system_zh
-        elif prompt_preset == PromptBuilderEnum.COT and config.target_language not in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.cot_system_en
-        elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.local_system_zh
-        elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language not in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.local_system_en
-        else:
-            result = PromptBuilder.common_system_zh
+        # Unknown presets historically fall back before reading language settings.
+        # Resolve by equality first so malformed, unhashable IDs keep that fallback.
+        preset = next(
+            (value for value in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.LOCAL)
+             if prompt_preset == value), None,
+        )
+        if preset is None:
+            return common_system_zh
 
-        return result
+        is_chinese = config.target_language in ("chinese_simplified", "chinese_traditional")
+        prompts = {
+            (PromptBuilderEnum.COMMON, True): common_system_zh,
+            (PromptBuilderEnum.COMMON, False): common_system_en,
+            (PromptBuilderEnum.COT, True): cot_system_zh,
+            (PromptBuilderEnum.COT, False): cot_system_en,
+            (PromptBuilderEnum.LOCAL, True): local_system_zh,
+            (PromptBuilderEnum.LOCAL, False): local_system_en,
+        }
+        return prompts[(preset, is_chinese)]
 
     # 获取系统提示词(处理好的)
+    @staticmethod
     def build_system(config: TaskConfig, source_lang: str) -> str:
         # 获取默认系统提示词
         PromptBuilder.get_system_default(config, "")
@@ -76,23 +75,23 @@ class PromptBuilder(Base):
 
         # 构造结果
         if config == None:
-            result = PromptBuilder.common_system_zh
+            result = _load_prompt("Translate", "common_system_zh.txt")
         elif prompt_preset == PromptBuilderEnum.COMMON and config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.common_system_zh
+            result = _load_prompt("Translate", "common_system_zh.txt")
         elif prompt_preset == PromptBuilderEnum.COMMON and config.target_language not in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.common_system_en
+            result = _load_prompt("Translate", "common_system_en.txt")
             source_language = en_sl
             target_language = en_tl
         elif prompt_preset == PromptBuilderEnum.COT and config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.cot_system_zh
+            result = _load_prompt("Translate", "cot_system_zh.txt")
         elif prompt_preset == PromptBuilderEnum.COT and config.target_language not in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.cot_system_en
+            result = _load_prompt("Translate", "cot_system_en.txt")
             source_language = en_sl
             target_language = en_tl
         elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.local_system_zh
+            result = _load_prompt("Translate", "local_system_zh.txt")
         elif prompt_preset == PromptBuilderEnum.LOCAL and config.target_language not in ("chinese_simplified", "chinese_traditional"):
-            result = PromptBuilder.local_system_en
+            result = _load_prompt("Translate", "local_system_en.txt")
             source_language = en_sl
             target_language = en_tl
 

@@ -2,7 +2,7 @@
 import fnmatch
 from collections import defaultdict
 from contextlib import ExitStack
-from datetime import datetime
+from datetime import datetime, timezone
 import math
 from pathlib import Path
 
@@ -140,7 +140,7 @@ def _read(path, options, *, kind):
     files = sorted(input_path.rglob("*")) if input_path.is_dir() else [input_path]
     project = CacheProject(
         project_type=project_type, project_name=input_path.stem,
-        input_path=str(input_path), project_create_time=datetime.now().isoformat(timespec="seconds"),
+        input_path=str(input_path), project_create_time=datetime.now(timezone.utc).isoformat(timespec="seconds"),
     )
     report = {"read_files": 0, "item_count": 0, "skipped_files": [], "errors": [], "warnings": []}
     patterns = [value.strip().replace("\\", "/") for value in options.get("exclude_rule", "").split(",") if value.strip()]

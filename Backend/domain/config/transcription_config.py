@@ -187,3 +187,30 @@ def resolve_transcription_config(config=None) -> TranscriptionConfig:
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not lower <= value <= upper:
             raise PipelineError("ASR_CONFIG_ERROR", f"{key} 必须为 {lower} 至 {upper} 之间的数字", 400)
     return TranscriptionConfig(**values)
+
+
+def validate_transcription_platform(identifier: str, platform: dict) -> None:
+    """验证单个转录平台配置项，抛出 ValueError 表示配置非法。"""
+    if not isinstance(identifier, str) or not isinstance(platform, dict):
+        raise ValueError("转录接口配置必须使用字符串 ID 和 JSON 对象")
+    for field in ("name", "api_url", "api_key", "model", "api_format"):
+        if field in platform and not isinstance(platform[field], str):
+            raise ValueError(f"转录接口字段 {field} 必须是字符串")
+    for field in ("app_id", "resource_id"):
+        value = platform.get(field, "")
+        if not isinstance(value, str) or any(c in value for c in "\r\n\x00"):
+            raise ValueError(f"转录接口字段 {field} 必须是单行文本")
+    if "request_timeout" in platform and (isinstance(platform["request_timeout"], bool)
+            or not isinstance(platform["request_timeout"], (int, float))):
+        raise ValueError("转录接口字段 request_timeout 必须是数字")
+    if "language_hints" in platform and (not isinstance(platform["language_hints"], list)
+            or any(not isinstance(value, str) for value in platform["language_hints"])):
+        raise ValueError("转录接口字段 language_hints 必须是字符串列表")
+    if "speaker_diarization_enabled" in platform and not isinstance(platform["speaker_diarization_enabled"], bool):
+        raise ValueError("转录接口字段 speaker_diarization_enabled 必须是布尔值")
+    for field in ("chunk_duration_seconds", "chunk_concurrency"):
+        if field in platform and type(platform[field]) is not int:
+            raise ValueError(f"转录接口字段 {field} 必须是整数")
+    for field in ("chunk_overlap_seconds", "vad_threshold"):
+        if field in platform and (isinstance(platform[field], bool) or not isinstance(platform[field], (int, float))):
+            raise ValueError(f"转录接口字段 {field} 必须是数字")

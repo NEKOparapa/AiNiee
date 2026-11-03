@@ -7,7 +7,7 @@ import copy
 import os
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Annotated, Any, Literal
 
@@ -200,7 +200,7 @@ def normalize_project(project: CacheProject) -> CacheProject:
     if not project.project_id:
         project.project_id = uuid.uuid4().hex
     if not project.project_create_time:
-        project.project_create_time = datetime.now().isoformat(timespec="seconds")
+        project.project_create_time = datetime.now(timezone.utc).isoformat(timespec="seconds")
     for storage_path, file in project.files.items():
         if not file.storage_path:
             file.storage_path = storage_path
@@ -278,3 +278,35 @@ def generate_item_chunks(project: CacheProject, limit_type: str, limit_count: in
             previous_chunks.append(generate_previous_chunks(items, previous_line_count, start_index))
             file_paths.append(file.storage_path)
     return chunks, previous_chunks, file_paths
+
+
+def generate_analysis_source_chunks(
+    project: CacheProject | None, limit_type: str, limit_count: int,
+) -> list[list[dict]]:
+    """按文件拆分有效原文供分析使用，保留所有翻译状态且不修改项目。"""
+    chunks = []
+    if not project:
+        return chunks
+
+    for file in project.files.values():
+        current_chunk, current_length = [], 0
+
+        for item in file.items:
+            if not item.source_text or not item.source_text.strip():
+                continue
+
+            item_length = item.get_token_count(item.source_text) if limit_type == "token" else 1
+            if current_chunk and current_length + item_length > limit_count:
+                chunks.append(current_chunk)
+                current_chunk, current_length = [], 0
+
+            current_chunk.append({
+                "text_index": item.text_index,
+                "source_text": item.source_text,
+            })
+            current_length += item_length
+
+        if current_chunk:
+            chunks.append(current_chunk)
+
+    return chunks

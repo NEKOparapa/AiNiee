@@ -128,6 +128,41 @@ def prepare_runtime_environment() -> str:
             sys.path.append(str(path))
     return str(working_root)
 
+
+def _setup_qt_high_dpi():
+    """配置 Qt 高 DPI 缩放策略，必须在 QApplication 创建前调用。"""
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
+
+def _apply_scale_factor(config: dict):
+    """将配置中的缩放比例写入 QT_SCALE_FACTOR 环境变量。"""
+    mapping = {"50%": "0.50", "75%": "0.75", "125%": "1.25", "150%": "1.50", "200%": "2.00"}
+    scale_factor = config.get("scale_factor", "")
+    value = mapping.get(scale_factor) if isinstance(scale_factor, str) else None
+    if value:
+        os.environ["QT_SCALE_FACTOR"] = value
+
+
+def _create_splash(app):
+    """创建并显示启动页，返回 QSplashScreen 实例。"""
+    logo_path = str(frontend_resource_path("icons", "logo.png"))
+    pixmap = QIcon(logo_path).pixmap(400, 200)
+    if "QT_SCALE_FACTOR" in os.environ:
+        scale_factor = float(os.environ["QT_SCALE_FACTOR"])
+        pixmap = pixmap.scaled(
+            int(pixmap.width() * scale_factor),
+            int(pixmap.height() * scale_factor),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation,
+        )
+    splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
+    splash.setEnabled(False)
+    splash.show()
+    return splash
+
+
 def main(argv=None):
     import argparse
     parser = argparse.ArgumentParser(description="AiNiee desktop client")
@@ -139,9 +174,7 @@ def main(argv=None):
     multiprocessing.freeze_support()
 
     # 启用了高 DPI 缩放
-    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+    _setup_qt_high_dpi()
 
     # 设置工作目录
     script_dir = prepare_runtime_environment()
@@ -173,17 +206,7 @@ def main(argv=None):
     app_version = load_version()
 
     # 设置全局缩放比例
-    scale_factor_str = config.get("scale_factor", "")
-    if scale_factor_str == "50%":
-        os.environ["QT_SCALE_FACTOR"] = "0.50"
-    elif scale_factor_str == "75%":
-        os.environ["QT_SCALE_FACTOR"] = "0.75"
-    elif scale_factor_str == "125%":
-        os.environ["QT_SCALE_FACTOR"] = "1.25"
-    elif scale_factor_str == "150%":
-        os.environ["QT_SCALE_FACTOR"] = "1.50"
-    elif scale_factor_str == "200%":
-        os.environ["QT_SCALE_FACTOR"] = "2.00"
+    _apply_scale_factor(config)
 
     # 创建全局应用对象
     app = QApplication(sys.argv)
@@ -196,26 +219,8 @@ def main(argv=None):
     _log.info("Starting AiNiee Application...")
 
     # 启动页面
-    logo_path = str(frontend_resource_path("icons", "logo.png"))
-    icon = QIcon(logo_path)  # 使用QIcon加载logo
-    pixmap = icon.pixmap(400, 200)  # 从QIcon获取指定大小的QPixmap
-    # 跟随缩放比例
-    if "QT_SCALE_FACTOR" in os.environ:
-        scale_factor = float(os.environ["QT_SCALE_FACTOR"])
-        pixmap = pixmap.scaled(
-            int(pixmap.width() * scale_factor),
-            int(pixmap.height() * scale_factor),
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation
-        )
-    splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
-    splash.setEnabled(False)  # 禁用用户交互，可能改善渲染
-
-    # 显示启动页面
-    splash.show()
+    splash = _create_splash(app)
     update_splash_message(splash, "正在初始化...", app)  # 显示初始化消息
-
-
 
     # 设置全局字体属性，解决狗牙问题
     font = QFont(monospace_font_family())

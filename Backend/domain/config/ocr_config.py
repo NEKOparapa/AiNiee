@@ -122,3 +122,27 @@ def resolve_ocr_config(config=None):
     if values["refine_text"] and not values["group_lines"]:
         raise PipelineError("OCR_CONFIG_ERROR", "复核气泡原文需要先开启合并文字行", 400)
     return OCRConfig(**values)
+
+
+def validate_ocr_platform(identifier: str, platform: dict) -> None:
+    """验证单个 OCR 平台配置项，抛出 ValueError 表示配置非法。"""
+    if not isinstance(identifier, str) or not identifier.strip() or not isinstance(platform, dict):
+        raise ValueError("OCR 接口配置必须使用非空字符串 ID 和 JSON 对象")
+    for field in ("name", "api_url", "api_key", "model", "api_format", "reading_order"):
+        if field in platform and not isinstance(platform[field], str):
+            raise ValueError(f"OCR 接口字段 {field} 必须是字符串")
+    if "request_timeout" in platform and (isinstance(platform["request_timeout"], bool)
+            or not isinstance(platform["request_timeout"], (int, float))):
+        raise ValueError("OCR 接口字段 request_timeout 必须是数字")
+    for field in ("max_pixels", "max_tokens", "max_retries"):
+        if field in platform and type(platform[field]) is not int:
+            raise ValueError(f"OCR 接口字段 {field} 必须是整数")
+    ocr_model = platform.get("model", "qwen-vl-ocr").strip()
+    token_limit = {"qwen-vl-ocr": 4096, "qwen-vl-ocr-2025-11-20": 8192}.get(ocr_model, 32768)
+    if not 1 <= platform.get("max_tokens", 4096) <= token_limit:
+        raise ValueError(f"OCR 模型 {ocr_model} 的 max_tokens 必须是 1 至 {token_limit} 的整数")
+    for field in ("group_lines", "refine_text"):
+        if field in platform and type(platform[field]) is not bool:
+            raise ValueError(f"OCR 接口字段 {field} 必须是布尔值")
+    if platform.get("refine_text", False) and not platform.get("group_lines", False):
+        raise ValueError("复核气泡原文需要先开启“合并相邻文字行”。")

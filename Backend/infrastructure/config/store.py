@@ -1,6 +1,5 @@
 """Backend-owned configuration persistence and migration."""
 import os
-import math
 import threading
 
 import rapidjson as json
@@ -12,6 +11,9 @@ from Backend.domain.text.regex import RegexSwitchHelper
 from Backend.domain.config.tables import TableConfigHelper
 from Backend.domain.config.prompt_selection import TranslationPromptConfigHelper
 from Backend.domain.config.media_task_config import migrate_media_task_settings, validate_media_task_settings
+from Backend.domain.config.transcription_config import validate_transcription_platform
+from Backend.domain.config.ocr_config import validate_ocr_platform
+from Backend.domain.config.image_generation_config import validate_image_generation_platform
 
 
 class ConfigStore:
@@ -83,75 +85,15 @@ class ConfigStore:
         if "active_transcription_platform" in profile and not isinstance(profile["active_transcription_platform"], str):
             raise ValueError("配置字段 active_transcription_platform 必须是字符串")
         for identifier, platform in profile.get("transcription_platforms", {}).items():
-            if not isinstance(identifier, str) or not isinstance(platform, dict):
-                raise ValueError("转录接口配置必须使用字符串 ID 和 JSON 对象")
-            for field in ("name", "api_url", "api_key", "model", "api_format"):
-                if field in platform and not isinstance(platform[field], str):
-                    raise ValueError(f"转录接口字段 {field} 必须是字符串")
-            for field in ("app_id", "resource_id"):
-                value = platform.get(field, "")
-                if not isinstance(value, str) or any(c in value for c in "\r\n\x00"):
-                    raise ValueError(f"转录接口字段 {field} 必须是单行文本")
-            if "request_timeout" in platform and (isinstance(platform["request_timeout"], bool)
-                    or not isinstance(platform["request_timeout"], (int, float))):
-                raise ValueError("转录接口字段 request_timeout 必须是数字")
-            if "language_hints" in platform and (not isinstance(platform["language_hints"], list)
-                    or any(not isinstance(value, str) for value in platform["language_hints"])):
-                raise ValueError("转录接口字段 language_hints 必须是字符串列表")
-            if "speaker_diarization_enabled" in platform and not isinstance(platform["speaker_diarization_enabled"], bool):
-                raise ValueError("转录接口字段 speaker_diarization_enabled 必须是布尔值")
-            for field in ("chunk_duration_seconds", "chunk_concurrency"):
-                if field in platform and type(platform[field]) is not int:
-                    raise ValueError(f"转录接口字段 {field} 必须是整数")
-            for field in ("chunk_overlap_seconds", "vad_threshold"):
-                if field in platform and (isinstance(platform[field], bool) or not isinstance(platform[field], (int, float))):
-                    raise ValueError(f"转录接口字段 {field} 必须是数字")
+            validate_transcription_platform(identifier, platform)
         if "active_ocr_platform" in profile and not isinstance(profile["active_ocr_platform"], str):
             raise ValueError("配置字段 active_ocr_platform 必须是字符串")
         for identifier, platform in profile.get("ocr_platforms", {}).items():
-            if not isinstance(identifier, str) or not identifier.strip() or not isinstance(platform, dict):
-                raise ValueError("OCR 接口配置必须使用非空字符串 ID 和 JSON 对象")
-            for field in ("name", "api_url", "api_key", "model", "api_format", "reading_order"):
-                if field in platform and not isinstance(platform[field], str):
-                    raise ValueError(f"OCR 接口字段 {field} 必须是字符串")
-            if "request_timeout" in platform and (isinstance(platform["request_timeout"], bool)
-                    or not isinstance(platform["request_timeout"], (int, float))):
-                raise ValueError("OCR 接口字段 request_timeout 必须是数字")
-            for field in ("max_pixels", "max_tokens", "max_retries"):
-                if field in platform and type(platform[field]) is not int:
-                    raise ValueError(f"OCR 接口字段 {field} 必须是整数")
-            ocr_model = platform.get("model", "qwen-vl-ocr").strip()
-            token_limit = {"qwen-vl-ocr": 4096, "qwen-vl-ocr-2025-11-20": 8192}.get(ocr_model, 32768)
-            if not 1 <= platform.get("max_tokens", 4096) <= token_limit:
-                raise ValueError(f"OCR 模型 {ocr_model} 的 max_tokens 必须是 1 至 {token_limit} 的整数")
-            for field in ("group_lines", "refine_text"):
-                if field in platform and type(platform[field]) is not bool:
-                    raise ValueError(f"OCR 接口字段 {field} 必须是布尔值")
-            if platform.get("refine_text", False) and not platform.get("group_lines", False):
-                raise ValueError("复核气泡原文需要先开启“合并相邻文字行”。")
+            validate_ocr_platform(identifier, platform)
         if "active_image_generation_platform" in profile and not isinstance(profile["active_image_generation_platform"], str):
             raise ValueError("配置字段 active_image_generation_platform 必须是字符串")
         for identifier, platform in profile.get("image_generation_platforms", {}).items():
-            if not isinstance(identifier, str) or not identifier.strip() or not isinstance(platform, dict):
-                raise ValueError("生图接口配置必须使用非空字符串 ID 和 JSON 对象")
-            for field in ("name", "api_url", "api_key", "model", "api_format", "size", "prompt"):
-                if field in platform and not isinstance(platform[field], str):
-                    raise ValueError(f"生图接口字段 {field} 必须是字符串")
-            timeout = platform.get("request_timeout", 600)
-            if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or not 0 < timeout <= 3600:
-                raise ValueError("生图接口请求超时必须大于0且不超过3600秒")
-            for field in ("prompt_extend", "watermark"):
-                if field in platform and type(platform[field]) is not bool:
-                    raise ValueError(f"生图接口字段 {field} 必须是布尔值")
-            seed = platform.get("seed")
-            if seed is not None and (type(seed) is not int or not 0 <= seed <= 2147483647):
-                raise ValueError("生图随机种子必须为空或0至2147483647的整数")
-            from Backend.domain.config.image_generation_config import validate_size
-            from Backend.application.pipeline_common import PipelineError
-            try:
-                validate_size(platform.get("size", "auto"), platform.get("api_format", "DashScope"))
-            except PipelineError as error:
-                raise ValueError(error.message) from None
+            validate_image_generation_platform(identifier, platform)
         for kind in TableConfigHelper.KINDS:
             key = f"{kind}_tables"
             if key not in profile:

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from Backend.application.status import WorkStatus, build_status_response
 from Backend.application.execution_context import ExecutionContext
+from Backend.application.operation_dispatcher import OperationDispatcher
 from Backend.application.pipeline_common import PipelineError
 from Backend.core.protocol import to_wire
 from Backend.infrastructure.config.store import ConfigStore
@@ -39,6 +40,13 @@ class Runtime(ConfigStore):
         self.network = ProxySettings()
         self._started = False
         self._mcp_enabled = True
+
+    @property
+    def dispatcher(self):
+        # The dispatcher has no mutable state. Bind current dependencies per call
+        # so early notifications cannot retain an absent or replaced cache, and
+        # table callbacks need not acquire the runtime's control lock.
+        return OperationDispatcher(getattr(self, "cache", None), self.update_config, self.notify)
 
     @property
     def mcp_enabled(self):
@@ -199,28 +207,10 @@ class Runtime(ConfigStore):
             raise PipelineError("JOB_CANCELLED", "排队任务已取消", 409) from error
 
     def _commit_table_result(self, data, view):
-        for index, text in data.get("updated_items", {}).items():
-            self.cache.update_generated_translation(
-                data["file_path"], int(index), text, data.get("translation_status", 1),
-            )
-        self.cache.save_to_file()
-        self.notify("table.updated", {**data, "view": view})
+        self.dispatcher.commit_table_result(data, view)
 
     def _commit_glossary_result(self, request, result):
-        if result.get("status") not in ("success", "partial", "cancelled", "stopped"):
-            return
-        original_rows = {row["src"]: row for row in request.get("prompt_dictionary_data", []) if row.get("src") and not row.get("dst")}
-        translations = {row["src"]: row["dst"] for row in result.get("updated_data", []) or [] if row.get("src") and row.get("dst")}
-        if not translations:
-            return
-        def update(config):
-            table = next((table for table in config.get("prompt_dictionary_tables", []) if table["id"] == request.get("table_id")), None)
-            if table is not None:
-                for row in table["rows"]:
-                    source = row.get("src")
-                    if source in translations and row == original_rows.get(source):
-                        row["dst"] = translations[source]
-        self.update_config(update)
+        self.dispatcher.commit_glossary_result(request, result)
 
     def status(self):
         queues = self._scheduler.lanes() if self._scheduler is not None else {
@@ -565,36 +555,9 @@ class Runtime(ConfigStore):
         return {"status": "error", "message": self.last_error}
 
     def _notify_completion(self, name, request, result, *, job=None):
-        # Persistence has finished before any completion reaches the desktop.
-        payload = {key: value for key, value in result.items() if key != "model"}
-        def notify(event, data):
-            self.notify(event, data, job=job)
-        if name == "translation":
-            notify("translation.stopped", payload)
-            output = result.get("output")
-            output_succeeded = not isinstance(output, dict) or output.get("status") == "success"
-            if result.get("status") in ("success", "partial") and not self.last_error and output_succeeded:
-                notify("translation.completed", payload)
-            if isinstance(output, dict):
-                notify("project.export.completed", {"files": [], "report": {}, **output})
-        elif name == "analysis":
-            notify("analysis.completed", {"analysis_data": None, **payload})
-        elif name.startswith("table."):
-            notify("table.completed", {
-                "file_path": request.get("file_path"), "updated_item_count": 0,
-                "operation": name.split(".", 1)[1],
-                **payload, "view": request.get("view", "basic"),
-            })
-        elif name == "glossary.translate":
-            notify("glossary.completed", {
-                "updated_data": None, **payload, "table_id": request.get("table_id"),
-                "request_id": request.get("request_id"),
-            })
-        elif name == "api_test":
-            failure = [result.get("message") or "接口测试未完成"] if result.get("status") in ("error", "failed", "cancelled") else []
-            notify("api_test.completed", {"success": [], "failure": failure, **payload})
-        elif name == "project.export":
-            notify("project.export.completed", {"files": [], "report": {}, **payload})
+        self.dispatcher.notify_completion(
+            name, request, result, job=job, has_error=bool(self.last_error),
+        )
 
     def close(self):
         with self.lock:
