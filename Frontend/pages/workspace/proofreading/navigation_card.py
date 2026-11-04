@@ -1,4 +1,4 @@
-import os
+import posixpath
 
 from PyQt5.QtCore import QVariant, Qt
 from PyQt5.QtWidgets import QTreeWidgetItem, QVBoxLayout
@@ -30,11 +30,18 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
         self.search_button.setFixedHeight(32)
         self.layout.addWidget(self.search_button)
 
-    def update_tree(self, hierarchy: dict) -> None:
+    def update_tree(self, file_paths: list[str]) -> None:
         self.tree.clear()
 
-        if not hierarchy:
+        if not file_paths:
             return
+
+        # Normalize only the display hierarchy. File actions must retain the
+        # exact cache key, including separators used by older project caches.
+        hierarchy = {}
+        for file_path in file_paths:
+            directory, filename = posixpath.split(file_path.replace("\\", "/"))
+            hierarchy.setdefault(directory or ".", []).append((filename, file_path))
 
         folder_items = {}
 
@@ -42,7 +49,7 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
             if dir_path == ".":
                 parent_item = self.tree.invisibleRootItem()
             else:
-                parts = dir_path.replace("\\", "/").split("/")
+                parts = dir_path.split("/")
                 current_path = ""
                 parent_item = self.tree.invisibleRootItem()
 
@@ -58,10 +65,9 @@ class NavigationCard(ConfigMixin, LogMixin, ToastMixin, Base, CardWidget):
                     else:
                         parent_item = folder_items[current_path]
 
-            for filename in hierarchy[dir_path]:
-                full_path = os.path.join(dir_path, filename) if dir_path != "." else filename
+            for filename, file_path in sorted(hierarchy[dir_path]):
                 file_item = QTreeWidgetItem([filename])
-                file_item.setData(0, Qt.UserRole, QVariant(full_path))
+                file_item.setData(0, Qt.UserRole, QVariant(file_path))
                 parent_item.addChild(file_item)
 
         self.tree.expandAll()

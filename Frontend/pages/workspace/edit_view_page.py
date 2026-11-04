@@ -180,10 +180,11 @@ class EditViewPage(ConfigMixin, LogMixin, ToastMixin, Base, QFrame):
         self.startup_page.show_continue_button(show)
 
     def on_folder_selected(self, project_name: str, project_mode: str) -> None:
-        file_hierarchy = self.cache_manager.get_file_hierarchy()
+        project = self.cache_manager.project
+        file_paths = list(project.files) if project else []
 
         self.proofreading_page.clear_tabs()
-        self.proofreading_page.update_tree(file_hierarchy)
+        self.proofreading_page.update_tree(file_paths)
         self.analysis_page.refresh_from_project()
 
         continue_enabled = project_mode != "new"

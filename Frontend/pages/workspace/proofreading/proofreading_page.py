@@ -1,4 +1,3 @@
-import os
 import threading
 import time
 
@@ -127,9 +126,9 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
         self.splitter.setSizes([left_width, right_width])
         self._splitter_ratio_initialized = True
 
-    def update_tree(self, hierarchy: dict) -> None:
-        self._project_file_count = sum(len(files or []) for files in (hierarchy or {}).values())
-        self.nav_card.update_tree(hierarchy)
+    def update_tree(self, file_paths: list[str]) -> None:
+        self._project_file_count = len(file_paths)
+        self.nav_card.update_tree(file_paths)
         self._update_action_state()
 
     def clear_tabs(self) -> None:
@@ -157,7 +156,7 @@ class ProofreadingPage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             )
             return
 
-        tab_name = os.path.basename(file_path)
+        tab_name = cache_file.file_name
         new_tab = TabInterface(tab_name, file_path, cache_file.items, self.cache_manager, self)
 
         self.page_card.stacked_widget.addWidget(new_tab)
