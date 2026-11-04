@@ -107,9 +107,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._refresh_status_visibility()
 
     def _refresh_status_visibility(self, *unused):
-        hide_footer = (self.stack.currentWidget() is self.work_page
-                       and (self.kind == "image"
-                            or self.workflow_stack.currentWidget() is self.translation_page))
+        hide_footer = self.stack.currentWidget() is self.work_page
         self.status_label.setVisible(bool(self._status_message) and not hide_footer)
         if self.kind == "video":
             proofreading = (self.stack.currentWidget() is self.work_page
