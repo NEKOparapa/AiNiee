@@ -3,74 +3,62 @@
     "任务切分模式": {
       "简中": "任务切分模式",
       "繁中": "任務切割模式",
-      "English": "Task Segmentation Mode",
-      "日本語": "タスク分割モード"
+      "English": "Task Segmentation Mode"
     },
     "选择任务切分的模式": {
       "简中": "选择任务切分的模式",
       "繁中": "選擇任務切割的模式",
-      "English": "Select task segmentation method",
-      "日本語": "タスク分割方法を選択"
+      "English": "Select task segmentation method"
     },
     "行数模式": {
       "简中": "行数模式",
       "繁中": "行數模式",
-      "English": "Line Count Mode",
-      "日本語": "行数モード"
+      "English": "Line Count Mode"
     },
     "Token模式": {
       "简中": "Token模式",
       "繁中": "Token模式",
-      "English": "Token Mode",
-      "日本語": "トークンモード"
+      "English": "Token Mode"
     },
     "任务的文本行数": {
       "简中": "任务的文本行数",
       "繁中": "任務的文字行數",
-      "English": "Text Lines per Task",
-      "日本語": "タスクあたりの行数"
+      "English": "Text Lines per Task"
     },
     "当任务切分模式设置为 行数模式 时，按此值对原文进行切分": {
       "简中": "当任务切分模式设置为 行数模式 时，按此值对原文进行切分",
       "繁中": "當任務切割模式設為「行數模式」時，將根據此值切割原始文字",
-      "English": "In Line Mode, segments source text by this line count",
-      "日本語": "行数モード時、原文をこの行数で分割"
+      "English": "In Line Mode, segments source text by this line count"
     },
     "当任务切分模式设置为 Token 模式 时，按此值对原文进行切分": {
       "简中": "当任务切分模式设置为 Token 模式 时，按此值对原文进行切分",
       "繁中": "當任務切割模式設為「Token 模式」時，將根據此值切割原始文字",
-      "English": "In Token Mode, segments source text by this token count",
-      "日本語": "トークンモード時、原文をこのトークン数で分割"
+      "English": "In Token Mode, segments source text by this token count"
     },
     "任务的 Token 数量": {
       "简中": "任务的 Token 数量",
       "繁中": "任務的 Token 數量",
-      "English": "Tokens per Task",
-      "日本語": "タスクあたりのトークン数"
+      "English": "Tokens per Task"
     },
     "并发任务数": {
       "简中": "并发任务数",
       "繁中": "並行任務數",
-      "English": "Concurrent Tasks",
-      "日本語": "並行タスク数"
+      "English": "Concurrent Tasks"
     },
     "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式": {
       "简中": "合理设置可以极大的增加翻译速度，请设置为本地模型的 np 值或者参考在线接口的官方文档，设置为 0 为自动模式",
       "繁中": "合理設定可大幅提升任務速度，請設定為本地模型的 np 值或參考線上介面官方文件，設為 0 為自動模式",
-      "English": "Set this to your local model's np value\nor your API limit.\n0 = auto mode",
-      "日本語": "適切な設定で速度向上。ローカルモデルのnp値に設定かAPI文書参照。0で自動モード"
+      "English": "Set this to your local model's np value\nor your API limit.\n0 = auto mode"
     },
     "任务流程的最大轮次": {
       "简中": "任务流程的最大轮次",
       "繁中": "任務流程最大輪次",
-      "English": "Max Process Rounds",
-      "日本語": "最大処理ラウンド数"
+      "English": "Max Process Rounds"
     },
     "当完成一轮任务后，如果还有未翻译的条目，将重新开始新的任务流程，直到翻译完成或者达到最大轮次": {
       "简中": "当完成一轮任务后，如果还有未翻译的条目，将重新开始新的任务流程，直到翻译完成或者达到最大轮次",
       "繁中": "完成一輪任務後若有未翻譯項目，將重新啟動任務流程，直到翻譯完成或達最大輪次",
-      "English": "If untranslated items remain,\nstart another round until done or the max is reached",
-      "日本語": "未翻訳項目がある場合、翻訳完了または最大ラウンドまで処理を再開"
+      "English": "If untranslated items remain,\nstart another round until done or the max is reached"
     }
     
   }

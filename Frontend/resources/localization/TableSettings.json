@@ -3,212 +3,177 @@
     "术语表": {
       "简中": "术语表",
       "繁中": "術語表",
-      "English": "Glossary",
-      "日本語": "用語集"
+      "English": "Glossary"
     },
     "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△匹配方式: 正则开关关闭时按原文字面匹配，开启时将原文作为正则表达式  ◯填写示例:  ダリヤ  |  达莉雅  |  女性的名字": {
       "简中": "通过构建术语表来引导模型翻译，可实现统一翻译、补充信息等功能\n△匹配方式：正则开关关闭时按原文字面匹配，开启时将原文作为正则表达式。  ◯填写示例：ダリヤ  |  达莉雅  |  女性的名字",
       "繁中": "透過建立術語表來引導模型翻譯，可實現統一翻譯、補充資訊等功能。\n△匹配方式：正則開關關閉時按原文字面匹配，開啟時將原文作為正則表達式。  ◯範例：ダリヤ  |  達莉雅  |  女性的名字",
-      "English": "Use a glossary to guide model translation for consistent translations and supplementary information.\n△Match mode: With Regex off, the source is matched literally; with Regex on, it is treated as a regular expression.  ◯Example: ダリヤ  |  Dahlia  |  Female name",
-      "日本語": "用語集を構築してモデル翻訳を誘導し、翻訳の統一や情報補足を行います。\n△一致方法：正規表現スイッチがオフの場合は原文を文字どおりに照合し、オンの場合は正規表現として扱います。  ◯例：ダリヤ  |  ダリヤ  |  女性の名前"
+      "English": "Use a glossary to guide model translation for consistent translations and supplementary information.\n△Match mode: With Regex off, the source is matched literally; with Regex on, it is treated as a regular expression.  ◯Example: ダリヤ  |  Dahlia  |  Female name"
     },
     "原文": {
       "简中": "原文",
       "繁中": "原文",
-      "English": "Original Text",
-      "日本語": "原文"
+      "English": "Original Text"
     },
     "译文": {
       "简中": "译文",
       "繁中": "譯文",
-      "English": "Translation",
-      "日本語": "翻訳文"
+      "English": "Translation"
     },
     "描述": {
       "简中": "描述",
       "繁中": "描述",
-      "English": "Description",
-      "日本語": "説明"
+      "English": "Description"
     },
     "导出_术语表": {
       "简中": "导出_术语表",
       "繁中": "導出_術語表",
-      "English": "Export Glossary",
-      "日本語": "用語集をエクスポート"
+      "English": "Export Glossary"
     },
     "角色提取": {
       "简中": "角色提取",
       "繁中": "角色提取",
-      "English": "Role Extraction",
-      "日本語": "役割抽出"
+      "English": "Role Extraction"
     },
     "简单翻译": {
       "简中": "简单翻译",
       "繁中": "簡單翻譯",
-      "English": "Simple Translation",
-      "日本語": "簡単翻訳"
+      "English": "Simple Translation"
     },
     "原文匹配方式": {
       "简中": "原文匹配方式",
       "繁中": "原文匹配方式",
-      "English": "Source Match Mode",
-      "日本語": "原文の一致方法"
+      "English": "Source Match Mode"
     },
     "大小写敏感": {
       "简中": "大小写敏感",
       "繁中": "區分大小寫",
-      "English": "Case Sensitive",
-      "日本語": "大文字小文字を区別"
+      "English": "Case Sensitive"
     },
     "以下选项仅对未启用正则的术语生效。": {
       "简中": "以下选项仅对未启用正则的术语生效。",
       "繁中": "以下選項僅對未啟用正則的術語生效。",
-      "English": "These options apply only to terms with Regex turned off.",
-      "日本語": "以下の設定は、正規表現がオフの用語にのみ適用されます。"
+      "English": "These options apply only to terms with Regex turned off."
     },
     "开启后区分大小写，如 John 不匹配 john；关闭后忽略大小写。": {
       "简中": "开启后区分大小写，如 John 不匹配 john；关闭后忽略大小写。",
       "繁中": "開啟後區分大小寫，如 John 不匹配 john；關閉後忽略大小寫。",
-      "English": "When on, John does not match john. When off, letter case is ignored.",
-      "日本語": "オンの場合、John は john と一致しません。オフの場合、大文字小文字を区別しません。"
+      "English": "When on, John does not match john. When off, letter case is ignored."
     },
     "仅匹配完整单词，如 Ann 不匹配 Anna。建议用于英文。": {
       "简中": "仅匹配完整单词，如 Ann 不匹配 Anna。建议用于英文。",
       "繁中": "僅匹配完整單字，如 Ann 不匹配 Anna。建議用於英文。",
-      "English": "Match whole words only: Ann does not match Anna. Recommended for English.",
-      "日本語": "単語全体のみを照合するため、Ann は Anna と一致しません。英語での使用を推奨します。"
+      "English": "Match whole words only: Ann does not match Anna. Recommended for English."
     },
     "拆分匹配": {
       "简中": "拆分匹配",
       "繁中": "拆分匹配",
-      "English": "Split Matching",
-      "日本語": "分割して照合"
+      "English": "Split Matching"
     },
     "按空格、间隔点拆分原文，任一部分命中即引用完整条目，如 John 或 Smith 均可匹配 John Smith。普通多词术语也会拆分，可配合全词匹配使用。": {
       "简中": "按空格、间隔点拆分原文，任一部分命中即引用完整条目，如 John 或 Smith 均可匹配 John Smith。普通多词术语也会拆分，可配合全词匹配使用。",
       "繁中": "按空格、間隔點拆分原文，任一部分命中即引用完整條目，如 John 或 Smith 均可匹配 John Smith。普通多詞術語也會拆分，可搭配全詞匹配使用。",
-      "English": "Split the source at spaces and middle dots. Any part, such as John or Smith in John Smith, includes the full entry. Other multiword terms are also split; combine with Whole Word matching as needed.",
-      "日本語": "原文を空白や中点で分割し、一部が一致すると項目全体を参照します。例：John や Smith で John Smith に一致します。人名以外の複数語の用語も分割されるため、必要に応じて単語全体の一致を併用してください。"
+      "English": "Split the source at spaces and middle dots. Any part, such as John or Smith in John Smith, includes the full entry. Other multiword terms are also split; combine with Whole Word matching as needed."
     },
     "术语检查仅在原文与译文拆分数量一致时检查对应部分。": {
       "简中": "术语检查仅在原文与译文拆分数量一致时检查对应部分。",
       "繁中": "術語檢查僅在原文與譯文拆分數量一致時檢查對應部分。",
-      "English": "Terminology checks validate matching parts only when the source and translation split into the same number of parts.",
-      "日本語": "用語チェックでは、原文と訳文の分割数が同じ場合にのみ、対応する部分を検査します。"
+      "English": "Terminology checks validate matching parts only when the source and translation split into the same number of parts."
     },
     "术语表内容为空": {
       "简中": "术语表内容为空",
       "繁中": "術語表內容為空",
-      "English": "Glossary is Empty",
-      "日本語": "用語集が空です"
+      "English": "Glossary is Empty"
     },
     "术语信息已提取": {
       "简中": "术语信息已提取",
       "繁中": "術語信息已提取",
-      "English": "Term Information Extracted",
-      "日本語": "用語情報が抽出されました"
+      "English": "Term Information Extracted"
     },
     "术语表翻译失败": {
       "简中": "术语表翻译失败",
       "繁中": "術語表翻譯失敗",
-      "English": "Glossary Translation Failed",
-      "日本語": "用語集の翻訳に失敗しました"
+      "English": "Glossary Translation Failed"
     },
     "术语表翻译成功": {
       "简中": "术语表翻译成功",
       "繁中": "術語表翻譯成功",
-      "English": "Glossary Translation Successful",
-      "日本語": "用語集の翻訳に成功しました"
+      "English": "Glossary Translation Successful"
     },
     "全部": {
       "简中": "全部",
       "繁中": "全部",
-      "English": "All",
-      "日本語": "全て"
+      "English": "All"
     },
     "提示": {
       "简中": "提示",
       "繁中": "提示",
-      "English": "Notice",
-      "日本語": "通知"
+      "English": "Notice"
     },
     "全部行数": {
       "简中": "全部行数",
       "繁中": "全部行數",
-      "English": "Total Lines",
-      "日本語": "全行数"
+      "English": "Total Lines"
     },
     "原文本": {
       "简中": "原文本",
       "繁中": "原文",
-      "English": "Source Text",
-      "日本語": "原文"
+      "English": "Source Text"
     },
     "目标文本": {
       "简中": "目标文本",
       "繁中": "目標文本",
-      "English": "Target Text",
-      "日本語": "訳文"
+      "English": "Target Text"
     },
     "搜索表格内容...": {
       "简中": "搜索表格内容...",
       "繁中": "搜尋表格內容...",
-      "English": "Search table content...",
-      "日本語": "表内を検索..."
+      "English": "Search table content..."
     },
     "上一个结果": {
       "简中": "上一个结果",
       "繁中": "上一個結果",
-      "English": "Previous result",
-      "日本語": "前の結果"
+      "English": "Previous result"
     },
     "下一个结果": {
       "简中": "下一个结果",
       "繁中": "下一個結果",
-      "English": "Next result",
-      "日本語": "次の結果"
+      "English": "Next result"
     },
     "在指定文件夹中未找到符合条件的角色名": {
       "简中": "在指定文件夹中未找到符合条件的角色名",
       "繁中": "在指定資料夾中未找到符合條件的角色名稱",
-      "English": "No matching character names found in the specified folder",
-      "日本語": "指定フォルダに該当するキャラクター名が見つかりません"
+      "English": "No matching character names found in the specified folder"
     },
     "均已存在于术语表中": {
       "简中": "均已存在于术语表中",
       "繁中": "均已存在於術語表中",
-      "English": "All already exist in the glossary",
-      "日本語": "全て用語集に既に存在しています"
+      "English": "All already exist in the glossary"
     },
     "术语信息已提取并添加": {
       "简中": "术语信息已提取并添加",
       "繁中": "術語資訊已提取並添加",
-      "English": "Term information has been extracted and added",
-      "日本語": "用語情報を抽出し追加しました"
+      "English": "Term information has been extracted and added"
     },
     "提取失败": {
       "简中": "提取失败",
       "繁中": "提取失敗",
-      "English": "Extraction failed",
-      "日本語": "抽出に失敗しました"
+      "English": "Extraction failed"
     },
     "没有需要翻译的术语": {
       "简中": "没有需要翻译的术语",
       "繁中": "沒有需要翻譯的術語",
-      "English": "No terms need translation",
-      "日本語": "翻訳が必要な用語はありません"
+      "English": "No terms need translation"
     },
     "术语表翻译任务已开始...": {
       "简中": "术语表翻译任务已开始...",
       "繁中": "術語表翻譯任務已開始...",
-      "English": "Glossary translation task has started...",
-      "日本語": "用語集翻訳タスクを開始しました..."
+      "English": "Glossary translation task has started..."
     },
     "翻译完成，但没有数据被更新": {
       "简中": "翻译完成，但没有数据被更新",
       "繁中": "翻譯完成，但沒有資料被更新",
-      "English": "Translation completed but no data was updated",
-      "日本語": "翻訳は完了しましたが、データは更新されませんでした"
+      "English": "Translation completed but no data was updated"
     }
   },
 
@@ -216,38 +181,32 @@
     "禁翻表": {
       "简中": "禁翻表",
       "繁中": "禁譯表",
-      "English": "Do Not Translate List",
-      "日本語": "禁翻リスト"
+      "English": "Do Not Translate List"
     },
     "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符，占位符，代码段等内容\n△匹配方式: 正则开关关闭时按标记符字面匹配，开启时将标记符作为正则表达式  ◯填写示例:  //F[N1]  |  游戏文本标记符号": {
       "简中": "通过构建禁翻表来引导模型，禁止翻译文本中的特殊标记符、占位符、代码段等内容。\n△匹配方式：正则开关关闭时按标记符字面匹配，开启时将标记符作为正则表达式。  ◯填写示例：//F[N1]  |  游戏文本标记符号",
       "繁中": "透過構建禁翻表來引導模型，禁止翻譯文本中的特殊標記符、佔位符、代碼段等內容。\n△匹配方式：正則開關關閉時按標記符字面匹配，開啟時將標記符作為正則表達式。  ◯示例：//F[N1]  |  遊戲文本標記符",
-      "English": "Build a Do Not Translate list for special markers, placeholders, and code snippets.\n△Match mode: With Regex off, the marker is matched literally; with Regex on, it is treated as a regular expression.  ◯Example: //F[N1]  |  Game text marker",
-      "日本語": "翻訳禁止リストを作成し、特殊マーカー、プレースホルダー、コード断片などの翻訳を防止します。\n△一致方法：正規表現スイッチがオフの場合はマーカーを文字どおりに照合し、オンの場合は正規表現として扱います。  ◯例：//F[N1]  |  ゲームテキストマーカー"
+      "English": "Build a Do Not Translate list for special markers, placeholders, and code snippets.\n△Match mode: With Regex off, the marker is matched literally; with Regex on, it is treated as a regular expression.  ◯Example: //F[N1]  |  Game text marker"
     },
     "标记符": {
       "简中": "标记符",
       "繁中": "標記符",
-      "English": "Marker",
-      "日本語": "マーカー"
+      "English": "Marker"
     },
     "备注": {
       "简中": "备注",
       "繁中": "備註",
-      "English": "Notes",
-      "日本語": "備考"
+      "English": "Notes"
     },
     "正则": {
       "简中": "正则",
       "繁中": "正則",
-      "English": "Regex",
-      "日本語": "正規表現"
+      "English": "Regex"
     },
     "导出_禁翻表": {
       "简中": "导出_禁翻表",
       "繁中": "導出_禁譯表",
-      "English": "Export Do Not Translate List",
-      "日本語": "禁翻リストをエクスポート"
+      "English": "Export Do Not Translate List"
     }
   },
 
@@ -255,38 +214,32 @@
     "译前替换": {
       "简中": "译前替换",
       "繁中": "譯前替換",
-      "English": "Pre-translation Replacement",
-      "日本語": "翻訳前置換"
+      "English": "Pre-translation Replacement"
     },
     "在翻译开始前，将原文中匹配的部分替换为指定的文本，执行的顺序为从上到下依次替换\n△匹配方式: 正则开关关闭时按原文本字面匹配，开启时将原文本作为正则表达式": {
       "简中": "在翻译开始前，将原文中匹配的部分替换为指定文本，执行顺序为从上到下。\n△匹配方式：正则开关关闭时按原文本字面匹配，开启时将原文本作为正则表达式。",
       "繁中": "在翻譯開始前，將原文中匹配的部分替換為指定文本，執行順序為從上到下。\n△匹配方式：正則開關關閉時按原文字面匹配，開啟時將原文作為正則表達式。",
-      "English": "Before translation, replace matching source text from top to bottom.\n△Match mode: With Regex off, source text is matched literally; with Regex on, it is treated as a regular expression.",
-      "日本語": "翻訳開始前に、原文の一致箇所を上から順に指定テキストへ置換します。\n△一致方法：正規表現スイッチがオフの場合は文字どおりに照合し、オンの場合は正規表現として扱います。"
+      "English": "Before translation, replace matching source text from top to bottom.\n△Match mode: With Regex off, source text is matched literally; with Regex on, it is treated as a regular expression."
     },
     "导出_译前替换": {
       "简中": "导出_译前替换",
       "繁中": "導出_譯前替換",
-      "English": "Export Pre-translation Replacement",
-      "日本語": "翻訳前置換をエクスポート"
+      "English": "Export Pre-translation Replacement"
     },
     "译后替换": {
       "简中": "译后替换",
       "繁中": "譯後替換",
-      "English": "Post-translation Replacement",
-      "日本語": "翻訳後置換"
+      "English": "Post-translation Replacement"
     },
     "在翻译完成后，将译文中匹配的部分替换为指定的文本，执行的顺序为从上到下依次替换\n△匹配方式: 正则开关关闭时按原文本字面匹配，开启时将原文本作为正则表达式": {
       "简中": "在翻译完成后，将译文中匹配的部分替换为指定文本，执行顺序为从上到下。\n△匹配方式：正则开关关闭时按原文本字面匹配，开启时将原文本作为正则表达式。",
       "繁中": "在翻譯完成後，將譯文中匹配的部分替換為指定文本，執行順序為從上到下。\n△匹配方式：正則開關關閉時按原文字面匹配，開啟時將原文作為正則表達式。",
-      "English": "After translation, replace matching translated text from top to bottom.\n△Match mode: With Regex off, source text is matched literally; with Regex on, it is treated as a regular expression.",
-      "日本語": "翻訳完了後、訳文の一致箇所を上から順に指定テキストへ置換します。\n△一致方法：正規表現スイッチがオフの場合は文字どおりに照合し、オンの場合は正規表現として扱います。"
+      "English": "After translation, replace matching translated text from top to bottom.\n△Match mode: With Regex off, source text is matched literally; with Regex on, it is treated as a regular expression."
     },
     "导出_译后替换": {
       "简中": "导出_译后替换",
       "繁中": "導出_譯後替換",
-      "English": "Export Post-translation Replacement",
-      "日本語": "翻訳後置換をエクスポート"
+      "English": "Export Post-translation Replacement"
     }
   }
 }

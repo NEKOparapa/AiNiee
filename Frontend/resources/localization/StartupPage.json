@@ -3,260 +3,218 @@
     "书籍": {
       "简中": "书籍",
       "繁中": "書籍",
-      "English": "Books",
-      "日本語": "書籍"
+      "English": "Books"
     },
     "文档": {
       "简中": "文档",
       "繁中": "文件",
-      "English": "Documents",
-      "日本語": "ドキュメント"
+      "English": "Documents"
     },
     "字幕": {
       "简中": "字幕",
       "繁中": "字幕",
-      "English": "Subtitles",
-      "日本語": "字幕"
+      "English": "Subtitles"
     },
     "游戏": {
       "简中": "游戏",
       "繁中": "遊戲",
-      "English": "Games",
-      "日本語": "ゲーム"
+      "English": "Games"
     },
     "数据文件": {
       "简中": "数据文件",
       "繁中": "資料檔案",
-      "English": "Data Files",
-      "日本語": "データファイル"
+      "English": "Data Files"
     },
     "复杂文档": {
       "简中": "复杂文档",
       "繁中": "複雜文件",
-      "English": "Complex Documents",
-      "日本語": "複雑文書"
+      "English": "Complex Documents"
     },
     "工程文件": {
       "简中": "工程文件",
       "繁中": "工程檔案",
-      "English": "Project Files",
-      "日本語": "プロジェクトファイル"
+      "English": "Project Files"
     },
     "当前路径": {
       "简中": "当前路径",
       "繁中": "當前路徑",
-      "English": "Current Path",
-      "日本語": "現在のパス"
+      "English": "Current Path"
     },
     "拖拽/选择输入文件夹": {
       "简中": "拖拽/选择输入文件夹",
       "繁中": "拖曳/選擇輸入資料夾",
-      "English": "Drag & Drop / Select Input Folder",
-      "日本語": "ドラッグ＆ドロップ/入力フォルダーを選択"
+      "English": "Drag & Drop / Select Input Folder"
     },
     "开始读取": {
       "简中": "开始读取",
       "繁中": "開始讀取",
-      "English": "Start Reading",
-      "日本語": "読み取りを開始"
+      "English": "Start Reading"
     }
   },
 "PART_2": { 
     "继续项目": {
       "简中": "继续项目",
       "繁中": "繼續專案",
-      "English": "Continue Project",
-      "日本語": "プロジェクトを続ける"
+      "English": "Continue Project"
     },
     "加载上次的项目缓存并继续": {
       "简中": "加载上次的项目缓存并继续",
       "繁中": "載入上次的專案快取並繼續",
-      "English": "Load Last Project Cache & Continue",
-      "日本語": "前回のプロジェクトキャッシュを読み込み続行"
+      "English": "Load Last Project Cache & Continue"
     },
     "项目类型": {
       "简中": "项目类型",
       "繁中": "專案類型",
-      "English": "Project Type",
-      "日本語": "プロジェクトタイプ"
+      "English": "Project Type"
     },
     "设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译": {
       "简中": "设置当前翻译项目所使用的原始文本的格式，注意，选择错误将不能进行翻译",
       "繁中": "設定當前翻譯專案使用的原始文字格式，請注意：選擇錯誤將無法進行翻譯",
-      "English": "Set source text format for current translation project.\nWarning: Incorrect selection will prevent translation.",
-      "日本語": "現在の翻訳プロジェクトで使用する原文の形式を設定\n注意：誤った選択をすると翻訳できません"
+      "English": "Set source text format for current translation project.\nWarning: Incorrect selection will prevent translation."
     }
   },
   "project_pairs": {
     "Csv": {
       "简中": "Csv表格",
       "繁中": "Csv表格",
-      "English": "CSV Spreadsheet",
-      "日本語": "CSVスプレッドシート"
+      "English": "CSV Spreadsheet"
     },
     "Pptx": {
       "简中": "Pptx文档",
       "繁中": "Pptx簡報",
-      "English": "PPTX Presentation",
-      "日本語": "PPTXプレゼンテーション"
+      "English": "PPTX Presentation"
     },
     "Txt": {
       "简中": "Txt小说",
       "繁中": "Txt小說",
-      "English": "Txt Novel",
-      "日本語": "Txt小説"
+      "English": "Txt Novel"
     },
     "Epub": {
       "简中": "Epub小说",
       "繁中": "Epub小說",
-      "English": "Epub Novel",
-      "日本語": "Epub小説"
+      "English": "Epub Novel"
     },
     "Docx": {
       "简中": "Docx文档",
       "繁中": "Docx文件",
-      "English": "Docx Document",
-      "日本語": "Docxドキュメント"
+      "English": "Docx Document"
     },
     "Srt": {
       "简中": "Srt字幕",
       "繁中": "Srt字幕",
-      "English": "SRT Subtitle",
-      "日本語": "SRT字幕"
+      "English": "SRT Subtitle"
     },
     "Vtt": {
       "简中": "Vtt字幕",
       "繁中": "Vtt字幕",
-      "English": "VTT Subtitle",
-      "日本語": "VTT字幕"
+      "English": "VTT Subtitle"
     },
     "Ass": {
       "简中": "Ass字幕",
       "繁中": "Ass字幕",
-      "English": "ASS Subtitle",
-      "日本語": "ASS字幕"
+      "English": "ASS Subtitle"
     },
     "Lrc": {
       "简中": "Lrc音声",
       "繁中": "Lrc歌詞",
-      "English": "LRC Lyrics",
-      "日本語": "LRC歌詞"
+      "English": "LRC Lyrics"
     },
     "Md": {
       "简中": "Md文档",
       "繁中": "Md文件",
-      "English": "Md Document",
-      "日本語": "Mdドキュメント"
+      "English": "Md Document"
     },
     "Tpp": {
       "简中": "T++表格",
       "繁中": "T++表格",
-      "English": "T++ Spreadsheet",
-      "日本語": "T++スプレッドシート"
+      "English": "T++ Spreadsheet"
     },
     "Trans": {
       "简中": "Trans工程",
       "繁中": "Trans工程",
-      "English": "Trans Project",
-      "日本語": "Transプロジェクト"
+      "English": "Trans Project"
     },
     "Mtool": {
       "简中": "Mtool导出",
       "繁中": "Mtool導出",
-      "English": "Mtool Export",
-      "日本語": "Mtoolエクスポート"
+      "English": "Mtool Export"
     },
     "Renpy": {
       "简中": "Renpy导出",
       "繁中": "Renpy導出",
-      "English": "Renpy Export",
-      "日本語": "Renpyエクスポート"
+      "English": "Renpy Export"
     },
     "Vnt": {
       "简中": "VNText导出",
       "繁中": "VNText導出",
-      "English": "VNText Export",
-      "日本語": "VNTextエクスポート"
+      "English": "VNText Export"
     },
     "I18next": {
       "简中": "I18Next数据",
       "繁中": "I18Next數據",
-      "English": "I18Next Data",
-      "日本語": "I18Nextデータ"
+      "English": "I18Next Data"
     },
     "Po": {
       "简中": "Po数据",
       "繁中": "Po數據",
-      "English": "Po Data",
-      "日本語": "Poデータ"
+      "English": "Po Data"
     },
     "Xlsx": {
       "简中": "Xlsx文档",
       "繁中": "Xlsx文件",
-      "English": "Xlsx Document",
-      "日本語": "Xlsxドキュメント"
+      "English": "Xlsx Document"
     },
     "Paratranz": {
       "简中": "ParaTranz导出",
       "繁中": "ParaTranz導出",
-      "English": "ParaTranz Export",
-      "日本語": "ParaTranzエクスポート"
+      "English": "ParaTranz Export"
     },
     "BabeldocPdf": {
       "简中": "Pdf文档 (pdf2zh/BabelDOC)",
       "繁中": "Pdf文件 (pdf2zh/BabelDOC)",
-      "English": "Pdf Document (pdf2zh/BabelDOC)",
-      "日本語": "Pdfドキュメント (pdf2zh/BabelDOC)"
+      "English": "Pdf Document (pdf2zh/BabelDOC)"
     },
     "AutoType": {
       "简中": "自动识别",
       "繁中": "自動識別",
-      "English": "Auto Detect",
-      "日本語": "自動検出"
+      "English": "Auto Detect"
     }
   },
   "PART_3": { 
       "正在加载项目...": {
         "简中": "正在加载项目...",
         "繁中": "正在加載項目...",
-        "English": "Loading project...",
-        "日本語": "プロジェクトを読み込み中..."
+        "English": "Loading project..."
       },
       "请耐心等待": {
         "简中": "请耐心等待",
         "繁中": "請耐心等待",
-        "English": "Please wait",
-        "日本語": "しばらくお待ちください"
+        "English": "Please wait"
       },
       "项目加载成功": {
         "简中": "项目加载成功",
         "繁中": "專案載入成功",
-        "English": "Project loaded successfully",
-        "日本語": "プロジェクトを読み込みました"
+        "English": "Project loaded successfully"
       },
       "客官请耐心等待哦~~": {
         "简中": "客官请耐心等待哦~~",
         "繁中": "客倌請耐心等候唷~~",
-        "English": "Please wait patiently~~",
-        "日本語": "少々お待ちくださいね~~"
+        "English": "Please wait patiently~~"
       },
       "项目加载成功！": {
         "简中": "项目加载成功！",
         "繁中": "項目載入成功！",
-        "English": "Project loaded successfully!",
-        "日本語": "プロジェクトの読み込みに成功しました！"
+        "English": "Project loaded successfully!"
       },
       "加载失败...": {
         "简中": "加载失败...",
         "繁中": "載入失敗...",
-        "English": "Loading failed...",
-        "日本語": "読み込みに失敗しました..."
+        "English": "Loading failed..."
       },
       "错误": {
         "简中": "错误",
         "繁中": "錯誤",
-        "English": "Error",
-        "日本語": "エラー"
+        "English": "Error"
       }
     }
 }

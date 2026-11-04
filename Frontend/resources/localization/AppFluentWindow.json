@@ -3,344 +3,287 @@
     "确定退出程序并关闭后端服务？\n后端将停止正在执行的任务并保存缓存。": {
       "简中": "确定退出程序并关闭后端服务？\n后端将停止正在执行的任务并保存缓存。",
       "繁中": "確定退出程式並關閉後端服務？\n後端將停止正在執行的任務並儲存快取。",
-      "English": "Exit the application and shut down the backend?\nThe backend will stop active tasks and save the cache.",
-      "日本語": "アプリケーションとバックエンドを終了しますか？\nバックエンドは実行中のタスクを停止し、キャッシュを保存します。"
+      "English": "Exit the application and shut down the backend?\nThe backend will stop active tasks and save the cache."
     },
     "关闭后端失败": {
       "简中": "关闭后端失败",
       "繁中": "關閉後端失敗",
-      "English": "Backend shutdown failed",
-      "日本語": "バックエンドの終了に失敗しました"
+      "English": "Backend shutdown failed"
     },
     "主窗口已关闭，稍后应用将自动退出": {
       "简中": "主窗口已关闭，稍后应用将自动退出",
       "繁中": "主視窗已關閉，稍後應用程式將自動退出",
-      "English": "Main window closed, application will exit automatically.",
-      "日本語": "メインウィンドウは閉じられました。アプリケーションは後で自動的に終了します。"
+      "English": "Main window closed, application will exit automatically."
     },
     "应用设置": {
       "简中": "应用设置",
       "繁中": "應用程式設定",
-      "English": "Application Settings",
-      "日本語": "アプリケーション設定"
+      "English": "Application Settings"
     },
     "运行日志": {
       "简中": "运行日志",
       "繁中": "執行日誌",
-      "English": "Run Log",
-      "日本語": "実行ログ"
+      "English": "Run Log"
     },
     "主题切换": {
       "简中": "主题切换",
       "繁中": "主題切換",
-      "English": "Theme Switching",
-      "日本語": "テーマ切り替え"
+      "English": "Theme Switching"
     },
     "已切换至浅色主题": {
       "简中": "已切换至浅色主题",
       "繁中": "已切換至淺色主題",
-      "English": "Switched to light theme",
-      "日本語": "ライトテーマに切り替えました"
+      "English": "Switched to light theme"
     },
     "已切换至深色主题": {
       "简中": "已切换至深色主题",
       "繁中": "已切換至深色主題",
-      "English": "Switched to dark theme",
-      "日本語": "ダークテーマに切り替えました"
+      "English": "Switched to dark theme"
     },
     "已切换至跟随系统": {
       "简中": "已切换至跟随系统",
       "繁中": "已切換至跟隨系統",
-      "English": "Following system theme",
-      "日本語": "システムテーマに追従します"
+      "English": "Following system theme"
     },
     "接口管理": {
       "简中": "接口管理",
       "繁中": "API 管理",
-      "English": "API Management",
-      "日本語": "API管理"
+      "English": "API Management"
     },
     "翻译接口": {
       "简中": "翻译接口",
       "繁中": "翻譯介面",
-      "English": "Translation Providers",
-      "日本語": "翻訳 API"
+      "English": "Translation Providers"
     },
     "转录接口": {
       "简中": "转录接口",
       "繁中": "轉錄介面",
-      "English": "Transcription Providers",
-      "日本語": "文字起こし API"
+      "English": "Transcription Providers"
     },
     "生图接口": {
       "简中": "生图接口",
       "繁中": "生圖介面",
-      "English": "Image Generation Providers",
-      "日本語": "画像生成API"
+      "English": "Image Generation Providers"
     },
     "开始翻译": {
       "简中": "开始翻译",
       "繁中": "開始翻譯",
-      "English": "Start Translation",
-      "日本語": "翻訳を開始"
+      "English": "Start Translation"
     },
     "文本翻译": {
       "简中": "文本翻译",
       "繁中": "文字翻譯",
-      "English": "Text Translation",
-      "日本語": "テキスト翻訳"
+      "English": "Text Translation"
     },
     "文译设置": {
       "简中": "文译设置",
       "繁中": "文譯設定",
-      "English": "Text Translation Settings",
-      "日本語": "テキスト翻訳設定"
+      "English": "Text Translation Settings"
     },
     "任务设置": {
       "简中": "任务设置",
       "繁中": "任務設定",
-      "English": "Task Settings",
-      "日本語": "タスク設定"
+      "English": "Task Settings"
     },
     "输出设置": {
       "简中": "输出设置",
       "繁中": "輸出設定",
-      "English": "Output Settings",
-      "日本語": "出力設定"
+      "English": "Output Settings"
     },
     "音译设置": {
       "简中": "音译设置",
       "繁中": "音譯設定",
-      "English": "Audio Translation Settings",
-      "日本語": "音声翻訳設定"
+      "English": "Audio Translation Settings"
     },
     "图译设置": {
       "简中": "图译设置",
       "繁中": "圖譯設定",
-      "English": "Image Translation Settings",
-      "日本語": "画像翻訳設定"
+      "English": "Image Translation Settings"
     },
     "翻译设置": {
       "简中": "翻译设置",
       "繁中": "翻譯設定",
-      "English": "Translation Settings",
-      "日本語": "翻訳設定"
+      "English": "Translation Settings"
     },
     "提示词设置": {
       "简中": "提示词设置",
       "繁中": "提示詞設定",
-      "English": "Prompt Settings",
-      "日本語": "プロンプト設定"
+      "English": "Prompt Settings"
     },
     "提取提示词": {
       "简中": "提取提示词",
       "繁中": "擷取提示詞",
-      "English": "Extraction Prompts",
-      "日本語": "抽出プロンプト"
+      "English": "Extraction Prompts"
     },
     "裁定提示": {
       "简中": "裁定提示",
       "繁中": "裁定提示",
-      "English": "Judgment Prompts",
-      "日本語": "判定プロンプト"
+      "English": "Judgment Prompts"
     },
     "翻译提示词": {
       "简中": "翻译提示词",
       "繁中": "翻譯提示詞",
-      "English": "Translation Prompts",
-      "日本語": "翻訳プロンプト"
+      "English": "Translation Prompts"
     },
     "排版提示词": {
       "简中": "排版提示词",
       "繁中": "排版提示詞",
-      "English": "Formatting Prompts",
-      "日本語": "組版プロンプト"
+      "English": "Formatting Prompts"
     },
     "排版参考": {
       "简中": "排版参考",
       "繁中": "排版參考",
-      "English": "Format Reference",
-      "日本語": "タイポグラフィー参考"
+      "English": "Format Reference"
     },
     "基础提示": {
       "简中": "基础提示",
       "繁中": "基礎提示",
-      "English": "Basic Prompts",
-      "日本語": "基本プロンプト"
+      "English": "Basic Prompts"
     },
     "背景设定": {
       "简中": "背景设定",
       "繁中": "背景設定",
-      "English": "Background Settings",
-      "日本語": "背景設定"
+      "English": "Background Settings"
     },
     "角色介绍": {
       "简中": "角色介绍",
       "繁中": "角色介紹",
-      "English": "Role Introduction",
-      "日本語": "役割紹介"
+      "English": "Role Introduction"
     },
     "翻译风格": {
       "简中": "翻译风格",
       "繁中": "翻譯風格",
-      "English": "Translation Style",
-      "日本語": "翻訳スタイル"
+      "English": "Translation Style"
     },
     "翻译示例": {
       "简中": "翻译示例",
       "繁中": "翻譯範例",
-      "English": "Translation Example",
-      "日本語": "翻訳例"
+      "English": "Translation Example"
     },
     "术语表": {
       "简中": "术语表",
       "繁中": "術語表",
-      "English": "Glossary",
-      "日本語": "用語集"
+      "English": "Glossary"
     },
     "禁翻表": {
       "简中": "禁翻表",
       "繁中": "禁譯表",
-      "English": "Do Not Translate List",
-      "日本語": "翻訳禁止リスト"
+      "English": "Do Not Translate List"
     },
     "文本替换": {
       "简中": "文本替换",
       "繁中": "文字替換",
-      "English": "Text Replacement",
-      "日本語": "テキスト置換"
+      "English": "Text Replacement"
     },
     "译前替换": {
       "简中": "译前替换",
       "繁中": "譯前替換",
-      "English": "Pre-translation Replacement",
-      "日本語": "翻訳前置換"
+      "English": "Pre-translation Replacement"
     },
     "译后替换": {
       "简中": "译后替换",
       "繁中": "譯後替換",
-      "English": "Post-translation Replacement",
-      "日本語": "翻訳後置換"
+      "English": "Post-translation Replacement"
     },
     "导出文本": {
       "简中": "导出文本",
       "繁中": "匯出文字",
-      "English": "Export Text",
-      "日本語": "テキストをエクスポート"
+      "English": "Export Text"
     },
     "导入文本": {
       "简中": "导入文本",
       "繁中": "匯入文字",
-      "English": "Import Text",
-      "日本語": "テキストをインポート"
+      "English": "Import Text"
     },
     "导出增量文本": {
       "简中": "导出增量文本",
       "繁中": "匯出增量文字",
-      "English": "Export Incremental Text",
-      "日本語": "増分テキストをエクスポート"
+      "English": "Export Incremental Text"
     },
     "检查更新": {
       "简中": "检查更新",
       "繁中": "檢查更新",
-      "English": "Check for Updates",
-      "日本語": "更新を確認"
+      "English": "Check for Updates"
     },
     "更新检查失败": {
       "简中": "更新检查失败",
       "繁中": "更新檢查失敗",
-      "English": "Update Check Failed",
-      "日本語": "更新チェック失敗"
+      "English": "Update Check Failed"
     },
     "请检查报错信息": {
       "简中": "请检查报错信息",
       "繁中": "請檢查錯誤訊息",
-      "English": "Please check the error message",
-      "日本語": "エラーメッセージを確認してください"
+      "English": "Please check the error message"
     },
     "发现新版本": {
       "简中": "发现新版本",
       "繁中": "發現新版本",
-      "English": "New Version Found",
-      "日本語": "新しいバージョンが見つかりました"
+      "English": "New Version Found"
     },
     "当前版本: {0}, 最新版本: {1}, 点击更新按钮进行更新": {
       "简中": "当前版本: {0}, 最新版本: {1}, 点击更新按钮进行更新",
       "繁中": "當前版本: {0}, 最新版本: {1}, 點擊更新按鈕進行更新",
-      "English": "Current version: {0}, Latest version: {1}, Click the update button to update",
-      "日本語": "現在のバージョン: {0}, 最新バージョン: {1}, 更新ボタンをクリックして更新してください"
+      "English": "Current version: {0}, Latest version: {1}, Click the update button to update"
     },
     "更新检查": {
       "简中": "更新检查",
       "繁中": "更新檢查",
-      "English": "Update Check",
-      "日本語": "更新チェック"
+      "English": "Update Check"
     },
     "当前已是最新版本": {
       "简中": "当前已是最新版本",
       "繁中": "當前已是最新版本",
-      "English": "Already the latest version",
-      "日本語": "すでに最新バージョンです"
+      "English": "Already the latest version"
     },
     "接口配置": {
       "简中": "接口配置",
       "繁中": "介面設定",
-      "English": "API Settings",
-      "日本語": "API 設定"
+      "English": "API Settings"
     },
     "快速开始": {
       "简中": "快速开始",
       "繁中": "快速開始",
-      "English": "Quick Start",
-      "日本語": "クイックスタート"
+      "English": "Quick Start"
     },
     "任务配置": {
       "简中": "任务配置",
       "繁中": "任務配置",
-      "English": "Task Settings",
-      "日本語": "タスク設定"
+      "English": "Task Settings"
     },
     "高级设置": {
       "简中": "高级设置",
       "繁中": "進階設定",
-      "English": "Advanced Settings",
-      "日本語": "詳細設定"
+      "English": "Advanced Settings"
     },
     "提示词管理": {
       "简中": "提示词管理",
       "繁中": "提示詞管理",
-      "English": "Prompt Management",
-      "日本語": "プロンプト管理"
+      "English": "Prompt Management"
     },
     "公共表格": {
       "简中": "公共表格",
       "繁中": "公共表格",
-      "English": "Shared Tables",
-      "日本語": "共有テーブル"
+      "English": "Shared Tables"
     },
     "数据表格": {
       "简中": "数据表格",
       "繁中": "資料表格",
-      "English": "Data Tables",
-      "日本語": "データテーブル"
+      "English": "Data Tables"
     },
     "图片翻译": {
       "简中": "图片翻译",
       "繁中": "圖片翻譯",
-      "English": "Image Translation",
-      "日本語": "画像翻訳"
+      "English": "Image Translation"
     },
     "音频翻译": {
       "简中": "音频翻译",
       "繁中": "音訊翻譯",
-      "English": "Audio Translation",
-      "日本語": "音声翻訳"
+      "English": "Audio Translation"
     },
     "工具箱": {
       "简中": "工具箱",
       "繁中": "工具箱",
-      "English": "Toolbox",
-      "日本語": "ツールボックス"
+      "English": "Toolbox"
     }
   }
 }

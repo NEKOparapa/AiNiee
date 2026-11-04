@@ -75,7 +75,10 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
         # 更换界面显示的语言
         ConfigMixin.multilingual_interface_dict = self.load_translations(frontend_resource_path("localization"))
-        ConfigMixin.current_interface_language = config.get("interface_language_setting", "简中")
+        language = config.get("interface_language_setting")
+        ConfigMixin.current_interface_language = (
+            language if language in self.INTERFACE_LANGUAGES else self.INTERFACE_LANGUAGES[0]
+        )
         self.info(f"Current Interface Language: {ConfigMixin.current_interface_language}")
 
         # 设置主题颜色与主题

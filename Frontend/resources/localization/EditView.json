@@ -3,1548 +3,1292 @@
     "返回": {
       "简中": "返回",
       "繁中": "返回",
-      "English": "Back",
-      "日本語": "戻る"
+      "English": "Back"
     },
     "保存": {
       "简中": "保存",
       "繁中": "保存",
-      "English": "Save",
-      "日本語": "保存"
+      "English": "Save"
     },
     "开始翻译": {
       "简中": "开始翻译",
       "繁中": "開始翻譯",
-      "English": "Start Translation",
-      "日本語": "翻訳開始"
+      "English": "Start Translation"
     },
     "提取": {
       "简中": "提取",
       "繁中": "提取",
-      "English": "Extract",
-      "日本語": "抽出"
+      "English": "Extract"
     },
     "校润": {
       "简中": "校润",
       "繁中": "校潤",
-      "English": "Proofread",
-      "日本語": "校正"
+      "English": "Proofread"
     },
     "继续": {
       "简中": "继续",
       "繁中": "繼續",
-      "English": "Continue",
-      "日本語": "続ける"
+      "English": "Continue"
     },
     "停止": {
       "简中": "停止",
       "繁中": "停止",
-      "English": "Stop",
-      "日本語": "停止"
+      "English": "Stop"
     },
     "重置": {
       "简中": "重置",
       "繁中": "重置",
-      "English": "Reset",
-      "日本語": "リセット"
+      "English": "Reset"
     },
     "重置翻译": {
       "简中": "重置翻译",
       "繁中": "重置翻譯",
-      "English": "Reset Translation",
-      "日本語": "翻訳をリセット"
+      "English": "Reset Translation"
     },
     "导出结果": {
       "简中": "导出结果",
       "繁中": "匯出結果",
-      "English": "Export Results",
-      "日本語": "エクスポート結果"
+      "English": "Export Results"
     },
     "选择导出目录": {
       "简中": "选择导出目录",
       "繁中": "選擇匯出目錄",
-      "English": "Select Export Directory",
-      "日本語": "エクスポート先を選択"
+      "English": "Select Export Directory"
     }
   },
   "SearchDialog": {
     "未找到结果": {
       "简中": "未找到结果",
       "繁中": "未找到結果",
-      "English": "No Results Found",
-      "日本語": "結果が見つかりません"
+      "English": "No Results Found"
     },
     "未能找到与 '{}' 匹配的内容。": {
       "简中": "未能找到与 '{}' 匹配的内容。",
       "繁中": "未能找到與 '{}' 匹配的內容。",
-      "English": "No content matching '{}' could be found.",
-      "日本語": "'{}' に一致する内容が見つかりませんでした。"
+      "English": "No content matching '{}' could be found."
     },
     "使用正则表达式": {
       "简中": "使用正则表达式",
       "繁中": "使用正規表示式",
-      "English": "Use regular expression",
-      "日本語": "正規表現を使用"
+      "English": "Use regular expression"
     },
     "仅搜索被标记行": {
       "简中": "仅搜索被标记行",
       "繁中": "僅搜索被標記行",
-      "English": "Search only marked lines",
-      "日本語": "マークされた行のみを検索"
+      "English": "Search only marked lines"
     },
     "搜索": {
       "简中": "搜索",
       "繁中": "搜尋",
-      "English": "Search",
-      "日本語": "検索"
+      "English": "Search"
     },
     "搜索替换": {
       "简中": "搜索替换",
       "繁中": "搜尋替換",
-      "English": "Search & Replace",
-      "日本語": "検索と置換"
+      "English": "Search & Replace"
     },
     "取消": {
       "简中": "取消",
       "繁中": "取消",
-      "English": "Cancel",
-      "日本語": "キャンセル"
+      "English": "Cancel"
     },
     "文件": {
       "简中": "文件",
       "繁中": "檔案",
-      "English": "File",
-      "日本語": "ファイル"
+      "English": "File"
     },
     "查找内容:": {
       "简中": "查找内容:",
       "繁中": "尋找內容:",
-      "English": "Find what:",
-      "日本語": "検索内容:"
+      "English": "Find what:"
     },
     "输入搜索内容...": {
       "简中": "输入搜索内容...",
       "繁中": "輸入搜尋內容...",
-      "English": "Enter search text...",
-      "日本語": "検索内容を入力..."
+      "English": "Enter search text..."
     },
     "替换为:": {
       "简中": "替换为:",
       "繁中": "替換為:",
-      "English": "Replace with:",
-      "日本語": "置換後の文字列:"
+      "English": "Replace with:"
     },
     "输入替换后的文本...": {
       "简中": "输入替换后的文本...",
       "繁中": "輸入替換後的文字...",
-      "English": "Enter replacement text...",
-      "日本語": "置換後のテキストを入力..."
+      "English": "Enter replacement text..."
     },
     "选项:": {
       "简中": "选项:",
       "繁中": "選項:",
-      "English": "Options:",
-      "日本語": "オプション:"
+      "English": "Options:"
     },
     "区分大小写": {
       "简中": "区分大小写",
       "繁中": "區分大小寫",
-      "English": "Case sensitive",
-      "日本語": "大文字と小文字を区別"
+      "English": "Case sensitive"
     },
     "全词匹配": {
       "简中": "全词匹配",
       "繁中": "全詞比對",
-      "English": "Match whole word",
-      "日本語": "単語単位で検索"
+      "English": "Match whole word"
     },
     "正则模式": {
       "简中": "正则模式",
       "繁中": "正規表示式",
-      "English": "Regular expression",
-      "日本語": "正規表現"
+      "English": "Regular expression"
     },
     "范围:": {
       "简中": "范围:",
       "繁中": "範圍:",
-      "English": "Scope:",
-      "日本語": "範囲:"
+      "English": "Scope:"
     },
     "译文列": {
       "简中": "译文列",
       "繁中": "譯文列",
-      "English": "Translation column",
-      "日本語": "訳文列"
+      "English": "Translation column"
     },
     "润文列": {
       "简中": "润文列",
       "繁中": "潤文列",
-      "English": "Polished column",
-      "日本語": "校閲文列"
+      "English": "Polished column"
     },
     "全部替换": {
       "简中": "全部替换",
       "繁中": "全部替換",
-      "English": "Replace All",
-      "日本語": "すべて置換"
+      "English": "Replace All"
     },
     "行": {
       "简中": "行",
       "繁中": "行",
-      "English": "Line",
-      "日本語": "行"
+      "English": "Line"
     },
     "原文": {
       "简中": "原文",
       "繁中": "原文",
-      "English": "Source",
-      "日本語": "原文"
+      "English": "Source"
     },
     "译文": {
       "简中": "译文",
       "繁中": "譯文",
-      "English": "Translation",
-      "日本語": "訳文"
+      "English": "Translation"
     },
     "润文": {
       "简中": "润文",
       "繁中": "潤文",
-      "English": "Polished",
-      "日本語": "校閲文"
+      "English": "Polished"
     },
     "失败": {
       "简中": "失败",
       "繁中": "失敗",
-      "English": "Failed",
-      "日本語": "失敗"
+      "English": "Failed"
     },
     "查找内容不能为空。": {
       "简中": "查找内容不能为空。",
       "繁中": "尋找內容不能為空。",
-      "English": "Find content cannot be empty.",
-      "日本語": "検索内容を空にすることはできません。"
+      "English": "Find content cannot be empty."
     },
     "请至少选择一个替换范围（译文列或润文列）。": {
       "简中": "请至少选择一个替换范围（译文列或润文列）。",
       "繁中": "請至少選擇一個替換範圍（譯文列或潤文列）。",
-      "English": "Please select at least one scope (Translation or Polished column).",
-      "日本語": "少なくとも一つの置換範囲（訳文列または校閲文列）を選択してください。"
+      "English": "Please select at least one scope (Translation or Polished column)."
     },
     "替换失败": {
       "简中": "替换失败",
       "繁中": "替換失敗",
-      "English": "Replace Failed",
-      "日本語": "置換失敗"
+      "English": "Replace Failed"
     },
     "无效的正则表达式：{}": {
       "简中": "无效的正则表达式：{}",
       "繁中": "無效的正規表示式: {}",
-      "English": "Invalid regular expression: {}",
-      "日本語": "無効な正規表現: {}"
+      "English": "Invalid regular expression: {}"
     },
     "操作完成": {
       "简中": "操作完成",
       "繁中": "操作完成",
-      "English": "Operation Completed",
-      "日本語": "操作完了"
+      "English": "Operation Completed"
     },
     "共找到并替换了 {} 处。": {
       "简中": "共找到并替换了 {} 处。",
       "繁中": "共找到並替換了 {} 處。",
-      "English": "Found and replaced {} occurrences.",
-      "日本語": "{}箇所を検索して置換しました。"
+      "English": "Found and replaced {} occurrences."
     },
     "检查": {
       "简中": "检查",
       "繁中": "検査",
-      "English": "Inspect",
-      "日本語": "検査"
+      "English": "Inspect"
     },
     "宏观统计": {
       "简中": "宏观统计",
       "繁中": "宏觀統計",
-      "English": "Macro Statistics",
-      "日本語": "マクロ統計"
+      "English": "Macro Statistics"
     },
     "精准判断": {
       "简中": "精准判断",
       "繁中": "精準判斷",
-      "English": "Precise Judgment",
-      "日本語": "精密判定"
+      "English": "Precise Judgment"
     }
   },
   "LanguageCheck": {
     "开始检查": {
       "简中": "开始检查",
       "繁中": "開始檢查",
-      "English": "Start Check",
-      "日本語": "チェック開始"
+      "English": "Start Check"
     },
     "取消": {
       "简中": "取消",
       "繁中": "取消",
-      "English": "Cancel",
-      "日本語": "キャンセル"
+      "English": "Cancel"
     },
     "检测对象:": {
       "简中": "检测对象:",
       "繁中": "檢測對象:",
-      "English": "Target:",
-      "日本語": "検出対象:"
+      "English": "Target:"
     },
     "译文": {
       "简中": "译文",
       "繁中": "譯文",
-      "English": "Translation",
-      "日本語": "訳文"
+      "English": "Translation"
     },
     "润文": {
       "简中": "润文",
       "繁中": "潤文",
-      "English": "Polished",
-      "日本語": "校閲文"
+      "English": "Polished"
     },
     "语言检测:": {
       "简中": "语言检测:",
       "繁中": "語言檢測:",
-      "English": "Lang Detect:",
-      "日本語": "言語検出:"
+      "English": "Lang Detect:"
     },
     "宏观统计": {
       "简中": "宏观统计",
       "繁中": "宏觀統計",
-      "English": "Macro Statistics",
-      "日本語": "マクロ統計"
+      "English": "Macro Statistics"
     },
     "精准判断": {
       "简中": "精准判断",
       "繁中": "精準判斷",
-      "English": "Precise Judgment",
-      "日本語": "精密判定"
+      "English": "Precise Judgment"
     },
     "检测分块行数:": {
       "简中": "检测分块行数:",
       "繁中": "檢測分塊行數:",
-      "English": "Check Chunk Size:",
-      "日本語": "チェックブロック行数:"
+      "English": "Check Chunk Size:"
     },
     "检测阈值:": {
       "简中": "检测阈值:",
       "繁中": "檢測閾值:",
-      "English": "Check Threshold:",
-      "日本語": "チェック閾値:"
+      "English": "Check Threshold:"
     },
     "检测分块行数与检测阈值只在精准判断中生效": {
       "简中": "检测分块行数与检测阈值只在精准判断中生效",
       "繁中": "檢測分塊行數與檢測閾值只在精準判斷中生效",
-      "English": "Chunk size and threshold only apply in Precision Mode",
-      "日本語": "ブロック行数と閾値は精密判定モードでのみ有効です"
+      "English": "Chunk size and threshold only apply in Precision Mode"
     },
     "规则检查项": {
       "简中": "规则检查项",
       "繁中": "規則檢查項",
-      "English": "Rule Check Items",
-      "日本語": "ルールチェック項目"
+      "English": "Rule Check Items"
     },
     "术语表检查": {
       "简中": "术语表检查",
       "繁中": "術語表檢查",
-      "English": "Glossary Check",
-      "日本語": "用語集チェック"
+      "English": "Glossary Check"
     },
     "禁翻表检查": {
       "简中": "禁翻表检查",
       "繁中": "禁翻表檢查",
-      "English": "Exclusion Check",
-      "日本語": "翻訳除外チェック"
+      "English": "Exclusion Check"
     },
     "自动处理检查": {
       "简中": "自动处理检查",
       "繁中": "自動處理檢查",
-      "English": "Auto-process Check",
-      "日本語": "自動処理チェック"
+      "English": "Auto-process Check"
     },
     "占位符残留": {
       "简中": "占位符残留",
       "繁中": "佔位符殘留",
-      "English": "Placeholder Residue",
-      "日本語": "プレースホルダー残留"
+      "English": "Placeholder Residue"
     },
     "数字序号残留": {
       "简中": "数字序号残留",
       "繁中": "數字序號殘留",
-      "English": "Numbering Residue",
-      "日本語": "数字連番の残留"
+      "English": "Numbering Residue"
     },
     "示例文本复读": {
       "简中": "示例文本复读",
       "繁中": "示例文本復讀",
-      "English": "Example Repetition",
-      "日本語": "例文のリピート"
+      "English": "Example Repetition"
     },
     "换行符一致性": {
       "简中": "换行符一致性",
       "繁中": "換行符一致性",
-      "English": "Newline Consistency",
-      "日本語": "改行の一致性"
+      "English": "Newline Consistency"
     },
     "检查译文中是否包含术语表中的预定义译法": {
       "简中": "检查译文中是否包含术语表中的预定义译法",
       "繁中": "檢查譯文中是否包含術語表中的預定義譯法",
-      "English": "Check if translation uses Glossary terms.",
-      "日本語": "訳文に用語集の訳語が含まれているか確認します"
+      "English": "Check if translation uses Glossary terms."
     },
     "检查译文中是否正确保留禁翻内容": {
       "简中": "检查译文中是否正确保留禁翻内容",
       "繁中": "檢查譯文中是否正確保留禁翻內容",
-      "English": "Check if excluded content is preserved.",
-      "日本語": "翻訳除外内容が保持されているか確認します"
+      "English": "Check if excluded content is preserved."
     },
     "检查默认处理规则是否被正确执行": {
       "简中": "检查默认处理规则是否被正确执行",
       "繁中": "檢查默認處理規則是否被正確執行",
-      "English": "Check if default rules are executed.",
-      "日本語": "デフォルト処理ルールが実行されたか確認します"
+      "English": "Check if default rules are executed."
     },
     "检查 [P0] 等占位标签是否残留在文本中": {
       "简中": "检查 [P0] 等占位标签是否残留在文本中",
       "繁中": "檢查 [P0] 等佔位標籤是否殘留在文本中",
-      "English": "Check for placeholder tags like [P0].",
-      "日本語": "[P0]などのタグが残っているか確認します"
+      "English": "Check for placeholder tags like [P0]."
     },
     "检查行首数字编号 (1.) 是否残留": {
       "简中": "检查行首数字编号 (1.) 是否残留",
       "繁中": "檢查行首數字編號 (1.) 是否殘留",
-      "English": "Check for leading numbers (e.g., 1.).",
-      "日本語": "行頭の番号(1.など)が残っているか確認します"
+      "English": "Check for leading numbers (e.g., 1.)."
     },
     "检查是否存在由模型生成的无效内容": {
       "简中": "检查是否存在由模型生成的无效内容",
       "繁中": "檢查是否存在由模型生成的無效內容",
-      "English": "Check for invalid AI-generated content.",
-      "日本語": "AI生成の無効な内容が含まれるか確認します"
+      "English": "Check for invalid AI-generated content."
     },
     "检查译文换行符数量是否与原文一致": {
       "简中": "检查译文换行符数量是否与原文一致",
       "繁中": "檢查譯文換行符數量是否與原文一致",
-      "English": "Check if newlines match source text.",
-      "日本語": "改行数が原文と一致するか確認します"
+      "English": "Check if newlines match source text."
     }
   },
   "TermExtraction": {
     "提取术语": {
       "简中": "提取术语",
       "繁中": "提取術語",
-      "English": "Extract Terms",
-      "日本語": "用語抽出"
+      "English": "Extract Terms"
     },
     "选择合适的NER模型，自动识别并提取文本中的专有名词（如人名、地名）。": {
       "简中": "选择合适的NER模型，自动识别并提取文本中的专有名词（如人名、地名）。",
       "繁中": "選擇合適的NER模型，自動識別並提取文本中的專有名詞（如人名、地名）。",
-      "English": "Select an NER model to automatically extract proper nouns (names, locations, etc.).",
-      "日本語": "適切なNERモデルを選択し、固有名詞（人名、地名など）を自動抽出します。"
+      "English": "Select an NER model to automatically extract proper nouns (names, locations, etc.)."
     },
     "1. 选择分词模型": {
       "简中": "1. 选择分词模型",
       "繁中": "1. 選擇分詞模型",
-      "English": "1. Select Model",
-      "日本語": "1. モデル選択"
+      "English": "1. Select Model"
     },
     "模型下载指南": {
       "简中": "模型下载指南",
       "繁中": "模型下載指南",
-      "English": "Download Guide",
-      "日本語": "DLガイド"
+      "English": "Download Guide"
     },
     "提示: 日语选择ja模型，英语选择en模型，韩语选择ko模型": {
       "简中": "提示: 日语选择ja模型，英语选择en模型，韩语选择ko模型",
       "繁中": "提示: 日語選擇ja模型，英語選擇en模型，韓語選擇ko模型",
-      "English": "Tip: 'ja' for Japanese, 'en' for English, 'ko' for Korean.",
-      "日本語": "ヒント: 日本語はja、英語はen、韓国語はkoを選択"
+      "English": "Tip: 'ja' for Japanese, 'en' for English, 'ko' for Korean."
     },
     "2. 提取内容类型": {
       "简中": "2. 提取内容类型",
       "繁中": "2. 提取內容類型",
-      "English": "2. Content Types",
-      "日本語": "2. 抽出タイプ"
+      "English": "2. Content Types"
     },
     "人物 (Person)": {
       "简中": "人物 (Person)",
       "繁中": "人物 (Person)",
-      "English": "Person",
-      "日本語": "人物 (Person)"
+      "English": "Person"
     },
     "组织 (Org)": {
       "简中": "组织 (Org)",
       "繁中": "組織 (Org)",
-      "English": "Organization (Org)",
-      "日本語": "組織 (Org)"
+      "English": "Organization (Org)"
     },
     "国家/城市 (GPE)": {
       "简中": "国家/城市 (GPE)",
       "繁中": "國家/城市 (GPE)",
-      "English": "Country/City (GPE)",
-      "日本語": "国/都市 (GPE)"
+      "English": "Country/City (GPE)"
     },
     "地点 (Loc)": {
       "简中": "地点 (Loc)",
       "繁中": "地點 (Loc)",
-      "English": "Location (Loc)",
-      "日本語": "場所 (Loc)"
+      "English": "Location (Loc)"
     },
     "产品/作品 (Product)": {
       "简中": "产品/作品 (Product)",
       "繁中": "產品/作品 (Product)",
-      "English": "Product/Work",
-      "日本語": "製品/作品 (Product)"
+      "English": "Product/Work"
     },
     "事件 (Event)": {
       "简中": "事件 (Event)",
       "繁中": "事件 (Event)",
-      "English": "Event",
-      "日本語": "イベント (Event)"
+      "English": "Event"
     },
     "日期 (Date)": {
       "简中": "日期 (Date)",
       "繁中": "日期 (Date)",
-      "English": "Date",
-      "日本語": "日付 (Date)"
+      "English": "Date"
     },
     "地点 (Location)": {
       "简中": "地点 (Location)",
       "繁中": "地點 (Location)",
-      "English": "Location",
-      "日本語": "場所 (Location)"
+      "English": "Location"
     },
     "数量 (Quantity)": {
       "简中": "数量 (Quantity)",
       "繁中": "數量 (Quantity)",
-      "English": "Quantity",
-      "日本語": "数量 (Quantity)"
+      "English": "Quantity"
     },
     "开始提取": {
       "简中": "开始提取",
       "繁中": "開始提取",
-      "English": "Start Extraction",
-      "日本語": "抽出開始"
+      "English": "Start Extraction"
     },
     "取消": {
       "简中": "取消",
       "繁中": "取消",
-      "English": "Cancel",
-      "日本語": "キャンセル"
+      "English": "Cancel"
     },
     "未找到模型目录": {
       "简中": "未找到模型目录",
       "繁中": "未找到模型目錄",
-      "English": "Model directory not found",
-      "日本語": "モデルディレクトリが見つかりません"
+      "English": "Model directory not found"
     },
     "目录中无可用模型": {
       "简中": "目录中无可用模型",
       "繁中": "目錄中無可用模型",
-      "English": "No available models in the directory",
-      "日本語": "ディレクトリに利用可能なモデルがありません"
+      "English": "No available models in the directory"
     },
     "错误": {
       "简中": "错误",
       "繁中": "錯誤",
-      "English": "Error",
-      "日本語": "エラー"
+      "English": "Error"
     },
     "术语提取结果": {
       "简中": "术语提取结果",
       "繁中": "術語提取結果",
-      "English": "Term Extraction Results",
-      "日本語": "用語抽出結果"
+      "English": "Term Extraction Results"
     },
     "未找到": {
       "简中": "未找到",
       "繁中": "未找到",
-      "English": "Not Found",
-      "日本語": "見つかりません"
+      "English": "Not Found"
     },
     "未能提取到任何符合条件的术语。": {
       "简中": "未能提取到任何符合条件的术语。",
       "繁中": "未能提取到任何符合條件的術語。",
-      "English": "No terms matching the conditions were extracted.",
-      "日本語": "条件に一致する用語は抽出されませんでした。"
+      "English": "No terms matching the conditions were extracted."
     },
     "请先选择一个可用的语言模型。": {
       "简中": "请先选择一个可用的语言模型。",
       "繁中": "請先選擇一個可用的語言模型。",
-      "English": "Please select an available language model first.",
-      "日本語": "利用可能な言語モデルを先に選択してください。"
+      "English": "Please select an available language model first."
     },
     "请至少选择一个提取类型。": {
       "简中": "请至少选择一个提取类型。",
       "繁中": "請至少選擇一個提取類型。",
-      "English": "Please select at least one entity type.",
-      "日本語": "少なくとも一つの抽出タイプを選択してください。"
+      "English": "Please select at least one entity type."
     },
     "翻译后保存到术语表": {
       "简中": "翻译后保存到术语表",
       "繁中": "翻譯後儲存至術語表",
-      "English": "Translate and Save to Glossary",
-      "日本語": "翻訳して用語集に保存"
+      "English": "Translate and Save to Glossary"
     },
     "直接保存到术语表": {
       "简中": "直接保存到术语表",
       "繁中": "直接儲存至術語表",
-      "English": "Save Directly to Glossary",
-      "日本語": "直接用語集に保存"
+      "English": "Save Directly to Glossary"
     },
     "术语": {
       "简中": "术语",
       "繁中": "術語",
-      "English": "Term",
-      "日本語": "用語"
+      "English": "Term"
     },
     "出现次数": {
       "简中": "出现次数",
       "繁中": "出現次數",
-      "English": "Occurrences",
-      "日本語": "出現回数"
+      "English": "Occurrences"
     },
     "次数": {
       "简中": "次数",
       "繁中": "次數",
-      "English": "Count",
-      "日本語": "回数"
+      "English": "Count"
     },
     "类型": {
       "简中": "类型",
       "繁中": "類型",
-      "English": "Type",
-      "日本語": "タイプ"
+      "English": "Type"
     },
     "所在原文": {
       "简中": "所在原文",
       "繁中": "所在原文",
-      "English": "Context (Original Text)",
-      "日本語": "原文コンテキスト"
+      "English": "Context (Original Text)"
     },
     "来源文件": {
       "简中": "来源文件",
       "繁中": "來源檔案",
-      "English": "Source File",
-      "日本語": "ソースファイル"
+      "English": "Source File"
     },
     "删除选中行": {
       "简中": "删除选中行",
       "繁中": "刪除選中行",
-      "English": "Delete Selected Rows",
-      "日本語": "選択した行を削除"
+      "English": "Delete Selected Rows"
     },
     "总行数: {}": {
       "简中": "总行数: {}",
       "繁中": "總行數: {}",
-      "English": "Total Rows: {}",
-      "日本語": "総行数: {}"
+      "English": "Total Rows: {}"
     },
     "确认删除": {
       "简中": "确认删除",
       "繁中": "確認刪除",
-      "English": "Confirm Deletion",
-      "日本語": "削除の確認"
+      "English": "Confirm Deletion"
     },
     "您确定要删除选中的 {} 行吗？此操作不可撤销。": {
       "简中": "您确定要删除选中的 {} 行吗？此操作不可撤销。",
       "繁中": "您確定要刪除選中的 {} 行嗎？此操作不可撤銷。",
-      "English": "Are you sure you want to delete the selected {} rows? This action cannot be undone.",
-      "日本語": "選択した{}行を削除してもよろしいですか？この操作は元に戻せません。"
+      "English": "Are you sure you want to delete the selected {} rows? This action cannot be undone."
     },
     "操作成功": {
       "简中": "操作成功",
       "繁中": "操作成功",
-      "English": "Success",
-      "日本語": "操作成功"
+      "English": "Success"
     },
     "已成功删除 {} 行。": {
       "简中": "已成功删除 {} 行。",
       "繁中": "已成功刪除 {} 行。",
-      "English": "Successfully deleted {} rows.",
-      "日本語": "{}行の削除に成功しました。"
+      "English": "Successfully deleted {} rows."
     },
     "提示": {
       "简中": "提示",
       "繁中": "提示",
-      "English": "Info",
-      "日本語": "ヒント"
+      "English": "Info"
     },
     "没有可保存的术语。": {
       "简中": "没有可保存的术语。",
       "繁中": "沒有可儲存的術語。",
-      "English": "No terms to save.",
-      "日本語": "保存する用語がありません。"
+      "English": "No terms to save."
     },
     "保存成功": {
       "简中": "保存成功",
       "繁中": "儲存成功",
-      "English": "Saved Successfully",
-      "日本語": "保存成功"
+      "English": "Saved Successfully"
     },
     "已添加 {} 个新术语到术语表。": {
       "简中": "已添加 {} 个新术语到术语表。",
       "繁中": "已新增 {} 個新術語至術語表。",
-      "English": "Added {} new terms to the glossary.",
-      "日本語": "{}個の新しい用語を用語集に追加しました。"
+      "English": "Added {} new terms to the glossary."
     },
     "保存失败": {
       "简中": "保存失败",
       "繁中": "儲存失敗",
-      "English": "Save Failed",
-      "日本語": "保存に失敗しました"
+      "English": "Save Failed"
     },
     "没有可处理的术语。": {
       "简中": "没有可处理的术语。",
       "繁中": "沒有可處理的術語。",
-      "English": "No terms to process.",
-      "日本語": "処理する用語がありません。"
+      "English": "No terms to process."
     },
     "任务已开始": {
       "简中": "任务已开始",
       "繁中": "任務已開始",
-      "English": "Task Started",
-      "日本語": "タスク開始"
+      "English": "Task Started"
     },
     "正在后台根据原文进行提取、翻译和保存，请稍后...": {
       "简中": "正在后台根据原文进行提取、翻译和保存，请稍后...",
       "繁中": "正在後台根據原文進行提取、翻譯和儲存，請稍後...",
-      "English": "Extracting, translating, and saving in the background. Please wait...",
-      "日本語": "バックグラウンドで原文に基づき抽出、翻訳、保存を行っています。しばらくお待ちください..."
+      "English": "Extracting, translating, and saving in the background. Please wait..."
     },
     "导出术语提取数据": {
       "简中": "导出术语提取数据",
       "繁中": "匯出術語擷取資料",
-      "English": "Export term extraction data",
-      "日本語": "用語抽出データをエクスポート"
+      "English": "Export term extraction data"
     },
     "没有可导出的术语。": {
       "简中": "没有可导出的术语。",
       "繁中": "沒有可匯出的術語。",
-      "English": "No terms to export.",
-      "日本語": "エクスポートする用語がありません。"
+      "English": "No terms to export."
     },
     "导出术语": {
       "简中": "导出术语",
       "繁中": "匯出術語",
-      "English": "Export Terms",
-      "日本語": "用語をエクスポート"
+      "English": "Export Terms"
     },
     "导出成功": {
       "简中": "导出成功",
       "繁中": "匯出成功",
-      "English": "Export Successful",
-      "日本語": "エクスポート成功"
+      "English": "Export Successful"
     },
     "已成功导出 {} 条术语数据。": {
       "简中": "已成功导出 {} 条术语数据。",
       "繁中": "已成功匯出 {} 條術語資料。",
-      "English": "Successfully exported {} term data items.",
-      "日本語": "{}件の用語データのエクスポートに成功しました。"
+      "English": "Successfully exported {} term data items."
     },
     "导出失败": {
       "简中": "导出失败",
       "繁中": "匯出失敗",
-      "English": "Export Failed",
-      "日本語": "エクスポート失敗"
+      "English": "Export Failed"
     },
     "导出术语数据时发生错误": {
       "简中": "导出术语数据时发生错误",
       "繁中": "匯出術語資料時發生錯誤",
-      "English": "An error occurred while exporting term data.",
-      "日本語": "用語データのエクスポート中にエラーが発生しました。"
+      "English": "An error occurred while exporting term data."
     }
   },
   "AnalysisPage": {
     "更多": {
       "简中": "更多",
       "繁中": "更多",
-      "English": "More",
-      "日本語": "その他"
+      "English": "More"
     },
     "导入 JSON，相同原文将替换为新内容。": {
       "简中": "导入 JSON，相同原文将替换为新内容。",
       "繁中": "匯入 JSON，相同原文將替換為新內容。",
-      "English": "Import JSON. Entries with the same source text will be replaced.",
-      "日本語": "JSON をインポートします。同じ原文の項目は新しい内容に置き換えられます。"
+      "English": "Import JSON. Entries with the same source text will be replaced."
     },
     "将当前显示的内容导出为 JSON。": {
       "简中": "将当前显示的内容导出为 JSON。",
       "繁中": "將目前顯示的內容匯出為 JSON。",
-      "English": "Export the currently visible entries as JSON.",
-      "日本語": "現在表示中の内容を JSON にエクスポートします。"
+      "English": "Export the currently visible entries as JSON."
     },
     "分析任务执行中，暂时不能导入。": {
       "简中": "分析任务执行中，暂时不能导入。",
       "繁中": "分析任務執行中，暫時無法匯入。",
-      "English": "Cannot import while analysis is running.",
-      "日本語": "分析タスク実行中はインポートできません。"
+      "English": "Cannot import while analysis is running."
     },
     "JSON 内容必须是当前表格的条目列表。": {
       "简中": "JSON 内容必须是当前表格的条目列表。",
       "繁中": "JSON 內容必須是目前表格的項目清單。",
-      "English": "The JSON must contain a list of entries for the current table.",
-      "日本語": "JSON には現在の表の項目リストが必要です。"
+      "English": "The JSON must contain a list of entries for the current table."
     },
     "导入失败": {
       "简中": "导入失败",
       "繁中": "匯入失敗",
-      "English": "Import Failed",
-      "日本語": "インポート失敗"
+      "English": "Import Failed"
     },
     "未读取到有效条目，请使用当前表格导出的 JSON 格式。": {
       "简中": "未读取到有效条目，请使用当前表格导出的 JSON 格式。",
       "繁中": "未讀取到有效項目，請使用目前表格匯出的 JSON 格式。",
-      "English": "No valid entries were found. Use the JSON format exported by the current table.",
-      "日本語": "有効な項目が見つかりません。現在の表からエクスポートした JSON 形式を使用してください。"
+      "English": "No valid entries were found. Use the JSON format exported by the current table."
     },
     "导入完成：新增 {0} 条，替换 {1} 条，跳过 {2} 条无效内容。": {
       "简中": "导入完成：新增 {0} 条，替换 {1} 条，跳过 {2} 条无效内容。",
       "繁中": "匯入完成：新增 {0} 項，替換 {1} 項，略過 {2} 項無效內容。",
-      "English": "Import complete: {0} added, {1} replaced, {2} invalid entries skipped.",
-      "日本語": "インポート完了：{0} 件追加、{1} 件置換、無効な {2} 件をスキップしました。"
+      "English": "Import complete: {0} added, {1} replaced, {2} invalid entries skipped."
     },
     "当前显示内容中没有可导出的条目。": {
       "简中": "当前显示内容中没有可导出的条目。",
       "繁中": "目前顯示的內容中沒有可匯出的項目。",
-      "English": "There are no visible entries to export.",
-      "日本語": "現在表示中の内容にはエクスポートできる項目がありません。"
+      "English": "There are no visible entries to export."
     },
     "已导出 {0} 条内容到：{1}": {
       "简中": "已导出 {0} 条内容到：{1}",
       "繁中": "已匯出 {0} 項內容至：{1}",
-      "English": "Exported {0} entries to: {1}",
-      "日本語": "{0} 件の内容をエクスポートしました：{1}"
+      "English": "Exported {0} entries to: {1}"
     },
     "操作": {
       "简中": "操作",
       "繁中": "操作",
-      "English": "Actions",
-      "日本語": "操作"
+      "English": "Actions"
     },
     "开始分析": {
       "简中": "开始分析",
       "繁中": "開始分析",
-      "English": "Start Analysis",
-      "日本語": "分析開始"
+      "English": "Start Analysis"
     },
     "进度": {
       "简中": "进度",
       "繁中": "進度",
-      "English": "Progress",
-      "日本語": "進捗"
+      "English": "Progress"
     },
     "结果": {
       "简中": "结果",
       "繁中": "結果",
-      "English": "Results",
-      "日本語": "結果"
+      "English": "Results"
     },
     "待开始": {
       "简中": "待开始",
       "繁中": "待開始",
-      "English": "Waiting",
-      "日本語": "待機中"
+      "English": "Waiting"
     },
     "准备": {
       "简中": "准备",
       "繁中": "準備",
-      "English": "Prepare",
-      "日本語": "準備"
+      "English": "Prepare"
     },
     "阶段 1": {
       "简中": "阶段 1",
       "繁中": "階段 1",
-      "English": "Stage 1",
-      "日本語": "段階 1"
+      "English": "Stage 1"
     },
     "阶段 2": {
       "简中": "阶段 2",
       "繁中": "階段 2",
-      "English": "Stage 2",
-      "日本語": "段階 2"
+      "English": "Stage 2"
     },
     "完成": {
       "简中": "完成",
       "繁中": "完成",
-      "English": "Completed",
-      "日本語": "完了"
+      "English": "Completed"
     },
     "角色": {
       "简中": "角色",
       "繁中": "角色",
-      "English": "Characters",
-      "日本語": "キャラクター"
+      "English": "Characters"
     },
     "禁翻": {
       "简中": "禁翻",
       "繁中": "禁翻",
-      "English": "No-Translate",
-      "日本語": "禁翻訳"
+      "English": "No-Translate"
     },
     "分析中": {
       "简中": "分析中",
       "繁中": "分析中",
-      "English": "Analyzing",
-      "日本語": "分析中"
+      "English": "Analyzing"
     },
     "分析中...": {
       "简中": "分析中...",
       "繁中": "分析中...",
-      "English": "Analyzing...",
-      "日本語": "分析中..."
+      "English": "Analyzing..."
     },
     "项目表格": {
       "简中": "项目表格",
       "繁中": "專案表格",
-      "English": "Project Tables",
-      "日本語": "プロジェクト表"
+      "English": "Project Tables"
     },
     "角色表": {
       "简中": "角色表",
       "繁中": "角色表",
-      "English": "Character Table",
-      "日本語": "キャラクター表"
+      "English": "Character Table"
     },
     "术语表": {
       "简中": "术语表",
       "繁中": "術語表",
-      "English": "Term Table",
-      "日本語": "用語表"
+      "English": "Term Table"
     },
     "禁翻表": {
       "简中": "禁翻表",
       "繁中": "禁翻表",
-      "English": "Non-Translation Table",
-      "日本語": "禁翻訳表"
+      "English": "Non-Translation Table"
     },
     "保存到公共表": {
       "简中": "保存到公共表",
       "繁中": "儲存到公共表",
-      "English": "Save to Public Table",
-      "日本語": "共有表に保存"
+      "English": "Save to Public Table"
     },
     "清空": {
       "简中": "清空",
       "繁中": "清空",
-      "English": "Clear",
-      "日本語": "クリア"
+      "English": "Clear"
     },
     "原文键": {
       "简中": "原文键",
       "繁中": "原文鍵",
-      "English": "Source Key",
-      "日本語": "原文キー"
+      "English": "Source Key"
     },
     "推荐译名": {
       "简中": "推荐译名",
       "繁中": "推薦譯名",
-      "English": "Recommended Translation",
-      "日本語": "推奨訳名"
+      "English": "Recommended Translation"
     },
     "性别": {
       "简中": "性别",
       "繁中": "性別",
-      "English": "Gender",
-      "日本語": "性別"
+      "English": "Gender"
     },
     "分类": {
       "简中": "分类",
       "繁中": "分類",
-      "English": "Category",
-      "日本語": "分類"
+      "English": "Category"
     },
     "分类属性": {
       "简中": "分类属性",
       "繁中": "分類屬性",
-      "English": "Category",
-      "日本語": "分類属性"
+      "English": "Category"
     },
     "插入新行": {
       "简中": "插入新行",
       "繁中": "插入新行",
-      "English": "Insert Row",
-      "日本語": "新しい行を挿入"
+      "English": "Insert Row"
     },
     "删除选中项": {
       "简中": "删除选中项",
       "繁中": "刪除選中項",
-      "English": "Delete Selection",
-      "日本語": "選択項目を削除"
+      "English": "Delete Selection"
     },
     "移动到公共表": {
       "简中": "移动到公共表",
       "繁中": "移動到公共表",
-      "English": "Move to Public Table",
-      "日本語": "共有表に移動"
+      "English": "Move to Public Table"
     },
     "移动到角色表": {
       "简中": "移动到角色表",
       "繁中": "移動到角色表",
-      "English": "Move to Character Table",
-      "日本語": "キャラクター表に移動"
+      "English": "Move to Character Table"
     },
     "移动到术语表": {
       "简中": "移动到术语表",
       "繁中": "移動到術語表",
-      "English": "Move to Term Table",
-      "日本語": "用語表に移動"
+      "English": "Move to Term Table"
     },
     "行数: {0}": {
       "简中": "行数: {0}",
       "繁中": "行數: {0}",
-      "English": "Rows: {0}",
-      "日本語": "行数: {0}"
+      "English": "Rows: {0}"
     },
     "当前有其他任务正在执行，请稍后再试。": {
       "简中": "当前有其他任务正在执行，请稍后再试。",
       "繁中": "當前有其他任務正在執行，請稍後再試。",
-      "English": "Another task is currently running. Please try again later.",
-      "日本語": "現在ほかのタスクを実行中です。しばらくしてから再試行してください。"
+      "English": "Another task is currently running. Please try again later."
     },
     "当前没有已加载的项目。": {
       "简中": "当前没有已加载的项目。",
       "繁中": "當前沒有已載入的專案。",
-      "English": "No project is currently loaded.",
-      "日本語": "現在読み込まれているプロジェクトはありません。"
+      "English": "No project is currently loaded."
     },
     "重新开始分析会覆盖当前项目中的分析结果，是否继续？": {
       "简中": "重新开始分析会覆盖当前项目中的分析结果，是否继续？",
       "繁中": "重新開始分析會覆蓋當前專案中的分析結果，是否繼續？",
-      "English": "Restarting analysis will overwrite the current project's analysis results. Continue?",
-      "日本語": "分析を再開始すると、現在のプロジェクトの分析結果が上書きされます。続行しますか？"
+      "English": "Restarting analysis will overwrite the current project's analysis results. Continue?"
     },
     "正在准备...": {
       "简中": "正在准备...",
       "繁中": "正在準備...",
-      "English": "Preparing...",
-      "日本語": "準備中..."
+      "English": "Preparing..."
     },
     "是否确定停止当前分析任务？": {
       "简中": "是否确定停止当前分析任务？",
       "繁中": "是否確定停止當前分析任務？",
-      "English": "Are you sure you want to stop the current analysis task?",
-      "日本語": "現在の分析タスクを停止してもよろしいですか？"
+      "English": "Are you sure you want to stop the current analysis task?"
     },
     "正在停止...": {
       "简中": "正在停止...",
       "繁中": "正在停止...",
-      "English": "Stopping...",
-      "日本語": "停止中..."
+      "English": "Stopping..."
     },
     "全文分析完成。": {
       "简中": "全文分析完成。",
       "繁中": "全文分析完成。",
-      "English": "Full-text analysis completed.",
-      "日本語": "全文分析が完了しました。"
+      "English": "Full-text analysis completed."
     },
     "分析已完成，但存在失败的分块。": {
       "简中": "分析已完成，但存在失败的分块。",
       "繁中": "分析已完成，但存在失敗的分塊。",
-      "English": "Analysis completed, but some chunks failed.",
-      "日本語": "分析は完了しましたが、一部のチャンクは失敗しました。"
+      "English": "Analysis completed, but some chunks failed."
     },
     "已停止": {
       "简中": "已停止",
       "繁中": "已停止",
-      "English": "Stopped",
-      "日本語": "停止済み"
+      "English": "Stopped"
     },
     "分析任务已停止。": {
       "简中": "分析任务已停止。",
       "繁中": "分析任務已停止。",
-      "English": "The analysis task has been stopped.",
-      "日本語": "分析タスクは停止しました。"
+      "English": "The analysis task has been stopped."
     },
     "全文分析失败。": {
       "简中": "全文分析失败。",
       "繁中": "全文分析失敗。",
-      "English": "Full-text analysis failed.",
-      "日本語": "全文分析に失敗しました。"
+      "English": "Full-text analysis failed."
     },
     "原文键已存在，不能重复。": {
       "简中": "原文键已存在，不能重复。",
       "繁中": "原文鍵已存在，不能重複。",
-      "English": "The source key already exists and cannot be duplicated.",
-      "日本語": "原文キーは既に存在しており、重複できません。"
+      "English": "The source key already exists and cannot be duplicated."
     },
     "分析任务执行中，暂时不能插入新行。": {
       "简中": "分析任务执行中，暂时不能插入新行。",
       "繁中": "分析任務執行中，暫時不能插入新行。",
-      "English": "Cannot insert a new row while analysis is running.",
-      "日本語": "分析タスク実行中は新しい行を挿入できません。"
+      "English": "Cannot insert a new row while analysis is running."
     },
     "新行已插入。": {
       "简中": "新行已插入。",
       "繁中": "新行已插入。",
-      "English": "New row inserted.",
-      "日本語": "新しい行を挿入しました。"
+      "English": "New row inserted."
     },
     "分析任务执行中，暂时不能保存到公共表。": {
       "简中": "分析任务执行中，暂时不能保存到公共表。",
       "繁中": "分析任務執行中，暫時不能儲存到公共表。",
-      "English": "Cannot save to the public table while analysis is running.",
-      "日本語": "分析タスク実行中は共有表に保存できません。"
+      "English": "Cannot save to the public table while analysis is running."
     },
     "分析任务执行中，暂时不能移动到公共表。": {
       "简中": "分析任务执行中，暂时不能移动到公共表。",
       "繁中": "分析任務執行中，暫時不能移動到公共表。",
-      "English": "Cannot move to the public table while analysis is running.",
-      "日本語": "分析タスク実行中は共有表に移動できません。"
+      "English": "Cannot move to the public table while analysis is running."
     },
     "分析任务执行中，暂时不能移动到其他表。": {
       "简中": "分析任务执行中，暂时不能移动到其他表。",
       "繁中": "分析任務執行中，暫時不能移動到其他表。",
-      "English": "Cannot move to another table while analysis is running.",
-      "日本語": "分析タスク実行中は他の表に移動できません。"
+      "English": "Cannot move to another table while analysis is running."
     },
     "当前显示内容中没有可保存的条目。": {
       "简中": "当前显示内容中没有可保存的条目。",
       "繁中": "當前顯示內容中沒有可儲存的條目。",
-      "English": "There are no visible entries to save.",
-      "日本語": "現在表示中の内容には保存できる項目がありません。"
+      "English": "There are no visible entries to save."
     },
     "当前内容均已存在于公共表中。": {
       "简中": "当前内容均已存在于公共表中。",
       "繁中": "當前內容均已存在於公共表中。",
-      "English": "All current entries already exist in the public table.",
-      "日本語": "現在の内容はすべて共有表に既に存在します。"
+      "English": "All current entries already exist in the public table."
     },
     "已保存到公共表，新增 {0} 条内容。": {
       "简中": "已保存到公共表，新增 {0} 条内容。",
       "繁中": "已儲存到公共表，新增 {0} 條內容。",
-      "English": "Saved to the public table. Added {0} entries.",
-      "日本語": "共有表に保存しました。{0} 件の内容を追加しました。"
+      "English": "Saved to the public table. Added {0} entries."
     },
     "当前选中内容中没有可移动到公共表的条目。": {
       "简中": "当前选中内容中没有可移动到公共表的条目。",
       "繁中": "當前選中內容中沒有可移動到公共表的條目。",
-      "English": "The current selection has no entries that can be moved to the public table.",
-      "日本語": "現在の選択内容には共有表へ移動できる項目がありません。"
+      "English": "The current selection has no entries that can be moved to the public table."
     },
     "确定要将当前选中的 {0} 条可移动内容移动到公共表吗？\n移动后这些内容将从提取结果中移除。": {
       "简中": "确定要将当前选中的 {0} 条可移动内容移动到公共表吗？\n移动后这些内容将从提取结果中移除。",
       "繁中": "確定要將當前選中的 {0} 條可移動內容移動到公共表嗎？\n移動後這些內容將從提取結果中移除。",
-      "English": "Move the currently selected {0} movable entries to the public table?\nAfter moving, these entries will be removed from the extraction results.",
-      "日本語": "現在選択中の移動可能な {0} 件を共有表に移動しますか？\n移動後、これらの内容は抽出結果から削除されます。"
+      "English": "Move the currently selected {0} movable entries to the public table?\nAfter moving, these entries will be removed from the extraction results."
     },
     "保存公共表失败，未移动选中内容。": {
       "简中": "保存公共表失败，未移动选中内容。",
       "繁中": "儲存公共表失敗，未移動選中內容。",
-      "English": "Failed to save the public table. The selected entries were not moved.",
-      "日本語": "共有表の保存に失敗しました。選択した内容は移動されませんでした。"
+      "English": "Failed to save the public table. The selected entries were not moved."
     },
     "已移动到公共表，新增 {0} 条，移除 {1} 条。": {
       "简中": "已移动到公共表，新增 {0} 条，移除 {1} 条。",
       "繁中": "已移動到公共表，新增 {0} 條，移除 {1} 條。",
-      "English": "Moved to the public table. Added {0} entries and removed {1} entries.",
-      "日本語": "共有表に移動しました。{0} 件を追加し、{1} 件を削除しました。"
+      "English": "Moved to the public table. Added {0} entries and removed {1} entries."
     },
     "选择目标分类": {
       "简中": "选择目标分类",
       "繁中": "選擇目標分類",
-      "English": "Select Target Category",
-      "日本語": "移動先の分類を選択"
+      "English": "Select Target Category"
     },
     "请选择移动到{0}后的分类。": {
       "简中": "请选择移动到{0}后的分类。",
       "繁中": "請選擇移動到{0}後的分類。",
-      "English": "Select the category to use after moving to {0}.",
-      "日本語": "{0}に移動した後の分類を選択してください。"
+      "English": "Select the category to use after moving to {0}."
     },
     "原分类": {
       "简中": "原分类",
       "繁中": "原分類",
-      "English": "Original Category",
-      "日本語": "元の分類"
+      "English": "Original Category"
     },
     "当前选中内容中没有可移动到{0}的条目。": {
       "简中": "当前选中内容中没有可移动到{0}的条目。",
       "繁中": "當前選中內容中沒有可移動到{0}的條目。",
-      "English": "The current selection has no entries that can be moved to {0}.",
-      "日本語": "現在の選択内容には{0}へ移動できる項目がありません。"
+      "English": "The current selection has no entries that can be moved to {0}."
     },
     "已移动 {0} 条到{1}，覆盖 {2} 条。": {
       "简中": "已移动 {0} 条到{1}，覆盖 {2} 条。",
       "繁中": "已移動 {0} 條到{1}，覆蓋 {2} 條。",
-      "English": "Moved {0} entries to {1}. Overwrote {2} entries.",
-      "日本語": "{0} 件を{1}に移動し、{2} 件を上書きしました。"
+      "English": "Moved {0} entries to {1}. Overwrote {2} entries."
     },
     "分析任务执行中，暂时不能清空当前显示内容。": {
       "简中": "分析任务执行中，暂时不能清空当前显示内容。",
       "繁中": "分析任務執行中，暫時不能清空當前顯示內容。",
-      "English": "Cannot clear the current view while analysis is running.",
-      "日本語": "分析タスク実行中は現在の表示内容をクリアできません。"
+      "English": "Cannot clear the current view while analysis is running."
     },
     "当前显示内容为空。": {
       "简中": "当前显示内容为空。",
       "繁中": "當前顯示內容為空。",
-      "English": "The current view is empty.",
-      "日本語": "現在の表示内容は空です。"
+      "English": "The current view is empty."
     },
     "确定要清空当前显示的 {0} 吗？\n共 {1} 条内容将被删除。": {
       "简中": "确定要清空当前显示的 {0} 吗？\n共 {1} 条内容将被删除。",
       "繁中": "確定要清空當前顯示的 {0} 嗎？\n共 {1} 條內容將被刪除。",
-      "English": "Are you sure you want to clear the current {0}?\nA total of {1} entries will be deleted.",
-      "日本語": "現在表示中の {0} をクリアしてもよろしいですか？\n合計 {1} 件の内容が削除されます。"
+      "English": "Are you sure you want to clear the current {0}?\nA total of {1} entries will be deleted."
     },
     "已清空当前显示的 {0} 条内容。": {
       "简中": "已清空当前显示的 {0} 条内容。",
       "繁中": "已清空當前顯示的 {0} 條內容。",
-      "English": "Cleared {0} entries from the current view.",
-      "日本語": "現在の表示内容から {0} 件をクリアしました。"
+      "English": "Cleared {0} entries from the current view."
     },
     "分析任务执行中，暂时不能删除当前表内容。": {
       "简中": "分析任务执行中，暂时不能删除当前表内容。",
       "繁中": "分析任務執行中，暫時不能刪除當前表內容。",
-      "English": "Cannot delete entries from the current table while analysis is running.",
-      "日本語": "分析タスク実行中は現在の表の内容を削除できません。"
+      "English": "Cannot delete entries from the current table while analysis is running."
     },
     "当前没有选中的内容。": {
       "简中": "当前没有选中的内容。",
       "繁中": "當前沒有選中的內容。",
-      "English": "No content is currently selected.",
-      "日本語": "現在選択されている内容はありません。"
+      "English": "No content is currently selected."
     },
     "确定要删除当前选中的 {0} 条内容吗？": {
       "简中": "确定要删除当前选中的 {0} 条内容吗？",
       "繁中": "確定要刪除當前選中的 {0} 條內容嗎？",
-      "English": "Are you sure you want to delete the currently selected {0} entries?",
-      "日本語": "現在選択中の {0} 件を削除してもよろしいですか？"
+      "English": "Are you sure you want to delete the currently selected {0} entries?"
     },
     "已删除 {0} 条内容。": {
       "简中": "已删除 {0} 条内容。",
       "繁中": "已刪除 {0} 條內容。",
-      "English": "Deleted {0} entries.",
-      "日本語": "{0} 件の内容を削除しました。"
+      "English": "Deleted {0} entries."
     },
     "准备中": {
       "简中": "准备中",
       "繁中": "準備中",
-      "English": "Preparing",
-      "日本語": "準備中"
+      "English": "Preparing"
     },
     "正在初始化分析任务...": {
       "简中": "正在初始化分析任务...",
       "繁中": "正在初始化分析任務...",
-      "English": "Initializing analysis task...",
-      "日本語": "分析タスクを初期化しています..."
+      "English": "Initializing analysis task..."
     },
     "加载配置与限流设置。": {
       "简中": "加载配置与限流设置。",
       "繁中": "載入配置與限流設定。",
-      "English": "Loading configuration and rate limits.",
-      "日本語": "設定とレート制限を読み込んでいます。"
+      "English": "Loading configuration and rate limits."
     },
     "正在生成分析用文本片段...": {
       "简中": "正在生成分析用文本片段...",
       "繁中": "正在生成分析用文本片段...",
-      "English": "Generating text chunks for analysis...",
-      "日本語": "分析用テキストチャンクを生成しています..."
+      "English": "Generating text chunks for analysis..."
     },
     "按 token 切分项目原文。": {
       "简中": "按 token 切分项目原文。",
       "繁中": "按 token 切分專案原文。",
-      "English": "Splitting project source text by token.",
-      "日本語": "プロジェクト原文をトークン単位で分割しています。"
+      "English": "Splitting project source text by token."
     },
     "第一阶段": {
       "简中": "第一阶段",
       "繁中": "第一階段",
-      "English": "Stage One",
-      "日本語": "第1段階"
+      "English": "Stage One"
     },
     "开始执行第一阶段分析任务...": {
       "简中": "开始执行第一阶段分析任务...",
       "繁中": "開始執行第一階段分析任務...",
-      "English": "Starting first-stage analysis...",
-      "日本語": "第1段階の分析を開始しています..."
+      "English": "Starting first-stage analysis..."
     },
     "共 {0} 个分块。": {
       "简中": "共 {0} 个分块。",
       "繁中": "共 {0} 個分塊。",
-      "English": "{0} chunks in total.",
-      "日本語": "合計 {0} 個のチャンクです。"
+      "English": "{0} chunks in total."
     },
     "第一阶段提取中...": {
       "简中": "第一阶段提取中...",
       "繁中": "第一階段提取中...",
-      "English": "Extracting in stage one...",
-      "日本語": "第1段階で抽出中..."
+      "English": "Extracting in stage one..."
     },
     "已完成 {0} / {1} 个分块。": {
       "简中": "已完成 {0} / {1} 个分块。",
       "繁中": "已完成 {0} / {1} 個分塊。",
-      "English": "Completed {0} / {1} chunks.",
-      "日本語": "{0} / {1} 個のチャンクが完了しました。"
+      "English": "Completed {0} / {1} chunks."
     },
     "第二阶段": {
       "简中": "第二阶段",
       "繁中": "第二階段",
-      "English": "Stage Two",
-      "日本語": "第2段階"
+      "English": "Stage Two"
     },
     "开始执行第二阶段分析任务...": {
       "简中": "开始执行第二阶段分析任务...",
       "繁中": "開始執行第二階段分析任務...",
-      "English": "Starting second-stage analysis...",
-      "日本語": "第2段階の分析を開始しています..."
+      "English": "Starting second-stage analysis..."
     },
     "共 {0} 个合并批次。": {
       "简中": "共 {0} 个合并批次。",
       "繁中": "共 {0} 個合併批次。",
-      "English": "{0} merge batches in total.",
-      "日本語": "合計 {0} 個のマージバッチです。"
+      "English": "{0} merge batches in total."
     },
     "第二阶段合并中...": {
       "简中": "第二阶段合并中...",
       "繁中": "第二階段合併中...",
-      "English": "Merging in stage two...",
-      "日本語": "第2段階で統合中..."
+      "English": "Merging in stage two..."
     },
     "已完成 {0} / {1} 个合并批次。": {
       "简中": "已完成 {0} / {1} 个合并批次。",
       "繁中": "已完成 {0} / {1} 個合併批次。",
-      "English": "Completed {0} / {1} merge batches.",
-      "日本語": "{0} / {1} 個のマージバッチが完了しました。"
+      "English": "Completed {0} / {1} merge batches."
     },
     "结果整合": {
       "简中": "结果整合",
       "繁中": "結果整合",
-      "English": "Finalizing Results",
-      "日本語": "結果統合"
+      "English": "Finalizing Results"
     },
     "正在整合最终分析结果...": {
       "简中": "正在整合最终分析结果...",
       "繁中": "正在整合最終分析結果...",
-      "English": "Combining final analysis results...",
-      "日本語": "最終分析結果を統合しています..."
+      "English": "Combining final analysis results..."
     },
     "执行本地兜底与禁翻清洗。": {
       "简中": "执行本地兜底与禁翻清洗。",
       "繁中": "執行本地兜底與禁翻清洗。",
-      "English": "Applying local fallback and non-translation cleanup.",
-      "日本語": "ローカル補完と禁翻訳項目のクリーンアップを実行しています。"
+      "English": "Applying local fallback and non-translation cleanup."
     },
     "分析结果已生成...": {
       "简中": "分析结果已生成...",
       "繁中": "分析結果已生成...",
-      "English": "Analysis results generated...",
-      "日本語": "分析結果を生成しました..."
+      "English": "Analysis results generated..."
     },
     "正在写回项目缓存。": {
       "简中": "正在写回项目缓存。",
       "繁中": "正在寫回專案快取。",
-      "English": "Writing results back to project cache.",
-      "日本語": "結果をプロジェクトキャッシュに書き戻しています。"
+      "English": "Writing results back to project cache."
     },
     "男性": {
       "简中": "男性",
       "繁中": "男性",
-      "English": "Male",
-      "日本語": "男性"
+      "English": "Male"
     },
     "女性": {
       "简中": "女性",
       "繁中": "女性",
-      "English": "Female",
-      "日本語": "女性"
+      "English": "Female"
     },
     "其他": {
       "简中": "其他",
       "繁中": "其他",
-      "English": "Other",
-      "日本語": "その他"
+      "English": "Other"
     },
     "身份": {
       "简中": "身份",
       "繁中": "身份",
-      "English": "Identity",
-      "日本語": "身分"
+      "English": "Identity"
     },
     "物品": {
       "简中": "物品",
       "繁中": "物品",
-      "English": "Item",
-      "日本語": "アイテム"
+      "English": "Item"
     },
     "组织": {
       "简中": "组织",
       "繁中": "組織",
-      "English": "Organization",
-      "日本語": "組織"
+      "English": "Organization"
     },
     "地名": {
       "简中": "地名",
       "繁中": "地名",
-      "English": "Location",
-      "日本語": "地名"
+      "English": "Location"
     },
     "技能": {
       "简中": "技能",
       "繁中": "技能",
-      "English": "Skill",
-      "日本語": "スキル"
+      "English": "Skill"
     },
     "种族": {
       "简中": "种族",
       "繁中": "種族",
-      "English": "Race",
-      "日本語": "種族"
+      "English": "Race"
     },
     "标签": {
       "简中": "标签",
       "繁中": "標籤",
-      "English": "Tag",
-      "日本語": "タグ"
+      "English": "Tag"
     },
     "变量": {
       "简中": "变量",
       "繁中": "變量",
-      "English": "Variable",
-      "日本語": "変数"
+      "English": "Variable"
     },
     "占位符": {
       "简中": "占位符",
       "繁中": "佔位符",
-      "English": "Placeholder",
-      "日本語": "プレースホルダー"
+      "English": "Placeholder"
     },
     "特殊宏": {
       "简中": "特殊宏",
       "繁中": "特殊宏",
-      "English": "Special Macro",
-      "日本語": "特殊マクロ"
+      "English": "Special Macro"
     },
     "转义符": {
       "简中": "转义符",
       "繁中": "轉義符",
-      "English": "Escape Sequence",
-      "日本語": "エスケープ文字"
+      "English": "Escape Sequence"
     },
     "资源标识": {
       "简中": "资源标识",
       "繁中": "資源標識",
-      "English": "Resource Identifier",
-      "日本語": "リソース識別子"
+      "English": "Resource Identifier"
     },
     "数值公式": {
       "简中": "数值公式",
       "繁中": "數值公式",
-      "English": "Numeric Formula",
-      "日本語": "数式"
+      "English": "Numeric Formula"
     }
   },
   "GeneralMessages": {
     "警告": {
       "简中": "警告",
       "繁中": "警告",
-      "English": "Warning",
-      "日本語": "警告"
+      "English": "Warning"
     },
     "提示": {
       "简中": "提示",
       "繁中": "提示",
-      "English": "Info",
-      "日本語": "情報"
+      "English": "Info"
     },
     "错误": {
       "简中": "错误",
       "繁中": "錯誤",
-      "English": "Error",
-      "日本語": "エラー"
+      "English": "Error"
     },
     "确认": {
       "简中": "确认",
       "繁中": "確認",
-      "English": "Confirm",
-      "日本語": "確認"
+      "English": "Confirm"
     },
     "取消": {
       "简中": "取消",
       "繁中": "取消",
-      "English": "Cancel",
-      "日本語": "キャンセル"
+      "English": "Cancel"
     },
     "将重置尚未完成的任务": {
       "简中": "将重置尚未完成的任务",
       "繁中": "將重置尚未完成的任務",
-      "English": "This will reset the unfinished task.",
-      "日本語": "未完了のタスクがリセットされます。"
+      "English": "This will reset the unfinished task."
     },
     "是否确定停止任务": {
       "简中": "是否确定停止任务",
       "繁中": "是否確定停止任務",
-      "English": "Are you sure you want to stop the task?",
-      "日本語": "タスクを停止してもよろしいですか？"
+      "English": "Are you sure you want to stop the task?"
     },
     "是否确认重置项目的已翻译状态？": {
       "简中": "是否确认重置项目的已翻译状态？",
       "繁中": "是否確認重置專案的已翻譯狀態？",
-      "English": "Reset this project's translated status?",
-      "日本語": "このプロジェクトの翻訳済み状態をリセットしますか？"
+      "English": "Reset this project's translated status?"
     },
     "只有空闲状态才能重置项目状态。": {
       "简中": "只有空闲状态才能重置项目状态。",
       "繁中": "只有閒置狀態才能重置專案狀態。",
-      "English": "Project status can only be reset while idle.",
-      "日本語": "プロジェクト状態はアイドル時のみリセットできます。"
+      "English": "Project status can only be reset while idle."
     },
     "当前没有可重置的项目缓存。": {
       "简中": "当前没有可重置的项目缓存。",
       "繁中": "目前沒有可重置的專案快取。",
-      "English": "There is no project cache to reset.",
-      "日本語": "リセットできるプロジェクトキャッシュがありません。"
+      "English": "There is no project cache to reset."
     },
     "没有可重置的项目状态。": {
       "简中": "没有可重置的项目状态。",
       "繁中": "沒有可重置的專案狀態。",
-      "English": "There is no project status to reset.",
-      "日本語": "リセットできるプロジェクト状態がありません。"
+      "English": "There is no project status to reset."
     },
     "项目状态已重置。": {
       "简中": "项目状态已重置。",
       "繁中": "專案狀態已重置。",
-      "English": "Project status reset.",
-      "日本語": "プロジェクト状態をリセットしました。"
+      "English": "Project status reset."
     },
     "当前没有打开的标签页。": {
       "简中": "当前没有打开的标签页。",
       "繁中": "當前沒有開啟的標籤頁。",
-      "English": "There are no open tabs.",
-      "日本語": "開いているタブはありません。"
+      "English": "There are no open tabs."
     },
     "请在原始数据表格标签页上执行此操作。": {
       "简中": "请在原始数据表格标签页上执行此操作。",
       "繁中": "請在原始資料表格標籤頁上執行此操作。",
-      "English": "Please perform this action on an original data table tab.",
-      "日本語": "この操作は元のデータテーブルタブで実行してください。"
+      "English": "Please perform this action on an original data table tab."
     },
     "操作受限": {
       "简中": "操作受限",
       "繁中": "操作受限",
-      "English": "Operation Restricted",
-      "日本語": "操作が制限されています"
+      "English": "Operation Restricted"
     },
     "选择无效": {
       "简中": "选择无效",
       "繁中": "選擇無效",
-      "English": "Invalid Selection",
-      "日本語": "無効な選択"
+      "English": "Invalid Selection"
     },
     "无法从缓存中加载文件: {}": {
       "简中": "无法从缓存中加载文件: {}",
       "繁中": "無法從快取中載入檔案: {}",
-      "English": "Failed to load file from cache: {}",
-      "日本語": "キャッシュからファイルをロードできませんでした: {}"
+      "English": "Failed to load file from cache: {}"
     },
     "项目缓存文件已保存到翻译输出文件夹": {
       "简中": "项目缓存文件已保存到翻译输出文件夹",
       "繁中": "專案快取文件已保存到翻譯輸出資料夾",
-      "English": "Project cache file has been saved to the translation output folder",
-      "日本語": "プロジェクトキャッシュファイルは翻訳出力フォルダに保存されました"
+      "English": "Project cache file has been saved to the translation output folder"
     }
   }
 }

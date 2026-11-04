@@ -3,134 +3,112 @@
     "行": {
       "简中": "行",
       "繁中": "行",
-      "English": "Row",
-      "日本語": "行"
+      "English": "Row"
     },
     "全文": {
       "简中": "全文",
       "繁中": "全文",
-      "English": "Full Text",
-      "日本語": "全文"
+      "English": "Full Text"
     },
     "原文": {
       "简中": "原文",
       "繁中": "原文",
-      "English": "Source",
-      "日本語": "原文"
+      "English": "Source"
     },
     "译文": {
       "简中": "译文",
       "繁中": "譯文",
-      "English": "Translation",
-      "日本語": "訳文"
+      "English": "Translation"
     },
     "状态": {
       "简中": "状态",
       "繁中": "狀態",
-      "English": "Status",
-      "日本語": "状態"
+      "English": "Status"
     },
     "待译": {
       "简中": "待译",
       "繁中": "待譯",
-      "English": "Pending",
-      "日本語": "未訳"
+      "English": "Pending"
     },
     "已译": {
       "简中": "已译",
       "繁中": "已譯",
-      "English": "Translated",
-      "日本語": "翻訳済"
+      "English": "Translated"
     },
     "已润": {
       "简中": "已润",
       "繁中": "已潤",
-      "English": "Polished",
-      "日本語": "推敲済"
+      "English": "Polished"
     },
     "排除": {
       "简中": "排除",
       "繁中": "排除",
-      "English": "Excluded",
-      "日本語": "除外"
+      "English": "Excluded"
     },
     "存疑": {
       "简中": "存疑",
       "繁中": "存疑",
-      "English": "Questionable",
-      "日本語": "要確認"
+      "English": "Questionable"
     },
     "润文": {
       "简中": "润文",
       "繁中": "潤文",
-      "English": "Polished",
-      "日本語": "推敲"
+      "English": "Polished"
     },
     "翻译文本": {
       "简中": "翻译文本",
       "繁中": "翻譯文本",
-      "English": "Translate Text",
-      "日本語": "テキストを翻訳"
+      "English": "Translate Text"
     },
     "润色文本": {
       "简中": "润色文本",
       "繁中": "潤色文本",
-      "English": "Polish Text",
-      "日本語": "テキストを推敲"
+      "English": "Polish Text"
     },
     "排版文本": {
       "简中": "排版文本",
       "繁中": "排版文本",
-      "English": "Format Text",
-      "日本語": "テキストをフォーマット"
+      "English": "Format Text"
     },
     "禁止翻译": {
       "简中": "禁止翻译",
       "繁中": "禁止翻譯",
-      "English": "Disable Translation",
-      "日本語": "翻訳を無効化"
+      "English": "Disable Translation"
     },
     "清空翻译": {
       "简中": "清空翻译",
       "繁中": "清空翻譯",
-      "English": "Clear Translation",
-      "日本語": "翻訳をクリア"
+      "English": "Clear Translation"
     },
     "清空润色": {
       "简中": "清空润色",
       "繁中": "清空潤色",
-      "English": "Clear Polishing",
-      "日本語": "推敲をクリア"
+      "English": "Clear Polishing"
     },
     "行数: {}": {
       "简中": "行数: {}",
       "繁中": "行數: {}",
-      "English": "Rows: {}",
-      "日本語": "行数: {}"
+      "English": "Rows: {}"
     },
     "已提交 {} 行文本的翻译任务。": {
       "简中": "已提交 {} 行文本的翻译任务。",
       "繁中": "已提交 {} 行文本的翻譯任務。",
-      "English": "Submitted {} rows for translation.",
-      "日本語": "{} 行のテキストの翻訳タスクを送信しました。"
+      "English": "Submitted {} rows for translation."
     },
     "已提交 {} 行文本的润色任务。": {
       "简中": "已提交 {} 行文本的润色任务。",
       "繁中": "已提交 {} 行文本的潤色任務。",
-      "English": "Submitted {} rows for polishing.",
-      "日本語": "{} 行のテキストの推敲タスクを送信しました。"
+      "English": "Submitted {} rows for polishing."
     },
     "操作完成": {
       "简中": "操作完成",
       "繁中": "操作完成",
-      "English": "Operation Complete",
-      "日本語": "操作完了"
+      "English": "Operation Complete"
     },
     "已将 {} 行的原文复制到译文。": {
       "简中": "已将 {} 行的原文复制到译文。",
       "繁中": "已將 {} 行的原文複製到譯文。",
-      "English": "Copied source text to translation for {} rows.",
-      "日本語": "{} 行の原文を訳文にコピーしました。"
+      "English": "Copied source text to translation for {} rows."
     }
   }
 }

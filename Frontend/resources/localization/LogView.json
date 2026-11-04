@@ -3,44 +3,37 @@
     "等待日志...": {
       "简中": "等待日志...",
       "繁中": "等待日誌...",
-      "English": "Waiting for logs...",
-      "日本語": "ログを待機中..."
+      "English": "Waiting for logs..."
     },
     "复制全部": {
       "简中": "复制全部",
       "繁中": "複製全部",
-      "English": "Copy All",
-      "日本語": "すべてコピー"
+      "English": "Copy All"
     },
     "搜索...": {
       "简中": "搜索...",
       "繁中": "搜尋...",
-      "English": "Search...",
-      "日本語": "検索..."
+      "English": "Search..."
     },
     "回到底部": {
       "简中": "回到底部",
       "繁中": "回到底部",
-      "English": "Back to Bottom",
-      "日本語": "末尾へ"
+      "English": "Back to Bottom"
     },
     "已复制到剪贴板": {
       "简中": "已复制到剪贴板",
       "繁中": "已複製到剪貼簿",
-      "English": "Copied to clipboard",
-      "日本語": "クリップボードにコピーしました"
+      "English": "Copied to clipboard"
     },
     "打开日志目录": {
       "简中": "打开日志目录",
       "繁中": "開啟日誌目錄",
-      "English": "Open Log Folder",
-      "日本語": "ログフォルダを開く"
+      "English": "Open Log Folder"
     },
     "无法打开日志目录": {
       "简中": "无法打开日志目录",
       "繁中": "無法開啟日誌目錄",
-      "English": "Cannot open log directory",
-      "日本語": "ログディレクトリを開けません"
+      "English": "Cannot open log directory"
     }
   }
 }

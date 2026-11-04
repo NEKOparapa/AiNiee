@@ -10,6 +10,7 @@ class ConfigMixin:
     remote_client = None
     remote_required = True
 
+    INTERFACE_LANGUAGES = ("简中", "繁中", "English")
     multilingual_interface_dict = {}
     current_interface_language = "简中"
 

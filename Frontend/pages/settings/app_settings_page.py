@@ -34,7 +34,7 @@ class AppSettingsPage(GroupedSettingsPage, LogMixin):
         self.editor_layout.setSpacing(14)
         appearance = self._add_section("外观与语言", FluentIcon.PALETTE)
         self.language_combo = ComboBox(self.editor)
-        self.language_combo.addItems(["简中", "繁中", "English", "日本語"])
+        self.language_combo.addItems(self.INTERFACE_LANGUAGES)
         appearance.add_field("界面语言设置", self.language_combo,
                              "应用界面将按照所选语言进行显示(将在应用重启后生效)")
         self.theme_control = SegmentedControl(self.editor)

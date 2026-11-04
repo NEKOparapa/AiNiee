@@ -3,176 +3,147 @@
     "原文语言": {
       "简中": "原文语言",
       "繁中": "原文語言",
-      "English": "Source Language",
-      "日本語": "原文言語"
+      "English": "Source Language"
     },
     "设置当前项目所使用的原始文本的语言": {
       "简中": "设置当前项目所使用的原始文本的语言",
       "繁中": "設定當前專案使用的原始文字語言",
-      "English": "Source language for this project",
-      "日本語": "現在のプロジェクトで使用する原文の言語を設定"
+      "English": "Source language for this project"
     },
     "译文语言": {
       "简中": "译文语言",
       "繁中": "譯文語言",
-      "English": "Target Language",
-      "日本語": "訳文言語"
+      "English": "Target Language"
     },
     "设置当前项目所期望的译文文本的语言": {
       "简中": "设置当前项目所期望的译文文本的语言",
       "繁中": "設定當前專案所期望的譯文文字語言",
-      "English": "Target language for this project",
-      "日本語": "現在のプロジェクトで使用する訳文の言語を設定"
+      "English": "Target language for this project"
     },
     "自动过滤其他语言文本": {
       "简中": "自动过滤其他语言文本",
       "繁中": "自動過濾其他語言文本",
-      "English": "Automatically Filter Other-language Text",
-      "日本語": "他言語テキストを自動フィルタ"
+      "English": "Automatically Filter Other-language Text"
     },
     "启用后，将在翻译前，自动过滤掉与设置的原文语言不一致的文本，不参与翻译": {
       "简中": "启用后，将在翻译前，自动过滤掉与设置的原文语言不一致的文本，不参与翻译",
       "繁中": "啟用後，將在翻譯前自動過濾掉與設定的原文語言不一致的文本，不參與翻譯",
-      "English": "Before translation, filters out text that doesn't match the source language.\nFiltered text will not be translated.",
-      "日本語": "有効にすると、設定された原文言語と一致しないテキストは翻訳前に自動で除外され、翻訳対象になりません。"
+      "English": "Before translation, filters out text that doesn't match the source language.\nFiltered text will not be translated."
     },
     "自动过滤代码文本": {
       "简中": "自动过滤代码文本",
       "繁中": "自動過濾代碼文本",
-      "English": "Automatically filter code text",
-      "日本語": "コードテキストを自動的にフィルタリングする"
+      "English": "Automatically filter code text"
     },
     "启用后，将在翻译前，自动过滤掉代码文本，不参与翻译（仅作用于Mtool项目）": {
       "简中": "启用后，将在翻译前，自动过滤掉代码文本，不参与翻译（仅作用于Mtool项目）",
       "繁中": "啟用後，將在翻譯前自動過濾掉代碼文本，不參與翻譯（僅作用於 Mtool 專案）",
-      "English": "When enabled, code text will be automatically filtered out before translation and will not be included in the translation (only applies to Mtool projects).",
-      "日本語": "有効にすると、翻訳前にコードテキストが自動的にフィルタリングされ、翻訳対象から除外されます（Mtool プロジェクトにのみ適用されます）。"
+      "English": "When enabled, code text will be automatically filtered out before translation and will not be included in the translation (only applies to Mtool projects)."
     },
     "动态示例和预回复功能": {
       "简中": "动态示例和预回复功能",
       "繁中": "動態範例與預回覆功能",
-      "English": "Dynamic Few-shot & Pre-reply",
-      "日本語": "動的Few-shotと事前返答機能"
+      "English": "Dynamic Few-shot & Pre-reply"
     },
     "将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口": {
       "简中": "将在构建整体的翻译提示词时，自动生成动态Few-shot和构建模型预回复内容，不支持本地接口",
       "繁中": "建構整體翻譯提示詞時，將自動產生動態Few-shot及模型預回覆內容，不支援本地介面",
-      "English": "Builds dynamic few-shot examples and pre-replies for prompts.\nNot available for local APIs.",
-      "日本語": "翻訳プロンプト構築時に動的Few-shotと事前返答を自動生成\nローカルインターフェースには非対応"
+      "English": "Builds dynamic few-shot examples and pre-replies for prompts.\nNot available for local APIs."
     },
     "参考上文行数": {
       "简中": "参考上文行数",
       "繁中": "參考上文行數", 
-      "English": "Context Lines (lines above)", 
-      "日本語": "コンテキスト行数 (上文)" 
+      "English": "Context Lines (lines above)"
     },
     "行数不宜设置过大，建议10行以内 (不支持本地类接口)": {
       "简中": "行数不宜设置过大，建议10行以内 (不支持本地类接口)",
       "繁中": "行數不宜設定過大，建議 10 行以內 (不支援本地類介面)", 
-      "English": "Keep this low.\nRecommended: 10 lines or fewer.\nLocal APIs are not supported.", 
-      "日本語": "行数は大きく設定しないでください。10行以内を推奨 (ローカルAPIは非対応)"
+      "English": "Keep this low.\nRecommended: 10 lines or fewer.\nLocal APIs are not supported."
     },
     "提取设置": {
       "简中": "提取设置",
       "繁中": "提取設定",
-      "English": "Extraction Settings",
-      "日本語": "抽出設定"
+      "English": "Extraction Settings"
     },
     "提取任务的 Token 切分数": {
       "简中": "提取任务的 Token 切分数",
       "繁中": "提取任務的 Token 切分數",
-      "English": "Extraction Task Token Split Size",
-      "日本語": "抽出タスクの Token 分割数"
+      "English": "Extraction Task Token Split Size"
     },
     "开始翻译中的提取任务会按此 Token 数切分原文": {
       "简中": "开始翻译中的提取任务会按此 Token 数切分原文",
       "繁中": "開始翻譯中的提取任務會按此 Token 數切分原文",
-      "English": "The extraction task in Start Translation splits source text by this token count.",
-      "日本語": "翻訳開始内の抽出タスクは、この Token 数で原文を分割します。"
+      "English": "The extraction task in Start Translation splits source text by this token count."
     },
     "自动提取禁翻词条": {
       "简中": "自动提取禁翻词条",
       "繁中": "自動提取禁翻詞條",
-      "English": "Automatically Extract Do-not-translate Entries",
-      "日本語": "禁翻訳項目を自動抽出"
+      "English": "Automatically Extract Do-not-translate Entries"
     },
     "开启该开关后，将自动提取文本中禁止翻译内容，需要用户审查与筛选，避免影响翻译效率": {
       "简中": "开启该开关后，将自动提取文本中禁止翻译内容，需要用户审查与筛选，避免影响翻译效率",
       "繁中": "開啟該開關後，將自動提取文本中禁止翻譯內容，需要用戶審查與篩選，避免影響翻譯效率",
-      "English": "When enabled, do-not-translate content is extracted automatically. Review and filter the results to avoid reducing translation efficiency.",
-      "日本語": "有効にすると、テキスト内の翻訳禁止内容を自動抽出します。翻訳効率への影響を避けるため、確認と絞り込みが必要です。"
+      "English": "When enabled, do-not-translate content is extracted automatically. Review and filter the results to avoid reducing translation efficiency."
     },
     "自动合并长短名称": {
       "简中": "自动合并长短名称",
       "繁中": "自動合併長短名稱",
-      "English": "Automatically Merge Long and Short Names",
-      "日本語": "長い名前と短い名前を自動統合"
+      "English": "Automatically Merge Long and Short Names"
     },
     "例如同时提取到“亚瑟”和“亚瑟王”时，开启后会合并为一项，关闭后会分别保留": {
       "简中": "例如同时提取到“亚瑟”和“亚瑟王”时，开启后会合并为一项，关闭后会分别保留",
       "繁中": "例如同時提取到「亞瑟」和「亞瑟王」時，開啟後會合併為一項，關閉後會分別保留",
-      "English": "For example, if both “Arthur” and “King Arthur” are extracted, enabling this option merges them into one entry; disabling it keeps them separate.",
-      "日本語": "たとえば「アーサー」と「アーサー王」の両方が抽出された場合、有効にすると1件にまとめ、無効にすると別々に保持します。"
+      "English": "For example, if both “Arthur” and “King Arthur” are extracted, enabling this option merges them into one entry; disabling it keeps them separate."
     },
     "自动预处理文本": {
         "简中": "自动预处理文本",
         "繁中": "自動預處理文本",
-        "English": "Automatic Text Preprocessing",
-        "日本語": "テキスト自動前処理"
+        "English": "Automatic Text Preprocessing"
     },
     "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原": {
         "简中": "启用此功能后，根据正则库与禁翻表，将在翻译前移除文本首尾的非翻译内容，占位文本中间的非翻译内容，并在翻译后还原",
         "繁中": "啟用此功能後，根據正規表示式庫與禁譯表，將在翻譯前移除文字首尾的非翻譯內容、佔位符中間的非翻譯內容，並在翻譯後復原",
-        "English": "Removes non-translatable text before translation\nbased on regex rules and the exclusion list,\nthen restores it after translation.",
-        "日本語": "有効化すると、正規表現ライブラリと翻訳禁止リストに基づき、翻訳前後でテキストの前後端およびプレースホルダ内の非翻訳コンテンツを一時削除・復元します"
+        "English": "Removes non-translatable text before translation\nbased on regex rules and the exclusion list,\nthen restores it after translation."
     },
     "自动修复标点符号": {
       "简中": "自动修复标点符号",
       "繁中": "自動修復標點符號",
-      "English": "Automatically Repair Punctuation",
-      "日本語": "句読点を自動修復"
+      "English": "Automatically Repair Punctuation"
     },
     "启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，适合日语翻译流程。": {
       "简中": "启用后，将在翻译任务中根据原文恢复译文中改变的标点符号和文本符号，适合日语翻译流程。",
       "繁中": "啟用後，將在翻譯任務中根據原文恢復譯文中改變的標點符號和文本符號，適合日語翻譯流程。",
-      "English": "Restores punctuation and symbols to match the source text.\nBest for Japanese translation workflows.",
-      "日本語": "有効にすると、翻訳タスク中に原文をもとに訳文で変化した句読点やテキスト記号を復元します。日本語翻訳ワークフロー向けです。"
+      "English": "Restores punctuation and symbols to match the source text.\nBest for Japanese translation workflows."
     },
     "模型退化检查": {
       "简中": "模型退化检查",
       "繁中": "模型退化檢查",
-      "English": "Model Degradation Check",
-      "日本語": "モデル劣化チェック"
+      "English": "Model Degradation Check"
     },
     "原文返回检查": {
       "简中": "原文返回检查",
       "繁中": "原文返回檢查",
-      "English": "Original Text Check",
-      "日本語": "原文チェック"
+      "English": "Original Text Check"
     },
     "翻译残留检查": {
       "简中": "翻译残留检查",
       "繁中": "翻譯殘留檢查",
-      "English": "Translation Artifact Check",
-      "日本語": "翻訳アーティファクト チェック"
+      "English": "Translation Artifact Check"
     },
     "换行符数检查": {
       "简中": "换行符数检查",
       "繁中": "換行符數檢查",
-      "English": "Newline Character Count Check",
-      "日本語": "改行文字数チェック"
+      "English": "Newline Character Count Check"
     },
     "翻译结果检查": {
       "简中": "翻译结果检查",
       "繁中": "翻譯結果檢查",
-      "English": "Translation Result Check",
-      "日本語": "翻訳結果チェック"
+      "English": "Translation Result Check"
     },
     "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败": {
       "简中": "将在翻译结果中检查激活的规则（点亮按钮为激活）：如检测到对应情况，则视为任务执行失败",
       "繁中": "將在翻譯結果中檢查已啟用的規則（點亮的按鈕表示已啟用）：如偵測到符合規則的情況，則視為任務執行失敗。",
-      "English": "Checks only the enabled rules in translation results.\nIf any rule is triggered, the task fails.",
-      "日本語": "翻訳結果で有効ルールをチェック (点灯ボタン＝有効)。ルール違反時タスク失敗。"
+      "English": "Checks only the enabled rules in translation results.\nIf any rule is triggered, the task fails."
     }
   },
 
@@ -180,80 +151,67 @@
     "自动检测": {
       "简中": "自动检测",
       "繁中": "自動檢測",
-      "English": "Auto-detect",
-      "日本語": "自動検出"
+      "English": "Auto-detect"
     },
     "简中": {
       "简中": "简中",
       "繁中": "簡中",
-      "English": "Simplified Chinese",
-      "日本語": "簡体中国語"
+      "English": "Simplified Chinese"
     },
     "繁中": {
       "简中": "繁中",
       "繁中": "繁中",
-      "English": "Traditional Chinese",
-      "日本語": "繁体中国語"
+      "English": "Traditional Chinese"
     },
     "日语": {
       "简中": "日语",
       "繁中": "日語",
-      "English": "Japanese",
-      "日本語": "日本語"
+      "English": "Japanese"
     },
     "英语": {
       "简中": "英语",
       "繁中": "英語",
-      "English": "English",
-      "日本語": "英語"
+      "English": "English"
     },
     "韩语": {
       "简中": "韩语",
       "繁中": "韓語",
-      "English": "Korean",
-      "日本語": "韓国語"
+      "English": "Korean"
     },
     "俄语": {
       "简中": "俄语",
       "繁中": "俄語",
-      "English": "Russian",
-      "日本語": "ロシア語"
+      "English": "Russian"
     },
     "德语": {
       "简中": "德语",
       "繁中": "德語",
-      "English": "German",
-      "日本語": "ドイツ語"
+      "English": "German"
     },
     "法语": {
       "简中": "法语",
       "繁中": "法語",
-      "English": "French",
-      "日本語": "フランス語"
+      "English": "French"
     },
     "西班牙语": {
       "简中": "西班牙语",
       "繁中": "西班牙語",
-      "English": "Spanish",
-      "日本語": "スペイン語"
+      "English": "Spanish"
     },
     "印尼语": {
       "简中": "印尼语",
       "繁中": "印尼語",
-      "English": "Indonesian",
-      "日本語": "インドネシア語"
+      "English": "Indonesian"
     },
     "越南语": {
       "简中": "越南语",
       "繁中": "越南語",
-      "English": "Vietnamese",
-      "日本語": "ベトナム語"
+      "English": "Vietnamese"
     },
     "泰语": {
       "简中": "泰语",
       "繁中": "泰語",
-      "English": "Thai",
-      "日本語": "タイ語"
+      "English": "Thai"
     }
   }
 }

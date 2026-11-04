@@ -3,344 +3,287 @@
     "外观与语言": {
       "简中": "外观与语言",
       "繁中": "外觀與語言",
-      "English": "Appearance and Language",
-      "日本語": "外観と言語"
+      "English": "Appearance and Language"
     },
     "网络与服务": {
       "简中": "网络与服务",
       "繁中": "網路與服務",
-      "English": "Network and Services",
-      "日本語": "ネットワークとサービス"
+      "English": "Network and Services"
     },
     "配置管理": {
       "简中": "配置管理",
       "繁中": "設定管理",
-      "English": "Profiles",
-      "日本語": "設定の管理"
+      "English": "Profiles"
     },
     "应用更新": {
       "简中": "应用更新",
       "繁中": "應用更新",
-      "English": "Updates",
-      "日本語": "アプリの更新"
+      "English": "Updates"
     },
     "管理界面外观、网络连接、应用配置与更新。": {
       "简中": "管理界面外观、网络连接、应用配置与更新。",
       "繁中": "管理介面外觀、網路連線、應用設定與更新。",
-      "English": "Manage appearance, connections, app profiles, and updates.",
-      "日本語": "外観、ネットワーク接続、アプリの設定と更新を管理します。"
+      "English": "Manage appearance, connections, app profiles, and updates."
     },
     "网络代理": {
       "简中": "网络代理",
       "繁中": "網路代理",
-      "English": "Network Proxy",
-      "日本語": "ネットワークプロキシ"
+      "English": "Network Proxy"
     },
     "后端服务": {
       "简中": "后端服务",
       "繁中": "後端服務",
-      "English": "Backend Service",
-      "日本語": "バックエンドサービス"
+      "English": "Backend Service"
     },
     "当前连接地址；更换后端后需要重新启动桌面端。": {
       "简中": "当前连接地址；更换后端后需要重新启动桌面端。",
       "繁中": "目前的連線位址；更換後端後需要重新啟動桌面端。",
-      "English": "Current connection URL. Restart the desktop app after changing the backend.",
-      "日本語": "現在の接続先です。バックエンドを変更した場合はデスクトップアプリを再起動してください。"
+      "English": "Current connection URL. Restart the desktop app after changing the backend."
     },
     "应用设置": {
       "简中": "应用设置",
       "繁中": "應用設定",
-      "English": "Application Settings",
-      "日本語": "アプリ設定"
+      "English": "Application Settings"
     },
     "MCP 服务": {
       "简中": "MCP 服务",
       "繁中": "MCP 服務",
-      "English": "MCP Service",
-      "日本語": "MCP サービス"
+      "English": "MCP Service"
     },
     "允许 MCP 客户端提交、查询和取消翻译任务。立即生效，关闭后已提交的任务继续执行。": {
       "简中": "允许 MCP 客户端提交、查询和取消翻译任务。立即生效，关闭后已提交的任务继续执行。",
       "繁中": "允許 MCP 用戶端提交、查詢及取消翻譯任務。立即生效，關閉後已提交的任務會繼續執行。",
-      "English": "Allow MCP clients to submit, query, and cancel translation tasks. Changes apply immediately; submitted tasks continue when disabled.",
-      "日本語": "MCP クライアントから翻訳タスクの送信・確認・キャンセルを許可します。変更はすぐに反映され、無効にしても送信済みのタスクは続行されます。"
+      "English": "Allow MCP clients to submit, query, and cancel translation tasks. Changes apply immediately; submitted tasks continue when disabled."
     },
     "MCP 设置保存失败": {
       "简中": "MCP 设置保存失败",
       "繁中": "MCP 設定儲存失敗",
-      "English": "Failed to save MCP settings",
-      "日本語": "MCP 設定を保存できませんでした"
+      "English": "Failed to save MCP settings"
     },
     "MCP 连接地址": {
       "简中": "MCP 连接地址",
       "繁中": "MCP 連線位址",
-      "English": "MCP Connection URL",
-      "日本語": "MCP 接続アドレス"
+      "English": "MCP Connection URL"
     },
     "客户端请选择 Streamable HTTP，地址随当前后端自动生成。": {
       "简中": "客户端请选择 Streamable HTTP，地址随当前后端自动生成。",
       "繁中": "用戶端請選擇 Streamable HTTP，位址依目前的後端自動產生。",
-      "English": "Select Streamable HTTP in your client. The URL is generated from the current backend address.",
-      "日本語": "クライアントでは Streamable HTTP を選択してください。アドレスは現在のバックエンドから自動生成されます。"
+      "English": "Select Streamable HTTP in your client. The URL is generated from the current backend address."
     },
     "复制地址": {
       "简中": "复制地址",
       "繁中": "複製位址",
-      "English": "Copy URL",
-      "日本語": "アドレスをコピー"
+      "English": "Copy URL"
     },
     "MCP 地址已复制": {
       "简中": "MCP 地址已复制",
       "繁中": "MCP 位址已複製",
-      "English": "MCP URL copied",
-      "日本語": "MCP アドレスをコピーしました"
+      "English": "MCP URL copied"
     },
     "主题": {
       "简中": "主题",
       "繁中": "主題",
-      "English": "Theme",
-      "日本語": "テーマ"
+      "English": "Theme"
     },
     "选择浅色、深色，或跟随系统外观自动切换": {
       "简中": "选择浅色、深色，或跟随系统外观自动切换",
       "繁中": "選擇淺色、深色，或跟隨系統外觀自動切換",
-      "English": "Choose light, dark, or follow the system appearance automatically.",
-      "日本語": "ライト、ダーク、またはシステムの外観に自動で合わせるかを選択します。"
+      "English": "Choose light, dark, or follow the system appearance automatically."
     },
     "跟随系统": {
       "简中": "跟随系统",
       "繁中": "跟隨系統",
-      "English": "Follow System",
-      "日本語": "システムに合わせる"
+      "English": "Follow System"
     },
     "浅色": {
       "简中": "浅色",
       "繁中": "淺色",
-      "English": "Light",
-      "日本語": "ライト"
+      "English": "Light"
     },
     "深色": {
       "简中": "深色",
       "繁中": "深色",
-      "English": "Dark",
-      "日本語": "ダーク"
+      "English": "Dark"
     },
     "界面语言设置": {
       "简中": "界面语言设置",
       "繁中": "介面語言設定",
-      "English": "UI Language",
-      "日本語": "UI言語"
+      "English": "UI Language"
     },
     "应用界面将按照所选语言进行显示（将在应用重启后生效）": {
       "简中": "应用界面将按照所选语言进行显示（将在应用重启后生效）",
       "繁中": "應用介面將依所選語言顯示（重啟後生效）",
-      "English": "Displays the UI in the selected language.\nTakes effect after restart.",
-      "日本語": "選択した言語で UI を表示します。\n再起動後に有効になります。"
+      "English": "Displays the UI in the selected language.\nTakes effect after restart."
     },
     "应用界面将按照所选语言进行显示(将在应用重启后生效)": {
       "简中": "应用界面将按照所选语言进行显示(将在应用重启后生效)",
       "繁中": "應用介面將依所選語言顯示(重啟後生效)",
-      "English": "Displays the UI in the selected language.\nTakes effect after restart.",
-      "日本語": "選択した言語で UI を表示します。\n再起動後に有効になります。"
+      "English": "Displays the UI in the selected language.\nTakes effect after restart."
     },
     "网络代理地址": {
       "简中": "网络代理地址",
       "繁中": "網路代理位址",
-      "English": "Proxy Address",
-      "日本語": "プロキシアドレス"
+      "English": "Proxy Address"
     },
     "请输入网络代理地址": {
       "简中": "请输入网络代理地址",
       "繁中": "請輸入網路代理位址",
-      "English": "Enter proxy address",
-      "日本語": "プロキシアドレスを入力"
+      "English": "Enter proxy address"
     },
     "启用": {
       "简中": "启用",
       "繁中": "啟用",
-      "English": "Enable",
-      "日本語": "有効"
+      "English": "Enable"
     },
     "禁用": {
       "简中": "禁用",
       "繁中": "停用",
-      "English": "Disable",
-      "日本語": "無効"
+      "English": "Disable"
     },
     "网络代理已启用，代理地址": {
       "简中": "网络代理已启用，代理地址",
       "繁中": "網路代理已啟用，代理位址",
-      "English": "Proxy enabled, address",
-      "日本語": "プロキシが有効、アドレス"
+      "English": "Proxy enabled, address"
     },
     "网络代理已启用,代理地址": {
       "简中": "网络代理已启用,代理地址",
       "繁中": "網路代理已啟用,代理位址",
-      "English": "Proxy enabled, address",
-      "日本語": "プロキシが有効、アドレス"
+      "English": "Proxy enabled, address"
     },
     "网络代理已关闭": {
       "简中": "网络代理已关闭",
       "繁中": "網路代理已關閉",
-      "English": "Proxy disabled",
-      "日本語": "プロキシが無効"
+      "English": "Proxy disabled"
     },
     "启用该功能后，将使用设置的代理地址向接口发送请求，例如 http://127.0.0.1:7890": {
       "简中": "启用该功能后，将使用设置的代理地址向接口发送请求，例如 http://127.0.0.1:7890",
       "繁中": "啟用後，將使用設定的代理位址向介面發送請求，例如 http://127.0.0.1:7890",
-      "English": "Use the proxy address below for API requests.\nExample: http://127.0.0.1:7890",
-      "日本語": "有効にすると、下記のプロキシアドレスで API リクエストを送信します。\n例: http://127.0.0.1:7890"
+      "English": "Use the proxy address below for API requests.\nExample: http://127.0.0.1:7890"
     },
     "启用该功能后,将使用设置的代理地址向接口发送请求,例如 http://127.0.0.1:7890": {
       "简中": "启用该功能后,将使用设置的代理地址向接口发送请求,例如 http://127.0.0.1:7890",
       "繁中": "啟用後,將使用設定的代理位址向介面發送請求,例如 http://127.0.0.1:7890",
-      "English": "Use the proxy address below for API requests.\nExample: http://127.0.0.1:7890",
-      "日本語": "有効にすると、下記のプロキシアドレスで API リクエストを送信します。\n例: http://127.0.0.1:7890"
+      "English": "Use the proxy address below for API requests.\nExample: http://127.0.0.1:7890"
     },
     "主题色": {
       "简中": "主题色",
       "繁中": "主題色",
-      "English": "Accent Color",
-      "日本語": "アクセントカラー"
+      "English": "Accent Color"
     },
     "设置应用强调色，立即生效；部分自定义组件需重新打开后应用": {
       "简中": "设置应用强调色，立即生效；部分自定义组件需重新打开后应用",
       "繁中": "設定應用強調色，立即生效；部分自訂元件需重新開啟後套用",
-      "English": "Sets the application accent color. Applied immediately; some custom widgets update after reopening.",
-      "日本語": "アプリのアクセントカラーを設定します。即時反映され、一部のカスタムコンポーネントは再表示後に適用されます。"
+      "English": "Sets the application accent color. Applied immediately; some custom widgets update after reopening."
     },
     "恢复默认": {
       "简中": "恢复默认",
       "繁中": "恢復預設",
-      "English": "Reset",
-      "日本語": "既定にリセット"
+      "English": "Reset"
     },
     "自动检查更新": {
       "简中": "自动检查更新",
       "繁中": "自動檢查更新",
-      "English": "Auto-check for Updates",
-      "日本語": "自動更新チェック"
+      "English": "Auto-check for Updates"
     },
     "启用此功能后，应用将在启动时自动检查是否有新版本": {
       "简中": "启用此功能后，应用将在启动时自动检查是否有新版本",
       "繁中": "啟用後，應用將在啟動時自動檢查是否有新版本",
-      "English": "Checks for updates at startup.",
-      "日本語": "有効時、起動時に新バージョンを自動で確認します。"
+      "English": "Checks for updates at startup."
     },
     "启用此功能后,应用将在启动时自动检查是否有新版本": {
       "简中": "启用此功能后,应用将在启动时自动检查是否有新版本",
       "繁中": "啟用後,應用將在啟動時自動檢查是否有新版本",
-      "English": "Checks for updates at startup.",
-      "日本語": "有効時、起動時に新バージョンを自動で確認します。"
+      "English": "Checks for updates at startup."
     },
     "检查更新": {
       "简中": "检查更新",
       "繁中": "檢查更新",
-      "English": "Check for Updates",
-      "日本語": "更新を確認"
+      "English": "Check for Updates"
     },
     "点击按钮手动检查是否有新版本可用": {
       "简中": "点击按钮手动检查是否有新版本可用",
       "繁中": "點擊按鈕手動檢查是否有新版本可用",
-      "English": "Click the button to check for updates manually.",
-      "日本語": "ボタンを押して手動で新バージョンを確認します。"
+      "English": "Click the button to check for updates manually."
     },
     "正在检查更新...": {
       "简中": "正在检查更新...",
       "繁中": "正在檢查更新...",
-      "English": "Checking for updates...",
-      "日本語": "更新を確認しています..."
+      "English": "Checking for updates..."
     },
     "应用配置切换": {
       "简中": "应用配置切换",
       "繁中": "應用設定切換",
-      "English": "App Profile",
-      "日本語": "アプリ設定プロファイル"
+      "English": "App Profile"
     },
     "可以将当前应用的所有设置导出为配置文件,以方便根据不同项目切换配置(导入配置后应用将自动重启)": {
       "简中": "可以将当前应用的所有设置导出为配置文件,以方便根据不同项目切换配置(导入配置后应用将自动重启)",
       "繁中": "可將目前應用的所有設定匯出為設定檔,方便依不同專案切換設定(匯入後應用將自動重啟)",
-      "English": "Export all app settings as a profile file.\nUseful for switching settings by project.\nThe app restarts after import.",
-      "日本語": "現在のアプリ設定をプロファイルとしてエクスポートできます。\nプロジェクトごとの設定切り替えに便利です。\nインポート後はアプリが再起動します。"
+      "English": "Export all app settings as a profile file.\nUseful for switching settings by project.\nThe app restarts after import."
     },
     "导入": {
       "简中": "导入",
       "繁中": "匯入",
-      "English": "Import",
-      "日本語": "インポート"
+      "English": "Import"
     },
     "导出": {
       "简中": "导出",
       "繁中": "匯出",
-      "English": "Export",
-      "日本語": "エクスポート"
+      "English": "Export"
     },
     "警告": {
       "简中": "警告",
       "繁中": "警告",
-      "English": "Warning",
-      "日本語": "警告"
+      "English": "Warning"
     },
     "是否确认导入选中的配置文件,导入后应用将自动重启": {
       "简中": "是否确认导入选中的配置文件,导入后应用将自动重启",
       "繁中": "是否確認匯入選取的設定檔,匯入後應用將自動重啟",
-      "English": "Import the selected profile?\nThe app will restart afterward.",
-      "日本語": "選択した設定ファイルをインポートしますか？\nインポート後にアプリが自動で再起動します。"
+      "English": "Import the selected profile?\nThe app will restart afterward."
     },
     "确认": {
       "简中": "确认",
       "繁中": "確認",
-      "English": "Confirm",
-      "日本語": "確認"
+      "English": "Confirm"
     },
     "取消": {
       "简中": "取消",
       "繁中": "取消",
-      "English": "Cancel",
-      "日本語": "キャンセル"
+      "English": "Cancel"
     },
     "配置文件导入成功,应用即将自动重启!": {
       "简中": "配置文件导入成功,应用即将自动重启!",
       "繁中": "設定檔匯入成功,應用即將自動重啟!",
-      "English": "Profile imported.\nThe app will restart soon.",
-      "日本語": "設定ファイルをインポートしました。\nまもなくアプリが再起動します。"
+      "English": "Profile imported.\nThe app will restart soon."
     },
     "配置文件不存在!": {
       "简中": "配置文件不存在!",
       "繁中": "設定檔不存在!",
-      "English": "Profile file not found!",
-      "日本語": "設定ファイルが見つかりません。"
+      "English": "Profile file not found!"
     },
     "配置已导出为": {
       "简中": "配置已导出为",
       "繁中": "設定已匯出為",
-      "English": "Profile exported as",
-      "日本語": "設定を次の名前でエクスポートしました"
+      "English": "Profile exported as"
     },
     "提示": {
       "简中": "提示",
       "繁中": "提示",
-      "English": "Notice",
-      "日本語": "通知"
+      "English": "Notice"
     },
     "选择文件": {
       "简中": "选择文件",
       "繁中": "選擇檔案",
-      "English": "Choose File",
-      "日本語": "ファイルを選択"
+      "English": "Choose File"
     },
     "选择文件夹": {
       "简中": "选择文件夹",
       "繁中": "選擇資料夾",
-      "English": "Choose Folder",
-      "日本語": "フォルダを選択"
+      "English": "Choose Folder"
     },
     "JSON 配置文件 (*.json)": {
       "简中": "JSON 配置文件 (*.json)",
       "繁中": "JSON 設定檔 (*.json)",
-      "English": "JSON Files (*.json)",
-      "日本語": "JSON 設定ファイル (*.json)"
+      "English": "JSON Files (*.json)"
     }
   }
 }

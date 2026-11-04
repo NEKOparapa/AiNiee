@@ -3,80 +3,67 @@
     "选择文件夹": {
       "简中": "选择文件夹",
       "繁中": "選擇資料夾",
-      "English": "Select Folder",
-      "日本語": "フォルダーを選択"
+      "English": "Select Folder"
     },
     "当前输出文件夹为": {
       "简中": "当前输出文件夹：",
       "繁中": "目前輸出資料夾：",
-      "English": "Current Output Folder:",
-      "日本語": "現在の出力フォルダー："
+      "English": "Current Output Folder:"
     },
     "翻译输出文件夹": {
       "简中": "翻译输出文件夹",
       "繁中": "翻譯輸出資料夾",
-      "English": "Translation Output Folder",
-      "日本語": "翻訳出力フォルダ"
+      "English": "Translation Output Folder"
     },
     "输出文件名后缀": {
       "简中": "输出文件名后缀",
       "繁中": "輸出檔案名稱後綴",
-      "English": "Output Filename Suffix",
-      "日本語": "出力ファイル名接尾辞"
+      "English": "Output Filename Suffix"
     },
     "设置输出文件的文件名后缀，例如: _translated": {
       "简中": "设置输出文件的文件名后缀，例如: _translated",
       "繁中": "設定輸出檔案的檔案名稱後綴，例如: _translated",
-      "English": "Set filename suffix for output files, e.g., _translated",
-      "日本語": "出力ファイルの接尾辞を設定（例: _translated）"
+      "English": "Set filename suffix for output files, e.g., _translated"
     },
     "双语文件文本顺序": {
       "简中": "双语文件文本顺序",
       "繁中": "雙語檔案文字順序",
-      "English": "Bilingual Text Order",
-      "日本語": "バイリンガル表示順序"
+      "English": "Bilingual Text Order"
     },
     "设置双语文件中原文和译文的显示顺序，仅支持txt与epub项目": {
       "简中": "设置双语文件中原文和译文的显示顺序，仅支持txt与epub项目",
       "繁中": "設定雙語檔案中原文和譯文的顯示順序，僅支援txt與epub專案",
-      "English": "Set display order of source/translated text in bilingual files\n(Only for txt/epub projects)",
-      "日本語": "バイリンガルファイルの原文/訳文表示順序を設定\n(txtとepubプロジェクトのみ対応)"
+      "English": "Set display order of source/translated text in bilingual files\n(Only for txt/epub projects)"
     },
     "原文在上": {
       "简中": "原文在上",
       "繁中": "原文在上",
-      "English": "Source First",
-      "日本語": "原文を先に"
+      "English": "Source First"
     },
     "译文在上": {
       "简中": "译文在上",
       "繁中": "譯文在上",
-      "English": "Translation First",
-      "日本語": "訳文を先に"
+      "English": "Translation First"
     },
     "自动设置输出文件夹": {
       "简中": "自动设置输出文件夹",
       "繁中": "自動設置輸出資料夾",
-      "English": "Automatically set output folder",
-      "日本語": "出力フォルダーを自動設定"
+      "English": "Automatically set output folder"
     },
     "启用此功能后，设置为输入文件夹的平级目录，比如输入文件夹为D:/Test/Input，输出文件夹将设置为D:/Test/AiNieeOutput": {
       "简中": "启用此功能后，翻译输出文件夹会设置为输入文件夹的平级目录。\n比如输入文件夹为 D:/Test/Input，输出文件夹将设置为 D:/Test/AiNieeOutput",
       "繁中": "啟用此功能後，翻譯輸出資料夾會設置為輸入資料夾的同層級目錄。\n例如輸入資料夾為 D:/Test/Input，輸出資料夾將設置為 D:/Test/AiNieeOutput",
-      "English": "Creates the translation output folder next to the input folder.\nExample: D:/Test/Input -> D:/Test/AiNieeOutput.",
-      "日本語": "この機能を有効にすると、翻訳の出力フォルダーは入力フォルダーと同じ階層に設定されます。\n例：入力フォルダーが D:/Test/Input の場合、出力フォルダーは D:/Test/AiNieeOutput になります。"
+      "English": "Creates the translation output folder next to the input folder.\nExample: D:/Test/Input -> D:/Test/AiNieeOutput."
     },
     "保持输入输出文件编码一致": {
       "简中": "文件编码保持一致",
       "繁中": "檔案編碼保持一致",
-      "English": "Keep input and output file encoding consistent",
-      "日本語": "入出力ファイルのエンコーディングを一致させる"
+      "English": "Keep input and output file encoding consistent"
     },
     "启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）": {
       "简中": "启用此功能后，输出译文文件的编码将保持为与输入原文文件的编码一致（若字符不兼容，仍会使用utf-8），\n关闭后将始终使用 utf-8 编码（无特殊情况保持关闭即可）",
       "繁中": "啟用此功能後，輸出譯文檔案的編碼將保持為與輸入原文檔案的編碼一致（若字元不相容，仍會使用 utf-8），\n關閉後將始終使用 utf-8 編碼（無特殊情況保持關閉即可）",
-      "English": "Match the output file encoding to the source file.\nFalls back to UTF-8 if needed.\nIf disabled, always use UTF-8.",
-      "日本語": "この機能を有効にすると、出力翻訳ファイルのエンコーディングは入力原文ファイルのエンコーディングと一致します（文字に互換性がない場合はutf-8を使用します）。\n無効にすると、常にutf-8エンコーディングを使用します。（通常はオフのままで問題ありません）"
+      "English": "Match the output file encoding to the source file.\nFalls back to UTF-8 if needed.\nIf disabled, always use UTF-8."
     }
   }
 }
