@@ -106,7 +106,7 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.titleLayout.setSpacing(12)
         self.titleLayout.setAlignment(Qt.AlignVCenter)
 
-        self.titleIcon = IconWidget(FluentIcon.IOT, self)
+        self.titleIcon = IconWidget(FluentIcon.CHAT, self)
         self.titleIcon.setFixedSize(26, 26)
         self.titleLayout.addWidget(self.titleIcon)
 

@@ -1,6 +1,7 @@
 """Shared, compact import and recent-project surface for media workspaces."""
 
 import copy
+from pathlib import Path
 
 from PyQt5.QtCore import QDateTime, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QColor, QPainter, QPen
@@ -19,13 +20,23 @@ from Frontend.core.config import ConfigMixin
 
 class MediaDropCard(SimpleCardWidget, ConfigMixin):
     pathsDropped = pyqtSignal(list)
+    FILE_EXTENSIONS = {
+        "image": frozenset({".png", ".jpg", ".jpeg", ".webp"}),
+        "audio": frozenset({
+            ".wav", ".wave", ".mp3", ".mp2", ".m4a", ".m4b", ".m4r", ".flac",
+            ".ogg", ".oga", ".opus", ".aac", ".wma", ".aif", ".aiff", ".aifc",
+            ".ape", ".amr", ".ac3", ".alac", ".mka", ".weba",
+        }),
+        "video": frozenset({".mp4", ".mkv", ".mov", ".avi", ".webm", ".m4v", ".wmv", ".flv"}),
+    }
 
     def __init__(self, kind, parent=None):
         super().__init__(parent)
+        self.file_extensions = self.FILE_EXTENSIONS[kind]
         self.setBorderRadius(16)
         self.setAcceptDrops(True)
-        self.setMinimumHeight(248)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setMinimumHeight(280)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._dragging = False
         self._title = self.tra("将图片拖到这里" if kind == "image" else "将视频拖到这里" if kind == "video" else "将音频拖到这里")
         icon = FluentIcon.PHOTO if kind == "image" else FluentIcon.VIDEO if kind == "video" else FluentIcon.MUSIC
@@ -60,8 +71,7 @@ class MediaDropCard(SimpleCardWidget, ConfigMixin):
         buttons.addStretch(1)
         self.pick_files = PrimaryPushButton(icon, self.tra("选择图片" if kind == "image" else "选择视频" if kind == "video" else "选择音频"), self)
         self.pick_folder = PushButton(FluentIcon.FOLDER, self.tra("文件夹"), self)
-        self.pick_zip = PushButton(FluentIcon.ZIP_FOLDER, "ZIP", self)
-        for button in (self.pick_files, self.pick_folder, self.pick_zip):
+        for button in (self.pick_files, self.pick_folder):
             button.setMinimumHeight(36)
             buttons.addWidget(button)
         buttons.addStretch(1)
@@ -81,7 +91,14 @@ class MediaDropCard(SimpleCardWidget, ConfigMixin):
 
     def _accepts_drop(self, event):
         urls = event.mimeData().urls()
-        return self.isEnabled() and bool(urls) and all(url.isLocalFile() for url in urls)
+        if not self.isEnabled() or not urls or not all(url.isLocalFile() for url in urls):
+            return False
+        try:
+            paths = [Path(url.toLocalFile()) for url in urls]
+            return all(path.is_dir() or (path.is_file() and path.suffix.lower() in self.file_extensions)
+                       for path in paths)
+        except (OSError, ValueError):
+            return False
 
     def _set_dragging(self, dragging):
         self._dragging = dragging
@@ -212,8 +229,7 @@ class MediaStartPage(QWidget, ConfigMixin):
         self.drop_card = MediaDropCard(kind, self)
         self.pick_files = self.drop_card.pick_files
         self.pick_folder = self.drop_card.pick_folder
-        self.pick_zip = self.drop_card.pick_zip
-        layout.addWidget(self.drop_card)
+        layout.addWidget(self.drop_card, 2)
 
         self.history_card = SimpleCardWidget(self)
         self.history_card.setBorderRadius(16)
@@ -259,7 +275,7 @@ class MediaStartPage(QWidget, ConfigMixin):
         empty.addStretch(1)
         self.history_stack.addWidget(self.empty_hint)
         history.addWidget(self.history_stack, 1)
-        layout.addWidget(self.history_card, 1)
+        layout.addWidget(self.history_card, 2)
         self.set_history([])
 
     def set_history(self, rows):

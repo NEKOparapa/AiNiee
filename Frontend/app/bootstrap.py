@@ -44,7 +44,6 @@ from Frontend.core.resources import frontend_resource_path
 from Frontend.core.paths import executable_root
 from Frontend.platform.platform_paths import (
     monospace_font_family,
-    ui_font_family,
 )
 from Frontend.platform.runtime_setup import prepare_working_directory
 from Frontend.platform.single_instance import acquire_app_mutex
@@ -64,9 +63,9 @@ class _BootstrapLogger(LogMixin):
 
 
 _log = _BootstrapLogger()
-from PyQt5.QtGui import QFont, QIcon, QColor
+from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMessageBox, QSplashScreen
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 
 # 过滤protobuf的警告信息
@@ -102,23 +101,6 @@ def load_version() -> str:
         _log.warning(f"版本文件 {version_path} 未找到, 将使用默认版本号")
         return default_version
 
-# 启动画面消息
-def update_splash_message(splash, message, app, font_size=10, font_weight=QFont.Bold):
-    font = QFont(ui_font_family())
-    font.setPointSize(font_size)
-    font.setWeight(font_weight)
-    
-    # 创建淡粉红色
-    text_color = QColor(255, 182, 193)
-    
-    splash.setFont(font)
-    
-    # 应用淡粉红颜色到文本
-    splash.showMessage(message, Qt.AlignBottom | Qt.AlignCenter, text_color)
-    
-    app.processEvents()
-
-
 def prepare_runtime_environment() -> str:
     # macOS 打包后资源和用户数据分离，这里只做入口层的工作目录准备。
     working_root = prepare_working_directory()
@@ -130,37 +112,10 @@ def prepare_runtime_environment() -> str:
 
 
 def _setup_qt_high_dpi():
-    """配置 Qt 高 DPI 缩放策略，必须在 QApplication 创建前调用。"""
+    """固定使用 AUTO 跟随系统 DPI；必须在 QApplication 创建前调用。"""
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-
-
-def _apply_scale_factor(config: dict):
-    """将配置中的缩放比例写入 QT_SCALE_FACTOR 环境变量。"""
-    mapping = {"50%": "0.50", "75%": "0.75", "125%": "1.25", "150%": "1.50", "200%": "2.00"}
-    scale_factor = config.get("scale_factor", "")
-    value = mapping.get(scale_factor) if isinstance(scale_factor, str) else None
-    if value:
-        os.environ["QT_SCALE_FACTOR"] = value
-
-
-def _create_splash(app):
-    """创建并显示启动页，返回 QSplashScreen 实例。"""
-    logo_path = str(frontend_resource_path("icons", "logo.png"))
-    pixmap = QIcon(logo_path).pixmap(400, 200)
-    if "QT_SCALE_FACTOR" in os.environ:
-        scale_factor = float(os.environ["QT_SCALE_FACTOR"])
-        pixmap = pixmap.scaled(
-            int(pixmap.width() * scale_factor),
-            int(pixmap.height() * scale_factor),
-            Qt.KeepAspectRatio,
-            Qt.SmoothTransformation,
-        )
-    splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
-    splash.setEnabled(False)
-    splash.show()
-    return splash
 
 
 def main(argv=None):
@@ -186,27 +141,33 @@ def main(argv=None):
     if _log_path is not None:
         _log.info(f"Log file: {_log_path}")
 
+    from Frontend.app.startup_splash import StartupSplash
+    with StartupSplash() as splash:
+        return _run_application(args, script_dir, splash)
+
+
+def _run_application(args, script_dir, splash):
+    import atexit
     from Frontend.app.backend_connection import connect_backend
     from Frontend.core.config import ConfigMixin
+    backend_client = None
     try:
-        backend_client = connect_backend(args.backend_url)
+        backend_client = connect_backend(args.backend_url, on_status=splash.show_message)
         ConfigMixin.remote_client = backend_client
+        atexit.register(backend_client.close)
+        splash.show_message("正在读取应用配置...")
+        load_config()
     except Exception as error:
         _log.error("无法启动或连接 FastAPI 后端", error=error)
+        if backend_client is not None:
+            backend_client.close()
+        splash.close()
         error_app = QApplication.instance() or QApplication(sys.argv)
         QMessageBox.critical(None, "无法连接后端", f"请检查后端依赖、服务地址和访问令牌。\n\n{error}")
         return 1
-    import atexit
-    atexit.register(backend_client.close)
-
-    # 加载配置文件
-    config = load_config()
     
     # 加载版本信息
     app_version = load_version()
-
-    # 设置全局缩放比例
-    _apply_scale_factor(config)
 
     # 创建全局应用对象
     app = QApplication(sys.argv)
@@ -218,9 +179,7 @@ def main(argv=None):
     _log.info(f"Current working directory is {script_dir}")
     _log.info("Starting AiNiee Application...")
 
-    # 启动页面
-    splash = _create_splash(app)
-    update_splash_message(splash, "正在初始化...", app)  # 显示初始化消息
+    splash.show_message("正在初始化界面...")
 
     # 设置全局字体属性，解决狗牙问题
     font = QFont(monospace_font_family())
@@ -228,14 +187,14 @@ def main(argv=None):
     app.setFont(font)
 
     # 创建全局缓存器
-    update_splash_message(splash, "正在加缓存器... (15%)", app)
+    splash.show_message("正在加载项目缓存...")
     from Frontend.services.project_state import RemoteCacheManager, RemoteFileReader
     cache_manager = RemoteCacheManager(backend_client)
     file_reader = RemoteFileReader(backend_client)
     event_bridge.cache = cache_manager
 
     # 创建窗口对象(高性能消耗)
-    update_splash_message(splash, "正在加载核心组件... (50%)", app)
+    splash.show_message("正在加载核心组件...")
     from Frontend.app.window import AppFluentWindow
     app_fluent_window = AppFluentWindow(
         version=app_version,
@@ -243,11 +202,11 @@ def main(argv=None):
         file_reader =file_reader,
     )
 
-    update_splash_message(splash, "正在连接实时事件... (85%)", app)
+    splash.show_message("正在连接实时事件...")
     event_bridge.window = app_fluent_window
     backend_client.start_events(event_bridge.message.emit)
 
-    update_splash_message(splash, "启动完成，正在打开应用... (100%)", app)
+    splash.show_message("启动完成，正在打开应用...")
 
     # 显示全局窗口
     app_fluent_window.show()
@@ -270,7 +229,8 @@ def main(argv=None):
         )
 
     # 隐藏启动页面
-    splash.finish(app_fluent_window)
+    app.processEvents()
+    splash.close()
 
     # 进入事件循环，等待用户操作
     return app.exec_()

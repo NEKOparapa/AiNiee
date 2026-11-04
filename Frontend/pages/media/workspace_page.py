@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (QAbstractItemView, QFileDialog, QFrame, QHeaderView
     QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 from qfluentwidgets import (CaptionLabel, ComboBox, FluentIcon, IconWidget,
     MessageBox, PrimaryPushButton, SearchLineEdit, SimpleCardWidget,
-    SingleDirectionScrollArea, StrongBodyLabel, TransparentPushButton, TreeWidget)
+    SingleDirectionScrollArea, StateToolTip, StrongBodyLabel, TransparentPushButton, TreeWidget)
 
 from Frontend.core.config import ConfigMixin
 from Frontend.core.media_task_config import read_media_export_settings
@@ -56,6 +56,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.client = MediaClient(backend or self.config_backend())
         self.workspace = None
         self._worker = None
+        self._load_tooltip = None
         self._aux_workers = []
         self._history_worker = None
         self._history_revision = 0
@@ -132,12 +133,10 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.drop_card = self.start_page.drop_card
         self.pick_files = self.start_page.pick_files
         self.pick_folder = self.start_page.pick_folder
-        self.pick_zip = self.start_page.pick_zip
         self.history_list = self.start_page.history_list
         self.drop_card.pathsDropped.connect(self.import_paths)
         self.pick_files.clicked.connect(self._choose_files)
         self.pick_folder.clicked.connect(self._choose_folder)
-        self.pick_zip.clicked.connect(self._choose_zip)
         self.history_list.itemDoubleClicked.connect(lambda item: self.load_workspace(item.data(Qt.UserRole)))
         self.start_page.deleteRequested.connect(self._delete_workspace)
         self.stack.addWidget(self.start_page)
@@ -400,13 +399,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if path:
             self.import_paths([path])
 
-    def _choose_zip(self):
-        paths, _ = QFileDialog.getOpenFileNames(self, self.tra("选择 ZIP"), "", "ZIP (*.zip)")
-        if paths:
-            self.import_paths(paths)
-
     def _set_busy(self, value, *, cancellable=False):
-        for widget in (self.drop_card, self.pick_files, self.pick_folder, self.pick_zip,
+        for widget in (self.drop_card, self.pick_files, self.pick_folder,
                        self.history_list, self.back_button,
                        self.save_button, self.translate_button,
                        self.preview_button, self.export_button, self.source_combo, self.target_combo):
@@ -419,7 +413,38 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.import_stop_button.setVisible(value and cancellable and self.stack.currentWidget() is self.start_page)
         self.import_stop_button.setEnabled(value and cancellable)
 
-    def _start_worker(self, action, completed, label, *, cancellable=False):
+    def _close_load_tooltip(self):
+        tooltip, self._load_tooltip = self._load_tooltip, None
+        if tooltip is not None:
+            tooltip.close()
+
+    def _show_load_tooltip(self):
+        self._close_load_tooltip()
+        tooltip = StateToolTip(self.tra("正在加载项目..."), self.tra("请耐心等待"), self.window())
+        self._load_tooltip = tooltip
+        tooltip.setAttribute(Qt.WA_DeleteOnClose)
+        tooltip.closedSignal.connect(tooltip.close)
+
+        def destroyed():
+            if self._load_tooltip is tooltip:
+                self._load_tooltip = None
+
+        tooltip.destroyed.connect(destroyed)
+        tooltip.move(max(0, (self.window().width() - tooltip.width()) // 2), 32)
+        tooltip.show()
+        tooltip.raise_()
+        tooltip.repaint()
+
+    def _finish_load_tooltip(self, success):
+        if self._load_tooltip is None:
+            return
+        if success:
+            self._load_tooltip.setContent(self.tra("项目加载成功"))
+            self._load_tooltip.setState(True)
+        else:
+            self._close_load_tooltip()
+
+    def _start_worker(self, action, completed, label, *, cancellable=False, loading=False):
         if self.busy:
             return False
         self._history_revision += 1
@@ -439,7 +464,15 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         worker.workspaceReady.connect(self._apply_workspace)
         worker.stageChanged.connect(self._stage_changed)
         worker.stageFinished.connect(self._stage_finished)
-        worker.completed.connect(completed)
+        if loading:
+            def loaded(result):
+                completed(result)
+                self._finish_load_tooltip(not cancellable or result.get("status") == "success")
+
+            worker.completed.connect(loaded)
+            self._show_load_tooltip()
+        else:
+            worker.completed.connect(completed)
         worker.failed.connect(self._request_failed)
         worker.finished.connect(lambda: self._finish_worker(worker))
         worker.start()
@@ -463,6 +496,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         worker.deleteLater()
 
     def _request_failed(self, message):
+        self._close_load_tooltip()
         if self._run_started is not None:
             self._run_state = "未完成"
             if self._active_stage:
@@ -633,10 +667,11 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                     self._show_report(workspace.get("status", "failed"), workspace.get("report", {}))
 
             self._stage_label = self.tra("正在读取图片…" if self.kind == "image" else "正在读取文件…")
-            self._start_worker(action, completed, self._stage_label, cancellable=True)
+            self._start_worker(action, completed, self._stage_label, cancellable=True, loading=True)
 
     def load_workspace(self, identifier):
-        self._start_worker(lambda worker: self.client.load(identifier), self._loaded, self.tra("正在恢复项目…"))
+        self._start_worker(lambda worker: self.client.load(identifier), self._loaded,
+                           self.tra("正在恢复项目…"), loading=True)
 
     def _delete_workspace(self, identifier, title):
         if self.busy:
@@ -1126,6 +1161,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
 
     def cleanup(self):
         self._disposed = True
+        self._close_load_tooltip()
         self._history_revision += 1
         self._save_timer.stop()
         self._progress_timer.stop()

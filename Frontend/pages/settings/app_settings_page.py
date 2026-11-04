@@ -4,9 +4,7 @@ import sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QSignalBlocker
 from PyQt5.QtCore import QTimer
-from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QColor
-from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QVBoxLayout
@@ -21,7 +19,6 @@ from qfluentwidgets import setThemeColor
 
 from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
-from Frontend.core.paths import user_log_dir
 from Frontend.core.log import LogMixin
 from Frontend.core.log_system import redact
 from Frontend.components.toast import ToastMixin
@@ -70,9 +67,7 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.add_widget_interface_language_setting(self.vbox, config)
         self.add_widget_auto_check_update(self.vbox, config)
         self.add_widget_check_update(self.vbox, config, window)
-        self.add_widget_open_log_dir(self.vbox, config)
         self.add_widget_theme(self.vbox, config, window)
-        self.add_widget_scale_factor(self.vbox, config)
         self.add_widget_accent_color(self.vbox, config)
         self.add_widget_backend_connection(self.vbox, config)
         self.add_widget_mcp(self.vbox, config)
@@ -206,7 +201,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
         self.mcp_address_card.hbox.setStretch(1, 0)
         parent.addWidget(self.mcp_address_card)
 
-    # 全局缩放比例
     # 主题（跟随系统 / 浅色 / 深色，连体分段控件）
     def add_widget_theme(self, parent, config, window) -> None:
         theme_items = [
@@ -233,25 +227,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
                 self.tra("主题"),
                 self.tra("选择浅色、深色，或跟随系统外观自动切换"),
                 init=init,
-            )
-        )
-
-    def add_widget_scale_factor(self, parent, config) -> None:
-        def init(widget) -> None:
-            widget.set_current_index(max(0, widget.find_text(config.get("scale_factor"))))
-
-        def current_text_changed(widget, text: str) -> None:
-            config = self.load_config()
-            config["scale_factor"] = text
-            self.save_config(config)
-
-        parent.addWidget(
-            ComboBoxCard(
-                self.tra("全局缩放比例"),
-                self.tra("启用此功能后,应用界面将按照所选比例进行缩放(将在应用重启后生效)"),
-                ["AUTO", "50%", "75%", "125%", "150%", "200%"],
-                init=init,
-                current_text_changed=current_text_changed,
             )
         )
 
@@ -362,33 +337,6 @@ class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
             EmptyCard(
                 self.tra("检查更新"),
                 self.tra("点击按钮手动检查是否有新版本可用"),
-                init=init,
-            )
-        )
-
-    # 打开日志目录
-    def add_widget_open_log_dir(self, parent, config) -> None:
-        def on_clicked() -> None:
-            try:
-                log_dir = user_log_dir()
-                log_dir.mkdir(parents=True, exist_ok=True)
-                opened = QDesktopServices.openUrl(QUrl.fromLocalFile(str(log_dir)))
-                if not opened:
-                    self.error_toast("", self.tra("无法打开日志目录"))
-            except OSError as e:
-                self.error_toast("", self.tra("无法打开日志目录") + f": {e}")
-
-        def init(widget) -> None:
-            open_button = PushButton(self.tra("打开日志目录"), self)
-            open_button.setIcon(FluentIcon.FOLDER)
-            open_button.setContentsMargins(4, 0, 4, 0)
-            open_button.clicked.connect(on_clicked)
-            widget.add_widget(open_button)
-
-        parent.addWidget(
-            EmptyCard(
-                self.tra("打开日志目录"),
-                self.tra("点击按钮打开日志文件夹，用于排查问题或提交反馈"),
                 init=init,
             )
         )

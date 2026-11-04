@@ -358,7 +358,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.platform_page = PlatformPage("platform_page", self)
         self.platform_page.header_card.titleLabel.setText(self.tra("翻译接口"))
         self.addSubInterface(
-            self.platform_page, FluentIcon.LANGUAGE, self.tra("翻译接口"),
+            self.platform_page, FluentIcon.CHAT, self.tra("翻译接口"),
             parent=self.interface_management_navigation,
         )
         self.transcription_page = TranscriptionPage("transcription_page", self)

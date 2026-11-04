@@ -3,14 +3,13 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path
 import re
 import shutil
 import stat
 from tempfile import NamedTemporaryFile
 import threading
 import uuid
-import zipfile
 
 from Backend.application.pipeline_common import PipelineError
 from Backend.core.paths import project_cache_root
@@ -23,13 +22,7 @@ from Backend.infrastructure.files.pipeline_support import file_sha256
 from Backend.infrastructure.images.source import IMAGE_EXTENSIONS
 
 
-MAX_ARCHIVE_ENTRIES = 10000
-MAX_ARCHIVE_BYTES = 8 * 1024 ** 3
-MAX_ARCHIVE_FILE_BYTES = 2 * 1024 ** 3
-MAX_COMPRESSION_RATIO = 1000
 _ID = re.compile(r"[a-f0-9]{32}\Z")
-_INVALID_NAME = re.compile(r'[<>:"|?*\x00-\x1f]')
-_RESERVED = re.compile(r"(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)", re.I)
 
 
 def _now():
@@ -146,74 +139,6 @@ def _selected_preview(document, file):
     usable = registered and _generation_matches(document["model"], file)
     identity = _generation_identity(file)
     return registered if usable and registered.get("content_identity") == identity else None
-
-
-def _zip_relative(name):
-    name = name.replace("\\", "/")
-    stripped = name[:-1] if name.endswith("/") else name
-    parts = stripped.split("/")
-    if (not stripped or PureWindowsPath(stripped).drive or PurePosixPath(stripped).is_absolute()
-            or any(p in ("", ".", "..") or _INVALID_NAME.search(p) or _RESERVED.match(p)
-                   or p.endswith((" ", ".")) for p in parts)):
-        raise PipelineError("MEDIA_UNSAFE_ARCHIVE", "ZIP 包含不安全或不兼容的文件路径")
-    return PurePosixPath(*parts)
-
-
-def _extract_archive(source, destination, extensions):
-    """Preflight every member before writing; never use extract/extractall."""
-    try:
-        with zipfile.ZipFile(source) as archive:
-            entries = archive.infolist()
-            if len(entries) > MAX_ARCHIVE_ENTRIES:
-                raise PipelineError("MEDIA_ARCHIVE_LIMIT", "ZIP 文件数量超过导入上限")
-            selected, occupied, total = [], {}, 0
-            for info in entries:
-                relative = _zip_relative(info.filename)
-                key = relative.as_posix().casefold()
-                mode = info.external_attr >> 16
-                if stat.S_ISLNK(mode) or (stat.S_IFMT(mode) and not (stat.S_ISREG(mode) or stat.S_ISDIR(mode))):
-                    raise PipelineError("MEDIA_UNSAFE_ARCHIVE", "ZIP 不支持链接或特殊文件")
-                if key in occupied:
-                    raise PipelineError("MEDIA_UNSAFE_ARCHIVE", "ZIP 包含重复或大小写冲突路径")
-                # A directory entry may precede its children, but a file cannot.
-                for parent in relative.parents:
-                    if str(parent) != "." and occupied.get(parent.as_posix().casefold()) is False:
-                        raise PipelineError("MEDIA_UNSAFE_ARCHIVE", "ZIP 包含文件与目录冲突")
-                if not info.is_dir() and any(old.startswith(key + "/") for old in occupied):
-                    raise PipelineError("MEDIA_UNSAFE_ARCHIVE", "ZIP 包含文件与目录冲突")
-                occupied[key] = info.is_dir()
-                if info.is_dir() or relative.suffix.lower() not in extensions:
-                    continue
-                if info.flag_bits & 1:
-                    raise PipelineError("MEDIA_ENCRYPTED_ARCHIVE", "请先解密 ZIP，再导入媒体文件")
-                total += info.file_size
-                if (info.file_size > MAX_ARCHIVE_FILE_BYTES or total > MAX_ARCHIVE_BYTES
-                        or (info.file_size > 1024 ** 2 and info.file_size / max(1, info.compress_size) > MAX_COMPRESSION_RATIO)):
-                    raise PipelineError("MEDIA_ARCHIVE_LIMIT", "ZIP 展开大小或压缩比超过导入上限")
-                selected.append((info, relative))
-            if not selected:
-                raise PipelineError("MEDIA_EMPTY_ARCHIVE", "ZIP 中没有支持的媒体文件")
-            destination.mkdir(parents=True, exist_ok=False)
-            expanded = 0
-            for info, relative in selected:
-                target = destination.joinpath(*relative.parts)
-                if not target.resolve().is_relative_to(destination.resolve()):
-                    raise PipelineError("MEDIA_UNSAFE_ARCHIVE", "ZIP 路径越界")
-                target.parent.mkdir(parents=True, exist_ok=True)
-                written = 0
-                with archive.open(info) as reader, target.open("xb") as writer:
-                    while chunk := reader.read(1024 * 1024):
-                        written += len(chunk)
-                        expanded += len(chunk)
-                        if written > info.file_size or written > MAX_ARCHIVE_FILE_BYTES or expanded > MAX_ARCHIVE_BYTES:
-                            raise PipelineError("MEDIA_ARCHIVE_LIMIT", "ZIP 实际展开大小超过导入上限")
-                        writer.write(chunk)
-                if written != info.file_size:
-                    raise PipelineError("MEDIA_INVALID_ARCHIVE", "ZIP 文件大小校验失败")
-    except (zipfile.BadZipFile, RuntimeError, NotImplementedError, OSError) as error:
-        if isinstance(error, PipelineError):
-            raise
-        raise PipelineError("MEDIA_INVALID_ARCHIVE", "ZIP 无法读取或解压") from error
 
 
 class MediaWorkspaceStore:
@@ -365,16 +290,13 @@ class MediaWorkspaceStore:
                         report["skipped_files"].append({"path": str(source), "reason": "duplicate_input"})
                         continue
                     seen_inputs.add(canonical)
-                    is_archive = source.is_file() and source.suffix.lower() == ".zip"
-                    target = source
-                    if is_archive:
-                        target = directory / "imports" / str(ordinal)
-                        _extract_archive(source, target, extensions)
-                    result = (reader(target, {"exclude_rule": exclude_rule}, context=context) if kind in ("image", "video")
-                              else reader(target, {"exclude_rule": exclude_rule}))
+                    if source.is_file() and source.suffix.lower() not in extensions:
+                        raise PipelineError("MEDIA_UNSUPPORTED_FORMAT", "请选择对应类型的媒体文件或文件夹")
+                    result = (reader(source, {"exclude_rule": exclude_rule}, context=context) if kind in ("image", "video")
+                              else reader(source, {"exclude_rule": exclude_rule}))
                     if not project.project_name:
                         project.project_name = source.stem if len(paths) == 1 else f"{len(paths)} 个媒体输入"
-                    if len(paths) == 1 and not is_archive:
+                    if len(paths) == 1:
                         project.input_path = str(source)
                     for entry in result["report"].get("errors", []):
                         report["errors"].append({**entry, "input": str(source)})
@@ -387,7 +309,7 @@ class MediaWorkspaceStore:
                             report["skipped_files"].append({"path": relative, "reason": "duplicate_input"})
                             continue
                         seen_sources.add(file_source)
-                        prefix = f"{source.stem}/" if len(paths) > 1 and (is_archive or source.is_dir()) else ""
+                        prefix = f"{source.stem}/" if len(paths) > 1 and source.is_dir() else ""
                         storage = prefix + relative
                         if storage.casefold() in used_keys:
                             storage = f"input-{ordinal}/" + storage

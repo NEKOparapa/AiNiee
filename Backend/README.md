@@ -90,7 +90,7 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 | 接口 | 主要参数与用途 |
 | --- | --- |
-| `POST /api/v2/media/import` | `kind: image/audio/video`、`paths`，可选 `exclude_rule`；导入并创建工作区 |
+| `POST /api/v2/media/import` | `kind: image/audio/video`、`paths` 为媒体文件或目录路径，可选 `exclude_rule`；导入并创建工作区，不读取 ZIP 等压缩包 |
 | `GET /api/v2/media` | 返回 `workspaces` 历史列表；可选 `kind`、`limit`（1–100，默认 20） |
 | `GET /api/v2/media/{workspace_id}` | 获取工作区模型、文件信息与处理状态 |
 | `POST /api/v2/media/{workspace_id}/model` | `model`、可选 `preview_files`；保存编辑后的模型 |

@@ -34,12 +34,14 @@ def _not_ready(error):
     return isinstance(error.__cause__, (httpx.ConnectError, httpx.TimeoutException))
 
 
-def connect_backend(url=None, *, startup_timeout=60):
+def connect_backend(url=None, *, startup_timeout=60, on_status=None):
     url = url or os.environ.get("AINIEE_BACKEND_URL", "http://127.0.0.1:3389")
     client = BackendClient(url, os.environ.get("AINIEE_API_TOKEN", ""))
     process = None
     deadline = time.monotonic() + startup_timeout
+    report = on_status or (lambda message: None)
     try:
+        report("正在连接后端...")
         try:
             _check_health(client, timeout=min(5, startup_timeout))
             return client
@@ -49,6 +51,7 @@ def connect_backend(url=None, *, startup_timeout=60):
                 raise
 
         host, port = endpoint
+        report("正在等待后端就绪...")
         with backend_startup_lock(port, deadline):
             # Recheck under the cross-process lock: another desktop may have
             # started the service while we were waiting for this lock.
@@ -69,7 +72,9 @@ def connect_backend(url=None, *, startup_timeout=60):
                             and isinstance(error.__cause__, (httpx.ConnectError, httpx.ConnectTimeout))
                             and backend_port_available(host, port)):
                         logging.getLogger("AiNiee.bootstrap").info("正在启动独立 FastAPI 后端：%s", url)
+                        report("正在启动后端，请稍候...")
                         process, log_path = launch_backend(host, port)
+                        report("正在等待后端就绪...")
                 if process is not None and process.poll() is not None:
                     raise BackendError(f"后端启动失败（退出码 {process.returncode}），请检查依赖和日志：{log_path}")
                 time.sleep(0.15)

@@ -15,7 +15,7 @@ from Backend.domain.models.intermediate import IntermediateModel
 
 class MediaImportRequest(RequestModel):
     kind: Literal["image", "audio", "video"]
-    paths: list[str] = Field(min_length=1, max_length=100)
+    paths: list[str] = Field(min_length=1, max_length=100, description="媒体文件或目录路径，不读取压缩包")
     exclude_rule: str = ""
     operation_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{16,80}$")
 
