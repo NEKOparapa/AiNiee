@@ -1,4 +1,3 @@
-import os
 import time
 from collections import defaultdict
 from typing import List, Dict, Any, Tuple
@@ -96,7 +95,7 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
         check_attr = "translated_text"
 
         for file_path, file_obj in self.cache_manager.project.files.items():
-            file_name = os.path.basename(file_path)
+            file_name = file_obj.file_name
             for item in file_obj.items:
                 # 检查 extra 字典是否存在且标记为 True
                 if item.extra and item.extra.get(flag_key) is True:
@@ -128,7 +127,7 @@ class LanguageChecker(ConfigMixin, LogMixin, Base):
                 continue
 
             file_path = getattr(cache_file, "storage_path", "")
-            file_name = os.path.basename(file_path)
+            file_name = cache_file.file_name
 
             for chunk in result.get("problematic_chunks", []):
                 for line_info in chunk.get("mismatched_lines", []):

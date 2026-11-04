@@ -1,7 +1,7 @@
 """Desktop project snapshots and API proxies; persistence belongs to the backend."""
 import threading
 import copy
-import os
+import posixpath
 from collections import defaultdict
 from dataclasses import fields
 
@@ -123,7 +123,8 @@ class RemoteCacheManager:
     def get_file_hierarchy(self):
         hierarchy = defaultdict(list)
         for path in self.project.files if self.project else ():
-            directory, name = os.path.split(path)
+            # This is a display hierarchy, not a source of cache lookup keys.
+            directory, name = posixpath.split(path.replace("\\", "/"))
             hierarchy[directory or "."].append(name)
         return {path: sorted(names) for path, names in hierarchy.items()}
 

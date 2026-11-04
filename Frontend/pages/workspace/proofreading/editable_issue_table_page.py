@@ -1,4 +1,4 @@
-import os
+import posixpath
 from collections import defaultdict
 
 from PyQt5.QtCore import QPoint, Qt
@@ -134,7 +134,7 @@ class EditableIssueTablePage(ConfigMixin, LogMixin, ToastMixin, Base, QWidget):
             text_index = data.get("text_index")
             row_number = data.get("row_number", (text_index + 1) if text_index is not None else "")
 
-            file_item = QTableWidgetItem(os.path.basename(file_path) if file_path else "")
+            file_item = QTableWidgetItem(posixpath.basename(file_path.replace("\\", "/")) if file_path else "")
             file_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             self.table.setItem(row, self.COL_FILE, file_item)
 

@@ -1,4 +1,4 @@
-import os
+import posixpath
 import re
 
 from PyQt5.QtCore import QPoint, Qt
@@ -155,7 +155,7 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
         for row_idx, result_info in enumerate(search_results):
             file_path, original_row_num, item = result_info
 
-            file_item = QTableWidgetItem(os.path.basename(file_path))
+            file_item = QTableWidgetItem(posixpath.basename(file_path.replace("\\", "/")))
             file_item.setFlags(file_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, self.COL_FILE, file_item)
 
@@ -323,7 +323,7 @@ class SearchResultPage(ConfigMixin, ToastMixin, Base, QWidget):
         file_path = data.get("file_path", "")
         updated_item_count = data.get("updated_item_count", 0)
         updated_file_count = data.get("updated_file_count", 0)
-        file_name = os.path.basename(file_path) if file_path else ""
+        file_name = posixpath.basename(file_path.replace("\\", "/")) if file_path else ""
         message = str(data.get("message", "")).strip()
 
         if operation == "translate":

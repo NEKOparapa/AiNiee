@@ -1,4 +1,3 @@
-import os
 from typing import Any, Dict, List, Tuple
 
 from Backend.core.base import Base
@@ -158,7 +157,7 @@ class TerminologyChecker(ConfigMixin, LogMixin, Base):
         term_data = self._prepare_term_data(term_rows, self._get_match_options(params))
 
         for file_path, file_obj in self.cache_manager.project.files.items():
-            file_name = os.path.basename(file_path)
+            file_name = file_obj.file_name
             for item in file_obj.items:
                 # 始终跳过显式排除项
                 if item.translation_status == TranslationStatus.EXCLUDED:

@@ -2,6 +2,7 @@
 from collections import defaultdict
 from typing import Callable, Dict, List, Tuple
 import os
+import posixpath
 import re
 import threading
 
@@ -228,8 +229,8 @@ class CacheManager(CacheAccessor, ConfigMixin, LogMixin):
 
         with self.file_lock:
             for file_path in self.project.files.keys():
-                # split 后得到 (目录, 文件名)
-                directory, filename = os.path.split(file_path)
+                # Only normalize display paths; project.files retains its keys.
+                directory, filename = posixpath.split(file_path.replace("\\", "/"))
                 if not directory:
                     directory = "."
                 hierarchy[directory].append(filename)

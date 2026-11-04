@@ -1,4 +1,5 @@
 import os
+import posixpath
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Any
@@ -42,7 +43,8 @@ class CacheFile(ThreadSafeCache, ExtraMixin):
 
     @property
     def file_name(self):
-        return os.path.split(self.storage_path)[1]
+        # Readers also use a native Path here before assigning the cache key.
+        return posixpath.basename(os.fspath(self.storage_path).replace("\\", "/"))
 
     def add_item(self, item: CacheItem) -> None:
         """线程安全添加缓存项"""

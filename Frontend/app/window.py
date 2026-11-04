@@ -87,9 +87,9 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.systemThemeListener.systemThemeChanged.connect(self._on_system_theme_changed)
         self.systemThemeListener.start()
 
-        # 设置窗口属性
+        # 为侧边栏和原文、译文并排显示预留更多横向空间。
         desktop = QApplication.desktop().availableGeometry()
-        initial_width = int(desktop.width() * 0.8)
+        initial_width = int(desktop.width() * 0.9)
         initial_height = int(desktop.height() * 0.8)
         self.resize(initial_width, initial_height)
         self.setWindowTitle(version)
@@ -101,8 +101,10 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         QTimer.singleShot(3000, self.check_for_updates)
 
         # 设置启动位置
-        desktop = QApplication.desktop().availableGeometry()
-        self.move(desktop.width() // 2 - self.width() // 2, desktop.height() // 2 - self.height() // 2)
+        self.move(
+            desktop.x() + (desktop.width() - self.width()) // 2,
+            desktop.y() + (desktop.height() - self.height()) // 2,
+        )
 
         # 设置侧边栏属性
         self.navigationInterface.setExpandWidth(226)
