@@ -68,8 +68,6 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 `GET /api/config/prompt-presets/image_translation` 返回完整的内置图片翻译模板，包含语言任务句。根配置 `image_translation_user_prompt_data` 保存自定义提示词库，`image_translation_prompt_selection.last_selected_id` 选择正在使用的条目。模板使用与文译相同的 `{source_language}`、`{target_language}`，发送前替换为项目语言名称；原文语言为 `auto` 时替换为“图中原文的语言”。自定义内容整体替换系统预设，不再额外拼接语言任务句，已有自定义提示词需按需补上占位符。只替换这两个占位符，其他花括号原样保留，保存的模板不变。原图仍独立随请求提交；旧版 `image_translation_settings.generation.prompt` 作为补充要求兼容，也支持这两个占位符。提示词修改在下次生成生效，已有译图仍可预览、导出。图译提示词配置与文译提示词相互独立。
 
-百炼、火山和 Gemini 的生图 API Key 均在生成前校验，只接受不含空白的可打印 ASCII 字符；错误返回 `IMAGE_GENERATION_CONFIG_ERROR`，不进入付费请求或覆盖已有译图状态。中文提示词通过 JSON 请求正文发送，不受请求头字符限制。
-
 ## 音频接口
 
 | 接口 | 主要参数与用途 |
