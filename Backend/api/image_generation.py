@@ -11,7 +11,7 @@ from Backend.api.image_generation_schemas import (
     ImageGenerationOptions, ImageGenerationRequest, GeneratedImageWriteOptions, GeneratedImageWriteRequest,
 )
 from Backend.api.queued import require_model_lane, run_queued
-from Backend.core.log_system import redact
+from Backend.api.error_logging import log_validation_error, validation_details
 
 
 class GenerationRoute(APIRoute):
@@ -26,9 +26,8 @@ class GenerationRoute(APIRoute):
             except RequestValidationError as error:
                 # Pydantic includes the rejected input even for repr=False fields.
                 # ctx can contain it too; expose only the useful diagnostics.
-                details = [{"loc": [redact(part) for part in issue["loc"]],
-                            "type": issue["type"], "msg": redact(issue["msg"])}
-                           for issue in error.errors()]
+                details = validation_details(error)
+                log_validation_error(request, details)
                 return JSONResponse(status_code=422, content={"detail": details})
 
         return safe_validation

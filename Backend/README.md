@@ -30,6 +30,8 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 任务状态为 `queued`、`running`、`cancelling`，以及终态 `succeeded`、`partial`、`failed`、`cancelled`、`interrupted`。运行任务采用协作取消，需要等待在途请求和保存收尾；断线不会取消任务，重启也不会自动重放未完成任务。
 
+任务结束时，后端会将报告中的错误、部分失败和异常中止原因写入日志，通过 `/ws/events` 的 `log` 消息推送给已连接的前端。日志包含任务类型、处理阶段、错误码及文件/条目标识；阶段报告中的重复错误合并显示，正常取消不记为错误。HTTP 业务异常、参数校验失败和未捕获异常也会记录；不写入请求头、查询参数、请求正文或完整模型，常见密钥和令牌沿用日志脱敏。大型错误报告按一条事件推送，前端有显示长度限制，完整内容保存在后端日志文件。
+
 ## 文档与通用翻译
 
 以下接口使用请求携带的中间模型，不切换桌面的当前文档项目。`model` 为 `schema_version: 2` 的项目 → 文件 → 条目结构，应保留读取结果中的源文件引用、定位信息和 `extra`。
@@ -64,7 +66,9 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 默认提示词要求逐个文字区域对应原位替换，完整清除可读原文、不跨气泡混合对白、不新增人物或气泡，并保留分镜、画面颜色与品牌标志。模型仍可能漏译或改动画面，应在导出前检查译图。任务失败或结果未知时不会自动重复付费请求。
 
-`GET /api/config/prompt-presets/image_translation` 返回内置图片翻译指令。根配置 `image_translation_user_prompt_data` 保存自定义提示词库，`image_translation_prompt_selection.last_selected_id` 选择正在使用的条目。生成时读取选中条目的正文，替换默认指令，并自动加入源语言、目标语言与原图；旧版 `image_translation_settings.generation.prompt` 仍作为补充要求兼容。提示词修改在下次生成生效，已有译图仍可预览、导出。图译提示词配置与文译提示词相互独立。
+`GET /api/config/prompt-presets/image_translation` 返回完整的内置图片翻译模板，包含语言任务句。根配置 `image_translation_user_prompt_data` 保存自定义提示词库，`image_translation_prompt_selection.last_selected_id` 选择正在使用的条目。模板使用与文译相同的 `{source_language}`、`{target_language}`，发送前替换为项目语言名称；原文语言为 `auto` 时替换为“图中原文的语言”。自定义内容整体替换系统预设，不再额外拼接语言任务句，已有自定义提示词需按需补上占位符。只替换这两个占位符，其他花括号原样保留，保存的模板不变。原图仍独立随请求提交；旧版 `image_translation_settings.generation.prompt` 作为补充要求兼容，也支持这两个占位符。提示词修改在下次生成生效，已有译图仍可预览、导出。图译提示词配置与文译提示词相互独立。
+
+百炼、火山和 Gemini 的生图 API Key 均在生成前校验，只接受不含空白的可打印 ASCII 字符；错误返回 `IMAGE_GENERATION_CONFIG_ERROR`，不进入付费请求或覆盖已有译图状态。中文提示词通过 JSON 请求正文发送，不受请求头字符限制。
 
 ## 音频接口
 

@@ -118,6 +118,14 @@ def gemini_endpoint(api_url, model):
     return base + "/models/" + model.removeprefix("models/") + ":generateContent"
 
 
+def validate_image_generation_api_key(value):
+    if not isinstance(value, str) or not value:
+        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请在“接口管理 → 生图接口”填写服务商提供的 API Key", 422)
+    if any(not 33 <= ord(char) <= 126 for char in value):
+        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR",
+                            "生图接口 API Key 不能包含中文、全角字符、空白或控制字符，请在“接口管理 → 生图接口”重新填写有效密钥", 422)
+
+
 def resolve_image_generation_config(config=None):
     fields = set(ImageGenerationConfig.__dataclass_fields__) - {"translation_prompt"}
     if isinstance(config, ImageGenerationConfig):
@@ -146,11 +154,14 @@ def resolve_image_generation_config(config=None):
             values["translation_prompt"] = selected_image_translation_prompt(snapshot)
         except ValueError as error:
             raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", str(error), 422) from None
-    for key in ("provider_id", "api_url", "api_key", "model", "source_language", "target_language"):
+    for key in ("provider_id", "api_url", "model", "source_language", "target_language"):
         value = values[key]
         if not isinstance(value, str) or not value.strip() or any(c in value for c in "\r\n\x00"):
             raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", f"生图 {key} 必须为非空单行文本", 400)
         values[key] = value.strip()
+    if isinstance(values["api_key"], str):
+        values["api_key"] = values["api_key"].strip()
+    validate_image_generation_api_key(values["api_key"])
     try:
         address = urlsplit(values["api_url"])
         valid = address.scheme in ("http", "https") and address.hostname and not (
@@ -162,8 +173,6 @@ def resolve_image_generation_config(config=None):
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请使用无凭据或查询参数的HTTP(S)地址与受支持的生图接口格式", 400)
     if values["api_format"] == "Gemini":
         gemini_endpoint(values["api_url"], values["model"])
-        if any(not 33 <= ord(char) <= 126 for char in values["api_key"]):
-            raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "Gemini API密钥必须为不含空白的有效文本", 422)
     timeout = values["request_timeout"]
     if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or not 0 < timeout <= 3600:
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "生图超时需大于0且不超过3600秒", 422)

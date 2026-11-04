@@ -344,6 +344,10 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                                self.run_stages(["recognize"], file_id=file_id))
             recognize.setEnabled(not self.busy)
             menu.addAction(recognize)
+            combined = Action(FluentIcon.SYNC, self.tra("重新转录并翻译"), triggered=lambda:
+                              self.run_stages(["recognize", "translate"], file_id=file_id))
+            combined.setEnabled(not self.busy)
+            menu.addAction(combined)
         menu.exec(self.file_tree.viewport().mapToGlobal(pos))
 
     def _filter_files(self, text=None):

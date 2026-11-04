@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from Backend.application.status import WorkStatus, build_status_response
 from Backend.application.execution_context import ExecutionContext
+from Backend.application.error_reporting import log_job_errors
 from Backend.application.operation_dispatcher import OperationDispatcher
 from Backend.application.pipeline_common import PipelineError
 from Backend.core.protocol import to_wire
@@ -139,6 +140,12 @@ class Runtime(ConfigStore):
         # retrieves the result. The scheduler never calls us with its lock held.
         self._publish({"type": "job", "job": {key: value for key, value in job.items() if key != "result"}})
         terminal = job["state"] in {"succeeded", "partial", "failed", "cancelled", "interrupted"}
+        if terminal:
+            try:
+                log_job_errors(job)
+            except Exception:
+                # A diagnostic sink must not interrupt completion notifications.
+                pass
         with self.lock:
             request = self._desktop_requests.pop(job["id"], None) if terminal else None
             if request is not None:

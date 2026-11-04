@@ -8,11 +8,15 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import Depends, FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.routing import Route
 
 from Backend.api.events import EventHub
+from Backend.api.error_logging import log_request_error, log_validation_error, validation_details
 from Backend.api.legacy_jobs import wait_document_call
 from Backend.api.schemas import CacheCall, ConfigPatch, EditorCall, FolderQuery, ModelQuery, ProjectLoad
 from Backend.application.runtime import BusyError, Runtime
@@ -63,19 +67,39 @@ def create_app(runtime=None, token=None):
 
     @app.exception_handler(BusyError)
     async def busy_error(request, error):
+        log_request_error(request, "BACKEND_BUSY", str(error))
         return JSONResponse(status_code=409, content={
             "detail": str(error), "error": {"code": "BACKEND_BUSY", "message": str(error)},
         })
 
     @app.exception_handler(PipelineError)
     async def pipeline_error(request, error):
+        log_request_error(request, error.code, error.message)
         return JSONResponse(status_code=error.status_code, content={
             "detail": error.message, "error": error.to_dict(),
         })
 
     @app.exception_handler(ValueError)
     async def value_error(request, error):
+        log_request_error(request, "INVALID_REQUEST", str(error))
         return JSONResponse(status_code=400, content={"detail": str(error)})
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(request, error):
+        log_request_error(request, f"HTTP_{error.status_code}", str(error.detail))
+        return await http_exception_handler(request, error)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request, error):
+        details = validation_details(error)
+        log_validation_error(request, details)
+        return JSONResponse(status_code=422, content={"detail": details})
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request, error):
+        log_request_error(request, "INTERNAL_ERROR", str(error), error=error)
+        return JSONResponse(status_code=500, content={"detail": "后端内部错误，请查看运行日志",
+            "error": {"code": "INTERNAL_ERROR", "message": "后端内部错误，请查看运行日志"}})
 
     @app.get("/health", dependencies=[Depends(authorized)])
     def health():

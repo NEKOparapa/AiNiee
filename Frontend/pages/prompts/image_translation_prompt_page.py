@@ -51,9 +51,9 @@ class ImageTranslationPromptPage(EditablePromptLibraryPage):
             presets=[preset], user_prompts=read_user_prompts(config),
             selected_id=config.get(SELECTION_KEY, {}).get("last_selected_id", DEFAULT_PROMPT_ID),
             selection_key=SELECTION_KEY, user_data_key=USER_DATA_KEY,
-            guidance=self.tra("自定义提示词替换默认翻译指令，选择后自动保存，下次生成译图时生效。原图和原文、译文语言由程序提供，无需填写占位符。"),
+            guidance=self.tra("提示词包含完整翻译指令。使用与文译相同的 {source_language} 和 {target_language} 占位符，发送时替换为项目语言。自定义提示词整体替换系统预设；已有自定义提示词请按需补上语言占位符。原图由程序提供。"),
         )
-        self.selected_prompt_content_text.setPlaceholderText(self.tra("填写完整的图片翻译指令，最多 10000 字。"))
+        self.selected_prompt_content_text.setPlaceholderText(self.tra("填写完整的图片翻译指令，可使用 {source_language} 和 {target_language}，最多 10000 字。"))
 
     def _read_user_prompts(self, config):
         return read_user_prompts(config)

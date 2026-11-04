@@ -56,14 +56,13 @@ def prepare_generation(file, image, config):
     size = output_size(*image.size, config.size, config.api_format)
     source = _LANGUAGES.get(config.source_language, config.source_language)
     target = _LANGUAGES.get(config.target_language, config.target_language)
-    source_text = "文字" if config.source_language == "auto" else f"{source}文字"
     text_source, text_identity = "none", digest([])
-    prompt = (
-        f"任务：把这张漫画或插画页面中需要翻译的{source_text}译成{target}，擦除原字并将译文嵌回各自原位置。一次完成，只输出一张完整译图。\n"
-        + config.translation_prompt
-    )
+    prompt = config.translation_prompt
     if config.prompt.strip():
         prompt += "\n用户补充要求：\n" + config.prompt.strip()
+    # Match text translation's placeholders without interpreting other braces
+    # (custom prompts may contain JSON, examples or unrelated placeholders).
+    prompt = prompt.replace("{source_language}", source).replace("{target_language}", target)
     if len(prompt) > 32000:
         raise PipelineError("IMAGE_GENERATION_PROMPT_TOO_LONG", "单张图片的提示词过长，请缩短补充要求", 422)
     settings = {key: getattr(config, key) for key in ("source_language", "target_language", "prompt", "translation_prompt")}

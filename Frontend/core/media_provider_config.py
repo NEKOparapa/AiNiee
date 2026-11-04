@@ -3,7 +3,9 @@
 import copy
 from urllib.parse import urlsplit
 
-from Frontend.core.image_generation_config import DEFAULT_IMAGE_GENERATION_PLATFORM, validate_gemini_connection
+from Frontend.core.image_generation_config import (
+    DEFAULT_IMAGE_GENERATION_PLATFORM, validate_gemini_connection, validate_image_generation_api_key,
+)
 
 
 DEFAULT_TRANSCRIPTION_PLATFORM = {
@@ -128,6 +130,8 @@ def validate_media_provider(kind, data, *, require_credentials=False):
         raise ValueError("接口密钥必须是单行文本。")
     if require_credentials and not result["api_key"]:
         raise ValueError("请先填写接口密钥，再激活此接口。")
+    if kind == "image_generation":
+        validate_image_generation_api_key(result["api_key"])
     if kind == "image_generation" and result["api_format"] == "Gemini":
         validate_gemini_connection(result["api_url"], result["model"], result["api_key"])
     if kind == "transcription" and result["api_format"] == "VolcengineASRFast":

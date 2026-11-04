@@ -19,6 +19,11 @@ DEFAULT_IMAGE_GENERATION_PLATFORM = {
 MAX_SEED = 2147483647
 
 
+def validate_image_generation_api_key(api_key):
+    if not isinstance(api_key, str) or any(not 33 <= ord(char) <= 126 for char in api_key):
+        raise ValueError("生图接口密钥不能包含中文、全角字符、空白或控制字符，请填写服务商提供的 API Key。")
+
+
 def validate_gemini_connection(api_url, model, api_key=""):
     """Validate native Gemini connection fields without importing the backend."""
     try:
@@ -31,8 +36,7 @@ def validate_gemini_connection(api_url, model, api_key=""):
         valid = False
     if not valid or not isinstance(model, str) or not re.fullmatch(r"(?:models/)?[A-Za-z0-9][A-Za-z0-9._-]{0,127}", model):
         raise ValueError("Gemini 请填写 API 基地址（可含 /v1beta）和有效模型名称。")
-    if not isinstance(api_key, str) or any(not 33 <= ord(char) <= 126 for char in api_key):
-        raise ValueError("Gemini API 密钥必须为不含空白的 ASCII 文本。")
+    validate_image_generation_api_key(api_key)
 
 
 def normalize_generation_size(value, api_format=None):
@@ -93,8 +97,7 @@ def validate_image_generation_platform(data, *, require_api_key=False):
         raise ValueError("请输入不含账号、密码、查询参数或片段的 HTTP(S) 接口地址。")
     if not result["model"]:
         raise ValueError("请输入生图模型名称。")
-    if any(character in result["api_key"] for character in "\r\n"):
-        raise ValueError("生图接口密钥不能包含换行。")
+    validate_image_generation_api_key(result["api_key"])
     if require_api_key and not result["api_key"]:
         raise ValueError("请先填写并保存接口密钥，再激活此生图接口。")
     if result["api_format"] == "Gemini":
