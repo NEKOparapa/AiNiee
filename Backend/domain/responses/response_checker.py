@@ -13,7 +13,6 @@ from Backend.domain.responses.advanced_checks import (
     check_dicts_equal, 
     detecting_remaining_original_text, 
     check_placeholders_exist,
-    check_reply_format
 )
 
 class ResponseChecker():
@@ -24,9 +23,9 @@ class ResponseChecker():
     def check_response_items(config, placeholder_order, response_str, response_dict, source_text_dict, source_lang):
         """Validate alignment for the whole reply, then localize content errors.
 
-        A broken envelope, key set, numbering or configured reply format makes
-        every mapping unsafe. Once those pass, a bad translation need not erase
-        its valid neighbours. Return (batch_error, errors_by_response_key).
+        A broken envelope, key set or numbering makes every mapping unsafe.
+        Once those pass, a bad translation need not erase its valid neighbours.
+        Return (batch_error, errors_by_response_key).
         """
         switches = config.response_check_switch
         if not isinstance(response_str, str) or not contains_special_chars(response_str):
@@ -37,8 +36,6 @@ class ResponseChecker():
             return "【行数错误】 - 行数无法对应", {}
         if not check_dict_order(source_text_dict, response_dict):
             return "【行数错误】 - 出现错行串行", {}
-        if switches.get('reply_format_check', False) and not check_reply_format(source_text_dict, response_dict):
-            return "【格式错误】 - 回复格式与原文格式不匹配（单行/多行）", {}
 
         semantic_source = {key: TOKEN_RE.sub('', text) for key, text in source_text_dict.items()}
         semantic_response = {key: TOKEN_RE.sub('', text) for key, text in response_dict.items()}
@@ -117,11 +114,6 @@ class ResponseChecker():
                 source_language,
             ):
                 return False, "【翻译残留】 - 译文中残留部分原文"
-
-        # 回复格式检查
-        if response_check_switch.get('reply_format_check', False):
-            if not check_reply_format(source_text_dict, response_dict):
-                return False, "【格式错误】 - 回复格式与原文格式不匹配（单行/多行）"
 
         # 占位符检查
         if not check_placeholders_exist(placeholder_order, response_dict):

@@ -31,7 +31,7 @@ class ProviderHeaderCard(CardWidget, ConfigMixin):
         title_layout.setContentsMargins(0, 0, 0, 0)
         title_layout.setSpacing(12)
         self.titleIcon = IconWidget(icon, self)
-        self.titleIcon.setFixedSize(26, 26)
+        self.titleIcon.setFixedSize(30, 30)
         title_layout.addWidget(self.titleIcon)
         self.titleLabel = TitleLabel(self.tra(title), self)
         title_layout.addWidget(self.titleLabel)

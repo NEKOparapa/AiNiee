@@ -358,22 +358,22 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.platform_page = PlatformPage("platform_page", self)
         self.platform_page.header_card.titleLabel.setText(self.tra("翻译接口"))
         self.addSubInterface(
-            self.platform_page, FluentIcon.CHAT, self.tra("翻译接口"),
+            self.platform_page, self.platform_page.ICON, self.tra("翻译接口"),
             parent=self.interface_management_navigation,
         )
         self.transcription_page = TranscriptionPage("transcription_page", self)
         self.addSubInterface(
-            self.transcription_page, FluentIcon.MICROPHONE, self.tra("转录接口"),
+            self.transcription_page, self.transcription_page.ICON, self.tra("转录接口"),
             parent=self.interface_management_navigation,
         )
         self.image_generation_page = ImageGenerationPage("image_generation_page", self)
         self.addSubInterface(
-            self.image_generation_page, FluentIcon.PHOTO, self.tra("生图接口"),
+            self.image_generation_page, self.image_generation_page.ICON, self.tra("生图接口"),
             parent=self.interface_management_navigation,
         )
 
         self.edit_view_page = EditViewPage("edit_view_page", self, cache_manager, file_reader)
-        self.addSubInterface(self.edit_view_page, FluentIcon.FONT_SIZE, self.tra("文本翻译"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.edit_view_page, FluentIcon.DOCUMENT, self.tra("文本翻译"), NavigationItemPosition.SCROLL)
         self.image_translation_page = ImageTranslationPage(parent=self)
         self.audio_translation_page = AudioTranslationPage(parent=self)
         self.video_translation_page = VideoTranslationPage(parent=self)

@@ -186,8 +186,7 @@
         "response_check_switch": {
             "return_to_original_text_check": true,
             "residual_original_text_check": true,
-            "newline_character_count_check": true,
-            "reply_format_check": false
+            "newline_character_count_check": true
         }
     },
     "WorldBuildingPromptPage": {

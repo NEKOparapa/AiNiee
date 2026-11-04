@@ -174,13 +174,11 @@ class TranslationSettingsPage(QFrame, ConfigMixin, Base):
             info_cont1 = self.tra("原文返回检查")
             info_cont2 = self.tra("翻译残留检查")
             info_cont3 = self.tra("换行符数检查")
-            info_cont4 = self.tra("回复格式强检查") 
 
             pairs = [
                 (info_cont1, "return_to_original_text_check"),
                 (info_cont2, "residual_original_text_check"),
                 (info_cont3, "newline_character_count_check"),
-                (info_cont4, "reply_format_check"),
             ]
 
             for v in pairs:

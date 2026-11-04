@@ -22,6 +22,7 @@ from qfluentwidgets import (
 
 from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
+from Frontend.core.icons import ProviderIcon
 from Frontend.pages.providers.api_binding_dialog import APIBindingDialog
 from Frontend.pages.providers.api_edit_page import APIEditPage
 from Frontend.pages.providers.api_item_card import APIItemCard
@@ -92,7 +93,7 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
     addClicked = pyqtSignal()
     bindingsClicked = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, icon=ProviderIcon.TRANSLATION):
         super().__init__(parent)
 
         self.layout = QHBoxLayout(self)
@@ -106,8 +107,8 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
         self.titleLayout.setSpacing(12)
         self.titleLayout.setAlignment(Qt.AlignVCenter)
 
-        self.titleIcon = IconWidget(FluentIcon.CHAT, self)
-        self.titleIcon.setFixedSize(26, 26)
+        self.titleIcon = IconWidget(icon, self)
+        self.titleIcon.setFixedSize(30, 30)
         self.titleLayout.addWidget(self.titleIcon)
 
         self.titleLabel = TitleLabel(self.tra("接口管理"), self)
@@ -200,6 +201,7 @@ class InterfaceHeaderCard(CardWidget, ConfigMixin):
 
 
 class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
+    ICON = ProviderIcon.TRANSLATION
     API_ROLE_KEYS = ("extract", "translate", "polish", "proofread")
     API_SETTINGS_MIGRATION_KEY = "_active_follow_migration_done"
 
@@ -238,7 +240,7 @@ class PlatformPage(QFrame, ConfigMixin, ToastMixin, Base):
         main_layout.setContentsMargins(24, 12, 24, 20)
         main_layout.setSpacing(12)
 
-        self.header_card = InterfaceHeaderCard(self)
+        self.header_card = InterfaceHeaderCard(self, icon=self.ICON)
         self.header_card.addClicked.connect(self.on_add_api_clicked)
         self.header_card.bindingsClicked.connect(self.on_edit_bindings_clicked)
         main_layout.addWidget(self.header_card)

@@ -1,7 +1,6 @@
 """Independent transcription providers and compatibility exports."""
 
-from qfluentwidgets import FluentIcon
-
+from Frontend.core.icons import ProviderIcon
 from Frontend.core.media_provider_config import (
     DEFAULT_TRANSCRIPTION_PLATFORM,
     SUPPORTED_LANGUAGE_HINTS, build_media_provider_update, normalize_media_provider,
@@ -25,4 +24,4 @@ def build_transcription_config_update(config, platform_id, platform=None, *, act
 class TranscriptionPage(MediaProviderPage):
     KIND = "transcription"
     TITLE = "转录接口"
-    ICON = FluentIcon.MICROPHONE
+    ICON = ProviderIcon.TRANSCRIPTION
