@@ -1,6 +1,6 @@
 import json
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSignalBlocker
 from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QVBoxLayout
@@ -20,8 +20,9 @@ from Frontend.components.cards.group_card import GroupCard
 from Frontend.components.cards.switch_button_card import SwitchButtonCard
 from Frontend.components.cards.combo_box_card import ComboBoxCard
 from Frontend.components.cards.spin_card import SpinCard
+from Frontend.components.toast import ToastMixin
 
-class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
+class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, ToastMixin, Base):
 
     @staticmethod
     def is_volcengine_platform(key: str, platform: dict) -> bool:
@@ -74,6 +75,8 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
         self.vbox.setContentsMargins(24, 24, 24, 24) # 左、上、右、下
         self.scroller.setWidget(self.vbox_parent)
 
+        # 每个接口独立设置，不受旧版 key_in_settings 列表限制。
+        self.add_widget_concurrency(self.vbox, config)
 
         # 仅自定义接口开放请求头设置，也兼容未包含 extra_headers 的旧配置。
         if self.key == "custom" or self.key.startswith("custom_"):
@@ -125,6 +128,34 @@ class ArgsEditPage(MessageBoxBase, ConfigMixin, LogMixin, Base):
 
         # 填充
         self.vbox.addStretch(1)
+
+    def add_widget_concurrency(self, parent, config):
+        self._saved_thread_count = config["platforms"][self.key].get("user_thread_counts", 0)
+
+        def init(widget):
+            widget.set_range(0, 9999999)
+            widget.spin_box.setFixedWidth(160)
+            widget.description_label.setWordWrap(True)
+            widget.set_value(self._saved_thread_count)
+
+        def value_changed(widget, value):
+            try:
+                def update(current):
+                    current["platforms"][self.key]["user_thread_counts"] = value
+                self.update_config(update)
+            except Exception:
+                with QSignalBlocker(widget.spin_box):
+                    widget.set_value(self._saved_thread_count)
+                self.error_toast(self.tra("保存失败"), self.tra("并发任务数未保存，请检查后端连接后重试。"))
+                return
+            self._saved_thread_count = value
+
+        self.concurrency_card = SpinCard(
+            self.tra("并发任务数"),
+            self.tra("提取和翻译使用此接口时应用。默认值为 0，表示自动设置：按接口限额和响应耗时调整，连续请求失败时降低并发；本地模型优先使用可用槽位。"),
+            init=init, value_changed=value_changed,
+        )
+        parent.addWidget(self.concurrency_card)
 
     def add_widget_extra_headers(self, parent, config):
         def init(widget):

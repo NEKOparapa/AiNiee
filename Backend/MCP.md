@@ -34,6 +34,7 @@ AiNiee 在同一个后端提供 MCP 工具，可提交文档、图片、音频�
 - 文档 `output` 省略或为 `null` 时仅返回翻译后的模型；传入对象时执行导出。`output.output_dir` 可指定目录，`mode` 可选 `translated`、`bilingual`、`both`，默认 `translated`。
 - 整图生成、音频和视频必须提供 `output.output_dir`。图片的 `output.format` 可选 `png`、`jpeg`、`webp`，默认 `png`；音频可选 `srt`、`vtt`、`lrc`、`ass`，默认 `srt`，`output.mode` 默认 `translated`，也可选 `source`、`bilingual`。
 - `translation` 常用字段为 `provider_id`、`source_language`、`target_language`、`user_thread_counts`。整图生成的语言和接口覆盖放在 `generation` 中。
+- `translation.user_thread_counts` 省略时使用所选翻译接口独立保存的并发数，接口默认 0（自动）；显式提供时只覆盖本次任务，不修改接口配置。
 - `request_id` 可省略；提供时须为 16–80 位英文字母、数字、下划线或连字符，将直接作为任务 ID。整图生成在 MCP 中也使用它，不传 REST 的 `operation_id`。
 
 ## 提交文档并取回结果

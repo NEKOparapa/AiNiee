@@ -1,10 +1,8 @@
 from Frontend.services.protocol import PromptBuilderEnum
-from Frontend.pages.prompts.prompt_library_page import (
-    AddEditPromptDialog, PromptCard, PromptLibraryPage,
-)
+from Frontend.pages.prompts.editable_prompt_library_page import EditablePromptLibraryPage
 
 
-class SystemPromptPage(PromptLibraryPage):
+class SystemPromptPage(EditablePromptLibraryPage):
     def __init__(self, text, window):
         config = self.load_config()
         super().__init__(

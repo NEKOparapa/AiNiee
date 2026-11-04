@@ -13,7 +13,7 @@ DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
     "chunk_overlap_seconds": 2,
     "chunk_concurrency": 3,
     "vad_threshold": 0.35,
-    "export": {"format": "srt", "mode": "bilingual"},
+    "export": {"format": "srt", "mode": "bilingual", "suffix": "_subtitles"},
 }
 DEFAULT_VIDEO_TRANSLATION_SETTINGS = copy.deepcopy(DEFAULT_AUDIO_TRANSLATION_SETTINGS)
 DEFAULT_IMAGE_TRANSLATION_SETTINGS = {
@@ -24,7 +24,7 @@ DEFAULT_IMAGE_TRANSLATION_SETTINGS = {
         "prompt": "",
         "watermark": False,
     },
-    "export": {"format": "png"},
+    "export": {"format": "png", "suffix": "_translated"},
 }
 MEDIA_EXPORT_FORMATS = {"audio": ("srt", "vtt", "ass", "lrc"), "video": ("srt", "vtt", "ass", "lrc"), "image": ("png", "jpeg", "webp")}
 AUDIO_EXPORT_MODES = ("bilingual", "translated", "source")
@@ -58,6 +58,9 @@ def _normalize_export_settings(values, kind):
         raise ValueError(f"{label}导出格式必须为 {'、'.join(MEDIA_EXPORT_FORMATS[kind])}。")
     if kind in ("audio", "video") and (not isinstance(result["mode"], str) or result["mode"] not in AUDIO_EXPORT_MODES):
         raise ValueError("字幕导出模式必须为 bilingual、translated 或 source。")
+    suffix = result["suffix"]
+    if not isinstance(suffix, str) or any(ord(c) < 32 or c in '/\\<>:"|?*' for c in suffix):
+        raise ValueError("输出文件名后缀不能包含路径分隔符或非法文件名字符。")
     return result
 
 

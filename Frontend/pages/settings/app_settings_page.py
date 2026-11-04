@@ -1,419 +1,252 @@
+"""Application preferences arranged in the same groups as task settings."""
+
 import os
 import sys
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import QSignalBlocker
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QSignalBlocker, QTimer
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QWidget
+from qfluentwidgets import (
+    ColorPickerButton, ComboBox, FluentIcon, LineEdit, MessageBox, PushButton,
+    SwitchButton, qconfig, setThemeColor,
+)
 
-from qfluentwidgets import ColorPickerButton
-from qfluentwidgets import PushButton
-from qfluentwidgets import FluentIcon
-from qfluentwidgets import MessageBox
-from qfluentwidgets import SwitchButton
-from qfluentwidgets import SingleDirectionScrollArea
-from qfluentwidgets import setThemeColor
-
-from Frontend.core.base import Base
-from Frontend.core.config import ConfigMixin
+from Frontend.components.segmented_control import SegmentedControl
 from Frontend.core.log import LogMixin
 from Frontend.core.log_system import redact
-from Frontend.components.toast import ToastMixin
-from Frontend.components.cards.empty_card import EmptyCard
-from Frontend.components.cards.combo_box_card import ComboBoxCard
-from Frontend.components.cards.line_edit_card import LineEditCard
-from Frontend.components.cards.switch_button_card import SwitchButtonCard
-from Frontend.components.segmented_control import SegmentedControl
+from Frontend.pages.settings.grouped_settings_page import GroupedSettingsPage
 from Frontend.platform.file_dialogs import get_existing_directory, get_open_file_name
 from Frontend.platform.process import launch_desktop
-from Frontend.services.backend_client import BackendError
 
-class AppSettingsPage(QWidget, ConfigMixin, LogMixin, ToastMixin, Base):
 
-    def __init__(self, text: str, window) -> None:
-        super().__init__(window)
-        self.setObjectName(text.replace(" ", "-"))
+class AppSettingsPage(GroupedSettingsPage, LogMixin):
+    DEFAULT_ACCENT = "#808b9d"
 
-        # 默认配置
+    def __init__(self, text, window):
+        self._app_window = window
+        self._importing = False
+        self._selected_theme = "auto"
         self.default = self.get_default_section("AppSettingsPage")
+        super().__init__(text, window)
 
-        # 载入并保存默认配置
-        config = self.initialize_config()
+    def _build_fields(self):
+        self.layout().setContentsMargins(28, 24, 24, 20)
+        self.editor_layout.setSpacing(14)
+        appearance = self._add_section("外观与语言", FluentIcon.PALETTE)
+        self.language_combo = ComboBox(self.editor)
+        self.language_combo.addItems(["简中", "繁中", "English", "日本語"])
+        appearance.add_field("界面语言设置", self.language_combo,
+                             "应用界面将按照所选语言进行显示(将在应用重启后生效)")
+        self.theme_control = SegmentedControl(self.editor)
+        for mode, label in (("auto", "跟随系统"), ("light", "浅色"), ("dark", "深色")):
+            self.theme_control.add_item(mode, self.tra(label))
+        appearance.add_field("主题", self.theme_control, "选择浅色、深色，或跟随系统外观自动切换")
+        self.theme_control.setFixedWidth(360)
+        self.accent_picker = ColorPickerButton(QColor(self.DEFAULT_ACCENT), self.tra("主题色"), self.editor, enableAlpha=False)
+        self.accent_reset_button = PushButton(self.tra("恢复默认"), self.editor)
+        appearance.add_field("主题色", self._actions(self.accent_picker, self.accent_reset_button),
+                             "设置应用强调色，立即生效；部分自定义组件需重新打开后应用")
 
-        # 设置主容器
-        self.container = QVBoxLayout(self)
-        self.container.setContentsMargins(0, 0, 0, 0)
+        connection = self._add_section("网络与服务", FluentIcon.GLOBE)
+        self.proxy_switch = SwitchButton(self.editor)
+        connection.add_field("网络代理", self.proxy_switch,
+                             "启用该功能后,将使用设置的代理地址向接口发送请求,例如 http://127.0.0.1:7890")
+        self.proxy_edit = LineEdit(self.editor)
+        self.proxy_edit.setPlaceholderText(self.tra("请输入网络代理地址"))
+        connection.add_field("网络代理地址", self.proxy_edit)
+        self.proxy_edit.setFixedWidth(360)
+        self.backend_address = self._address_edit()
+        connection.add_field("后端服务", self.backend_address, "当前连接地址；更换后端后需要重新启动桌面端。")
+        self.backend_address.setFixedWidth(360)
+        self.mcp_switch = SwitchButton(self.editor)
+        connection.add_field("MCP 服务", self.mcp_switch,
+                             "允许 MCP 客户端提交、查询和取消翻译任务。立即生效，关闭后已提交的任务继续执行。")
+        self.mcp_address = self._address_edit()
+        self.mcp_copy_button = PushButton(FluentIcon.COPY, self.tra("复制地址"), self.editor)
+        address_actions = self._actions(self.mcp_address, self.mcp_copy_button)
+        connection.add_field("MCP 连接地址", address_actions,
+                             "客户端请选择 Streamable HTTP，地址随当前后端自动生成。")
+        address_actions.setFixedWidth(360)
 
-        # 设置滚动容器
-        self.scroller = SingleDirectionScrollArea(self, orient=Qt.Vertical)
-        self.scroller.setWidgetResizable(True)
-        self.scroller.setStyleSheet("QScrollArea { border: none; background: transparent; }")
-        self.container.addWidget(self.scroller)
+        profiles = self._add_section("配置管理", FluentIcon.DOCUMENT, expanded=False)
+        self.import_button = PushButton(FluentIcon.DOWNLOAD, self.tra("导入"), self.editor)
+        self.export_button = PushButton(FluentIcon.SHARE, self.tra("导出"), self.editor)
+        profiles.add_field("应用配置切换", self._actions(self.import_button, self.export_button),
+                           "可以将当前应用的所有设置导出为配置文件,以方便根据不同项目切换配置(导入配置后应用将自动重启)")
 
-        # 设置容器
-        self.vbox_parent = QWidget(self)
-        self.vbox_parent.setStyleSheet("QWidget { background: transparent; }")
-        self.vbox = QVBoxLayout(self.vbox_parent)
-        self.vbox.setSpacing(8)
-        self.vbox.setContentsMargins(24, 24, 24, 24)  # 左、上、右、下
-        self.scroller.setWidget(self.vbox_parent)
+        updates = self._add_section("应用更新", FluentIcon.UPDATE, expanded=False)
+        self.auto_update_switch = SwitchButton(self.editor)
+        updates.add_field("自动检查更新", self.auto_update_switch,
+                          "启用此功能后,应用将在启动时自动检查是否有新版本")
+        self.check_update_button = PushButton(FluentIcon.UPDATE, self.tra("检查更新"), self.editor)
+        updates.add_field("检查更新", self.check_update_button, "点击按钮手动检查是否有新版本可用")
 
-        # 添加控件
-        self.add_widget_app_profile(self.vbox, config, window)
-        self.add_widget_proxy(self.vbox, config)
-        self.add_widget_interface_language_setting(self.vbox, config)
-        self.add_widget_auto_check_update(self.vbox, config)
-        self.add_widget_check_update(self.vbox, config, window)
-        self.add_widget_theme(self.vbox, config, window)
-        self.add_widget_accent_color(self.vbox, config)
-        self.add_widget_backend_connection(self.vbox, config)
-        self.add_widget_mcp(self.vbox, config)
-        # 填充
-        self.vbox.addStretch(1)
+        self.proxy_edit.textChanged.connect(self._schedule_save)
+        self.proxy_edit.editingFinished.connect(self._save_settings)
+        self.proxy_switch.checkedChanged.connect(self._save_immediately)
+        self.language_combo.currentIndexChanged.connect(self._save_immediately)
+        self.auto_update_switch.checkedChanged.connect(self._save_immediately)
+        self.mcp_switch.checkedChanged.connect(self._on_mcp_changed)
+        self.theme_control.currentChanged.connect(self._on_theme_changed)
+        self.accent_picker.colorChanged.connect(self._on_accent_changed)
+        self.accent_reset_button.clicked.connect(lambda: self._on_accent_changed(QColor(self.DEFAULT_ACCENT)))
+        self.mcp_copy_button.clicked.connect(self._copy_mcp_address)
+        self.import_button.clicked.connect(self._choose_import)
+        self.export_button.clicked.connect(self._choose_export)
+        self.check_update_button.clicked.connect(self._check_updates)
 
-    # 网络代理地址
-    def add_widget_proxy(self, parent, config) -> None:
+    def _actions(self, *widgets):
+        actions = QWidget(self.editor)
+        layout = QHBoxLayout(actions)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        for widget in widgets:
+            layout.addWidget(widget)
+        return actions
 
-        def checked_changed(swicth_button, checked: bool) -> None:
-            swicth_button.setChecked(checked)
+    def _address_edit(self):
+        edit = LineEdit(self.editor)
+        edit.setReadOnly(True)
+        edit.setClearButtonEnabled(False)
+        return edit
 
-            config = self.load_config()
-            config["proxy_enable"] = checked
-            self.save_config(config)
+    def _read_settings(self, config):
+        return {**self.default, "theme": "auto", "accent_color": self.DEFAULT_ACCENT, **config}
 
-            # 获取并设置网络代理
-            proxy_url = config["proxy_url"]
-            if checked == False or proxy_url == "":
-                os.environ.pop("http_proxy", None)
-                os.environ.pop("https_proxy", None)
-                info = self.tra("网络代理已关闭")
-                self.info(info)
+    def _load_fields(self, values):
+        self.proxy_edit.setText(values.get("proxy_url", ""))
+        self.proxy_switch.setChecked(values.get("proxy_enable", False))
+        self.language_combo.setCurrentIndex(max(0, self.language_combo.findText(values.get("interface_language_setting", "简中"))))
+        self.auto_update_switch.setChecked(values.get("auto_check_update", True))
+        self.mcp_switch.setChecked(values.get("mcp_enable", True))
+        mode = values.get("theme", "auto")
+        self._selected_theme = mode if mode in ("auto", "light", "dark") else "auto"
+        self.theme_control.set_current_key(self._selected_theme)
+        color = QColor(values.get("accent_color", self.DEFAULT_ACCENT))
+        self.accent_picker.setColor(color if color.isValid() else QColor(self.DEFAULT_ACCENT))
+        for edit, address in ((self.backend_address, self.config_backend().url),
+                              (self.mcp_address, self.config_backend().mcp_url)):
+            edit.setText(address)
+            edit.setCursorPosition(0)
+            edit.setToolTip(address)
+
+    def _form_values(self):
+        return {
+            "proxy_url": self.proxy_edit.text().strip(),
+            "proxy_enable": self.proxy_switch.isChecked(),
+            "interface_language_setting": self.language_combo.currentText(),
+            "auto_check_update": self.auto_update_switch.isChecked(),
+            "mcp_enable": self.mcp_switch.isChecked(),
+            "theme": self._selected_theme,
+            "accent_color": self.accent_picker.color.name(),
+        }
+
+    def _build_update(self, current, values):
+        return {key: value for key, value in values.items()
+                if self._baseline is None or value != self._baseline.get(key)}
+
+    def _apply_config(self, config):
+        super()._apply_config(config)
+        self._apply_runtime(config)
+
+    def _save_settings(self, *, report_validation=True):
+        if self._importing:
+            return True
+        changed = not self._loading and self._is_dirty()
+        saved = super()._save_settings(report_validation=report_validation)
+        if changed and saved:
+            self._apply_runtime(self._config_snapshot)
+        return saved
+
+    def _apply_runtime(self, config):
+        # Only apply live effects after the backend has accepted the settings.
+        proxy = config.get("proxy_url", "") if config.get("proxy_enable", False) else ""
+        for key in ("http_proxy", "https_proxy"):
+            if proxy:
+                os.environ[key] = proxy
             else:
-                os.environ["http_proxy"] = proxy_url
-                os.environ["https_proxy"] = proxy_url
-                info = self.tra("网络代理已启用,代理地址")
-                self.info(f"{info}:{proxy_url}")
-
-        def init(widget) -> None:
-            widget.set_text(config.get("proxy_url"))
-            widget.set_placeholder_text(self.tra("请输入网络代理地址"))
-
-            swicth_button = SwitchButton()
-            swicth_button.setOnText(self.tra("启用"))
-            swicth_button.setOffText(self.tra("禁用"))
-            swicth_button.setChecked(config.get("proxy_enable", False))
-            swicth_button.checkedChanged.connect(lambda checked: checked_changed(swicth_button, checked))
-            widget.add_spacing(8)
-            widget.add_widget(swicth_button)
-
-            # 获取并设置网络代理
-            checked = config["proxy_enable"]
-            proxy_url = config["proxy_url"]
-            if checked == False or proxy_url == "":
-                os.environ.pop("http_proxy", None)
-                os.environ.pop("https_proxy", None)
-            else:
-                os.environ["http_proxy"] = proxy_url
-                os.environ["https_proxy"] = proxy_url
-                info = self.tra("网络代理已启用,代理地址")
-                self.info(f"{info}:{proxy_url}")
-
-        def text_changed(widget, text: str) -> None:
-            config = self.load_config()
-            config["proxy_url"] = text.strip()
-            self.save_config(config)
-
-        parent.addWidget(
-            LineEditCard(
-                self.tra("网络代理地址"),
-                self.tra("启用该功能后,将使用设置的代理地址向接口发送请求,例如 http://127.0.0.1:7890"),
-                init=init,
-                text_changed=text_changed,
-            )
-        )
-
-
-    def add_widget_backend_connection(self, parent, config) -> None:
-        def init_backend(widget):
-            widget.set_text(self.config_backend().url)
-            widget.set_fixed_width(280)
-            widget.line_edit.setReadOnly(True)
-        parent.addWidget(LineEditCard(
-            self.tra("后端服务"),
-            self.tra("当前连接地址；更换后端后需要重新启动桌面端。"),
-            init=init_backend,
-        ))
-
-    def add_widget_mcp(self, parent, config) -> None:
-        self._mcp_enabled = config.get("mcp_enable", True)
-
-        def checked_changed(widget, checked: bool) -> None:
-            try:
-                saved = self.save_config({"mcp_enable": checked})
-            except (BackendError, ValueError) as error:
-                with QSignalBlocker(widget.switch_button):
-                    widget.set_checked(self._mcp_enabled)
-                self.error_toast(self.tra("MCP 设置保存失败"), redact(str(error)))
-                return
-            self._mcp_enabled = saved.get("mcp_enable", checked)
-            with QSignalBlocker(widget.switch_button):
-                widget.set_checked(self._mcp_enabled)
-
-        self.mcp_switch_card = SwitchButtonCard(
-            self.tra("MCP 服务"),
-            self.tra("允许 MCP 客户端提交、查询和取消翻译任务。立即生效，关闭后已提交的任务继续执行。"),
-            init=lambda widget: widget.set_checked(self._mcp_enabled),
-            checked_changed=checked_changed,
-        )
-        self.mcp_switch_card.description_label.setWordWrap(True)
-        self.mcp_switch_card.container.setStretch(0, 1)
-        self.mcp_switch_card.container.setStretch(1, 0)
-        parent.addWidget(self.mcp_switch_card)
-
-        def copy_address() -> None:
-            QApplication.clipboard().setText(self.mcp_address_card.get_text())
-            self.success_toast("", self.tra("MCP 地址已复制"))
-
-        def init_address(widget) -> None:
-            address = self.config_backend().mcp_url
-            widget.set_text(address)
-            widget.set_fixed_width(280)
-            widget.line_edit.setReadOnly(True)
-            widget.line_edit.setClearButtonEnabled(False)
-            widget.line_edit.setCursorPosition(0)
-            widget.line_edit.setToolTip(address)
-            self.mcp_copy_button = PushButton(self.tra("复制地址"), self)
-            self.mcp_copy_button.setIcon(FluentIcon.COPY)
-            self.mcp_copy_button.clicked.connect(copy_address)
-            widget.add_spacing(8)
-            widget.add_widget(self.mcp_copy_button)
-
-        self.mcp_address_card = LineEditCard(
-            self.tra("MCP 连接地址"),
-            self.tra("客户端请选择 Streamable HTTP，地址随当前后端自动生成。"),
-            init=init_address,
-        )
-        self.mcp_address_card.description_label.setWordWrap(True)
-        self.mcp_address_card.hbox.setStretch(0, 1)
-        self.mcp_address_card.hbox.setStretch(1, 0)
-        parent.addWidget(self.mcp_address_card)
-
-    # 主题（跟随系统 / 浅色 / 深色，连体分段控件）
-    def add_widget_theme(self, parent, config, window) -> None:
-        theme_items = [
-            ("auto", self.tra("跟随系统")),
-            ("light", self.tra("浅色")),
-            ("dark", self.tra("深色")),
-        ]
-
-        def init(widget) -> None:
-            current = config.get("theme", "auto")
-            if current not in ("auto", "light", "dark"):
-                current = "auto"
-
-            segmented = SegmentedControl(widget)
-            for mode, text in theme_items:
-                segmented.add_item(mode, text)
-            segmented.set_current_key(current)
-            if hasattr(window, "apply_theme_mode"):
-                segmented.currentChanged.connect(window.apply_theme_mode)
-            widget.add_widget(segmented)
-
-        parent.addWidget(
-            EmptyCard(
-                self.tra("主题"),
-                self.tra("选择浅色、深色，或跟随系统外观自动切换"),
-                init=init,
-            )
-        )
-
-    # 主题色
-    def add_widget_accent_color(self, parent, config) -> None:
-        DEFAULT_ACCENT = "#808b9d"
-
-        def on_color_changed(color: QColor) -> None:
-            hex_value = color.name()
-            cfg = self.load_config()
-            cfg["accent_color"] = hex_value
-            self.save_config(cfg)
+                os.environ.pop(key, None)
+        self._app_window.apply_theme_mode(config.get("theme", "auto"), persist=False)
+        color = QColor(config.get("accent_color", self.DEFAULT_ACCENT))
+        if color.isValid() and color != qconfig.get(qconfig.themeColor):
             setThemeColor(color)
 
-        def init(widget) -> None:
-            initial = QColor(config.get("accent_color", DEFAULT_ACCENT))
-            picker = ColorPickerButton(initial, self.tra("主题色"), self, enableAlpha=False)
-            picker.colorChanged.connect(on_color_changed)
+    def _save_immediately(self, *_):
+        if not self._loading:
+            self._save_settings()
 
-            def reset_to_default():
-                default = QColor(DEFAULT_ACCENT)
-                picker.setColor(default)
-                on_color_changed(default)
+    def _on_mcp_changed(self, _checked):
+        if self._loading:
+            return
+        if not self._save_settings():
+            with QSignalBlocker(self.mcp_switch):
+                self.mcp_switch.setChecked(self._baseline["mcp_enable"])
 
-            reset_button = PushButton(self.tra("恢复默认"), self)
-            reset_button.clicked.connect(reset_to_default)
+    def _on_theme_changed(self, mode):
+        self._selected_theme = mode
+        self._save_immediately()
 
-            widget.add_widget(picker)
-            widget.add_spacing(8)
-            widget.add_widget(reset_button)
+    def _on_accent_changed(self, color):
+        self.accent_picker.setColor(color)
+        self._save_immediately()
 
-        parent.addWidget(
-            EmptyCard(
-                self.tra("主题色"),
-                self.tra("设置应用强调色，立即生效；部分自定义组件需重新打开后应用"),
-                init=init,
-            )
-        )
+    def _copy_mcp_address(self):
+        QApplication.clipboard().setText(self.mcp_address.text())
+        self.success_toast("", self.tra("MCP 地址已复制"))
 
-    # 语言
-    def add_widget_interface_language_setting(self, parent, config) -> None:
-        def init(widget) -> None:
-            widget.set_current_index(max(0, widget.find_text(config.get("interface_language_setting"))))
+    def _check_updates(self):
+        if not self.prepare_to_leave():
+            return
+        self.check_update_button.setText(self.tra("正在检查更新..."))
+        self.check_update_button.setEnabled(False)
+        try:
+            self._app_window.show_update_dialog()
+        finally:
+            QTimer.singleShot(1000, self._reset_update_button)
 
-        def current_text_changed(widget, text: str) -> None:
-            config = self.load_config()
-            config["interface_language_setting"] = text
-            self.save_config(config)
+    def _reset_update_button(self):
+        self.check_update_button.setText(self.tra("检查更新"))
+        self.check_update_button.setEnabled(True)
 
-        parent.addWidget(
-            ComboBoxCard(
-                self.tra("界面语言设置"),
-                self.tra("应用界面将按照所选语言进行显示(将在应用重启后生效)"),
-                ["简中", "繁中", "English", "日本語"],
-                init=init,
-                current_text_changed=current_text_changed,
-            )
-        )
+    def _choose_import(self):
+        path, _ = get_open_file_name(self, self.tra("选择文件"), "", self.tra("JSON 配置文件 (*.json)"))
+        if path:
+            self._import_profile(path)
 
-    # 自动检查更新
-    def add_widget_auto_check_update(self, parent, config) -> None:
-        def init(widget) -> None:
-            widget.set_checked(config.get("auto_check_update", True))
+    def _import_profile(self, path):
+        dialog = MessageBox(self.tra("警告"), self.tra("是否确认导入选中的配置文件,导入后应用将自动重启"), self._app_window)
+        dialog.yesButton.setText(self.tra("确认"))
+        dialog.cancelButton.setText(self.tra("取消"))
+        accepted = dialog.exec()
+        dialog.deleteLater()
+        if not accepted or not self.prepare_to_leave():
+            return
+        try:
+            self.import_config(path)
+        except Exception as error:
+            self.error_toast(self.tra("导入失败"), redact(str(error)))
+            return
+        self._importing = True
+        self._save_timer.stop()
+        self.editor.setEnabled(False)
+        self.success_toast("", self.tra("配置文件导入成功,应用即将自动重启!"))
+        QTimer.singleShot(1000, self._restart_app)
 
-        def checked_changed(widget, checked: bool) -> None:
-            config = self.load_config()
-            config["auto_check_update"] = checked
-            self.save_config(config)
+    def _restart_app(self):
+        launch_desktop()
+        sys.exit(0)
 
-        parent.addWidget(
-            SwitchButtonCard(
-                self.tra("自动检查更新"),
-                self.tra("启用此功能后,应用将在启动时自动检查是否有新版本"),
-                init=init,
-                checked_changed=checked_changed,
-            )
-        )
+    def _choose_export(self):
+        path = get_existing_directory(self, self.tra("选择文件夹"), "")
+        if path:
+            self._export_profile(path)
 
-    # 手动检查更新
-    def add_widget_check_update(self, parent, config, window) -> None:
-        """手动检查更新按钮"""
-
-        def on_check_button_clicked(check_button) -> None:
-            """检查更新按钮点击事件"""
-            # 更新按钮文本,提示正在检查
-            original_text = check_button.text()
-            check_button.setText(self.tra("正在检查更新..."))
-            check_button.setEnabled(False)
-
-            # 显示更新对话框
-            window.show_update_dialog()
-
-            # 恢复按钮文本和状态
-            QTimer.singleShot(1000, lambda: (
-                check_button.setText(original_text),
-                check_button.setEnabled(True)
-            ))
-
-        def init(widget) -> None:
-            check_button = PushButton(self.tra("检查更新"), self)
-            check_button.setIcon(FluentIcon.UPDATE)
-            check_button.setContentsMargins(4, 0, 4, 0)
-            check_button.clicked.connect(lambda: on_check_button_clicked(check_button))
-
-            widget.add_widget(check_button)
-
-        parent.addWidget(
-            EmptyCard(
-                self.tra("检查更新"),
-                self.tra("点击按钮手动检查是否有新版本可用"),
-                init=init,
-            )
-        )
-
-    # 应用配置切换
-    def add_widget_app_profile(self, parent, config, window) -> None:
-
-        # 重启应用
-        def restart_app() -> None:
-            launch_desktop()
-            sys.exit(0)
-
-        # 导入配置文件
-        def import_profile_file(path) -> None:
-            # 确认框
-            message_box = MessageBox(self.tra("警告"), self.tra("是否确认导入选中的配置文件,导入后应用将自动重启"), window)
-            message_box.yesButton.setText(self.tra("确认"))
-            message_box.cancelButton.setText(self.tra("取消"))
-            if not message_box.exec():
-                return
-            try:
-                self.import_config(path)
-            except Exception as error:
-                self.error_toast(self.tra("导入失败"), str(error))
-                return
-            self.success_toast("", self.tra("配置文件导入成功,应用即将自动重启!"))
-
-            # 重启应用
-            QTimer.singleShot(1000, restart_app)
-
-        # 导出配置文件
-        def export_profile_file(path) -> None:
-            try:
-                result = self.export_config(path)
-            except Exception as error:
-                self.error_toast(self.tra("导出失败"), str(error))
-                return
-            info_cont = self.tra("配置已导出为") + f" {result['path']}"
-            self.success_toast("", info_cont)
-
-        # 导入按钮点击事件
-        def on_improt_button_clicked() -> None:
-            path, _ = get_open_file_name(None, self.tra("选择文件"), "", self.tra("JSON 配置文件 (*.json)"))
-
-            if path == None or path == "":
-                return
-
-            import_profile_file(path)
-
-        # 导出按钮点击事件
-        def on_exprot_button_clicked() -> None:
-            path = get_existing_directory(None, self.tra("选择文件夹"), "")
-
-            if path == None or path == "":
-                return
-
-            export_profile_file(path)
-
-        def init(widget) -> None:
-            improt_button = PushButton(self.tra("导入"), self)
-            improt_button.setIcon(FluentIcon.DOWNLOAD)
-            improt_button.setContentsMargins(4, 0, 4, 0)
-            improt_button.clicked.connect(on_improt_button_clicked)
-
-            export_button = PushButton(self.tra("导出"), self)
-            export_button.setIcon(FluentIcon.SHARE)
-            export_button.setContentsMargins(4, 0, 4, 0)
-            export_button.clicked.connect(on_exprot_button_clicked)
-
-            widget.add_widget(improt_button)
-            widget.add_spacing(16)
-            widget.add_widget(export_button)
-
-        parent.addWidget(
-            EmptyCard(
-                self.tra("应用配置切换"),
-                self.tra("可以将当前应用的所有设置导出为配置文件,以方便根据不同项目切换配置(导入配置后应用将自动重启)"),
-                init=init,
-            )
-        )
+    def _export_profile(self, path):
+        if not self.prepare_to_leave():
+            return
+        try:
+            result = self.export_config(path)
+        except Exception as error:
+            self.error_toast(self.tra("导出失败"), redact(str(error)))
+            return
+        self.success_toast("", self.tra("配置已导出为") + f" {result['path']}")

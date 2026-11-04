@@ -145,7 +145,7 @@ class AnalysisTask(LogMixin):
         try:
             if not chunks or self.context.is_cancelled():
                 return
-            workers = max(1, int(self.config.actual_thread_counts))
+            workers = max(1, min(self.config.worker_thread_counts, len(chunks)))
             executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers, thread_name_prefix=f"analysis_{phase}")
             self._set_active_executor(executor)
             next_index, pending = 0, set()

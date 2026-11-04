@@ -59,7 +59,7 @@ class SimpleExecutor(LogMixin):
                     callbacks_enabled = False
 
         try:
-            max_workers = max(1, int(config.actual_thread_counts))
+            max_workers = max(1, min(config.worker_thread_counts, len(batches)))
             executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix=operation)
             next_index, pending = 0, set()
             while pending or (next_index < len(batches) and not context.is_cancelled()):

@@ -44,6 +44,7 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 - 读取默认 `format: "AutoType"`。PDF 使用 BabelDOC；`pages` 如 `"1-3,5"`，仅适用于 `AutoType` 或 `BabeldocPdf`。
 - 翻译配置可设置 `provider_id`、`source_language`、`target_language`、线程数、分块和术语规则；省略字段时继承任务提交时的后端配置，不修改全局设置。`provider_id` 是已保存接口的 ID。
+- 并发任务数按接口保存为 `platforms.<接口 ID>.user_thread_counts`，0 为自动，正整数为指定并发数。提取、翻译按对应角色绑定选择接口，未绑定时跟随激活接口；自动模式先以 1–8 个请求并发启动，按成功请求的耗时移动平均和 RPM 估算目标值，保留 10% 余量，每次最多增加约 25%，上限 64；连续两次请求失败时减半并等待 5 秒，再逐步恢复。请求按 RPM 间隔和到达顺序发送，排队可取消，并受请求超时约束；排队耗时及取消不计入响应统计。重复或空密钥不再放大 RPM。本地 llama.cpp 优先使用有效槽位数（最多 64），探测超时 2 秒，失败回退到 2 个并发。自动控制状态按任务隔离，不写入配置；手动正整数仍使用指定值。旧接口缺少该字段时初始化为 0，旧全局并发字段不再使用。REST/MCP 显式传入 `user_thread_counts` 仅覆盖本次翻译操作；省略时读取所选接口配置，已提交任务不受后续修改影响。
 - 默认跳过有效译文；切换目标语言需显式设置 `retranslate: true`。文档导出 `mode` 支持 `translated`、`bilingual`、`both`。
 - 读取、翻译返回 `status/model/report`；文档写出返回 `status/files/report`。HTTP 200 仍须检查业务 `status` 和报告；非 2xx 查看 `detail`，以及响应中可能包含的 `error.code/message`。
 

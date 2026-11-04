@@ -40,7 +40,10 @@ class TranslationOptions(RequestModel):
     pre_line_counts: int | None = Field(default=None, ge=0, le=9999999)
     round_limit: int | None = Field(default=None, ge=0, le=9999999)
     request_timeout: float | None = Field(default=None, gt=0, le=9999999)
-    user_thread_counts: int | None = Field(default=None, ge=0, le=9999999)
+    user_thread_counts: int | None = Field(
+        default=None, ge=0, le=9999999,
+        description="本次任务的并发覆盖；省略时读取所选接口的并发设置，0 表示自动，不修改已保存配置",
+    )
     language_filter_switch: bool | None = None
     code_filter_switch: bool | None = None
     few_shot_and_example_switch: bool | None = None

@@ -57,7 +57,7 @@ def get_media_provider_presets(kind):
         }
     if kind == "image_generation":
         presets["gemini"] = {
-            "name": "Gemini 官方", "api_format": "Gemini",
+            "name": "谷歌", "api_format": "Gemini",
             "api_url": "https://generativelanguage.googleapis.com",
             "api_key": "", "model": "gemini-3-pro-image", "request_timeout": 300,
             "group": "online", "icon": "google", "description": "Google Gemini · 单步图片翻译",

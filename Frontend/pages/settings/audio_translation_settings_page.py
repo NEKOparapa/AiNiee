@@ -1,21 +1,25 @@
 """Audio workflow settings, independent of transcription providers."""
 
-from qfluentwidgets import ComboBox, FluentIcon, SpinBox, SwitchButton
+from qfluentwidgets import ComboBox, FluentIcon, LineEdit, SpinBox, SwitchButton
 
 from Frontend.core.media_task_config import (
     MEDIA_EXPORT_FORMATS, build_audio_translation_settings_update, normalize_audio_translation_settings,
     read_audio_translation_settings,
     read_video_translation_settings, build_video_translation_settings_update,
 )
-from Frontend.pages.settings.media_settings_page import MediaSettingsPage
+from Frontend.pages.settings.grouped_settings_page import GroupedSettingsPage
 
 
-class AudioTranslationSettingsPage(MediaSettingsPage):
+class AudioTranslationSettingsPage(GroupedSettingsPage):
     def __init__(self, text, parent=None, *, kind="audio"):
         self.kind = kind
         super().__init__(text, parent)
 
     def _build_fields(self):
+        self._build_header(
+            "视译设置" if self.kind == "video" else "音译设置",
+            "提取视频中的音轨进行翻译，设置识别、切片与字幕导出。" if self.kind == "video" else "设置音频识别、长音频处理与字幕导出。",
+        )
         recognition = self._add_section("识别参数", FluentIcon.MICROPHONE,
             "自动选择默认音轨，仅提取音频进行翻译。" if self.kind == "video" else "设置说话人识别")
         self.speaker_switch = SwitchButton(self.editor)
@@ -33,8 +37,9 @@ class AudioTranslationSettingsPage(MediaSettingsPage):
         audio.add_field("切片并发数", self.chunk_concurrency_spin,
                         "同时发送的转录请求数。遇到服务限流时可降低此值；已完成的切片可随中间模型继续使用。")
 
-        export = self._add_section("导出设置", FluentIcon.SHARE,
-                                  "用于视频项目的字幕导出" if self.kind == "video" else "用于音频项目的字幕导出")
+        export = self._add_section("结果导出", FluentIcon.SHARE,
+                                  "用于视频项目的字幕导出" if self.kind == "video" else "用于音频项目的字幕导出",
+                                  expanded=False)
         self.export_format_combo = ComboBox(self.editor)
         for value in MEDIA_EXPORT_FORMATS[self.kind]:
             self.export_format_combo.addItem(value.upper(), userData=value)
@@ -43,12 +48,18 @@ class AudioTranslationSettingsPage(MediaSettingsPage):
         for label, value in (("双语字幕", "bilingual"), ("仅译文", "translated"), ("仅原文", "source")):
             self.export_mode_combo.addItem(self.tra(label), userData=value)
         export.add_field("字幕内容", self.export_mode_combo)
+        self.export_suffix_edit = LineEdit(self.editor)
+        self.export_suffix_edit.setPlaceholderText("_subtitles")
+        export.add_field("输出文件名后缀", self.export_suffix_edit,
+                         "添加在文件名末尾、扩展名前；留空不添加后缀。")
 
         self.speaker_switch.checkedChanged.connect(self._schedule_save)
         self.chunk_duration_spin.valueChanged.connect(self._schedule_save)
         self.chunk_concurrency_spin.valueChanged.connect(self._schedule_save)
         self.export_format_combo.currentIndexChanged.connect(self._schedule_save)
         self.export_mode_combo.currentIndexChanged.connect(self._schedule_save)
+        self.export_suffix_edit.textChanged.connect(self._schedule_save)
+        self.export_suffix_edit.editingFinished.connect(self._save_settings)
 
     def _read_settings(self, config):
         reader = read_video_translation_settings if self.kind == "video" else read_audio_translation_settings
@@ -60,6 +71,7 @@ class AudioTranslationSettingsPage(MediaSettingsPage):
         self.chunk_concurrency_spin.setValue(values["chunk_concurrency"])
         self.export_format_combo.setCurrentIndex(self.export_format_combo.findData(values["export"]["format"]))
         self.export_mode_combo.setCurrentIndex(self.export_mode_combo.findData(values["export"]["mode"]))
+        self.export_suffix_edit.setText(values["export"]["suffix"])
 
     def _form_values(self):
         return {
@@ -69,6 +81,7 @@ class AudioTranslationSettingsPage(MediaSettingsPage):
             "export": {
                 "format": self.export_format_combo.currentData(),
                 "mode": self.export_mode_combo.currentData(),
+                "suffix": self.export_suffix_edit.text(),
             },
         }
 

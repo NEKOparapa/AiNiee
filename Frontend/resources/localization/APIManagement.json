@@ -354,6 +354,18 @@
   },
 
   "PART_5": {
+    "提取和翻译使用此接口时应用。默认值为 0，表示自动设置：按接口限额和响应耗时调整，连续请求失败时降低并发；本地模型优先使用可用槽位。": {
+      "简中": "提取和翻译使用此接口时应用。默认值为 0，表示自动设置：按接口限额和响应耗时调整，连续请求失败时降低并发；本地模型优先使用可用槽位。",
+      "繁中": "提取與翻譯使用此介面時套用。預設值為 0，表示自動設定：依介面限額與回應時間調整，連續請求失敗時降低並行數；本機模型優先使用可用槽位。",
+      "English": "Used for extraction and translation through this API. Default 0 adjusts automatically using API limits and response time, reducing concurrency after repeated request failures. Local models use available slots when possible.",
+      "日本語": "この API で抽出・翻訳する際に適用します。既定値の 0 は自動設定です。API の制限と応答時間に応じて調整し、連続したリクエスト失敗時は同時実行数を減らします。ローカルモデルは利用可能なスロットを優先します。"
+    },
+    "并发任务数未保存，请检查后端连接后重试。": {
+      "简中": "并发任务数未保存，请检查后端连接后重试。",
+      "繁中": "並行任務數未儲存，請檢查後端連線後重試。",
+      "English": "Concurrency was not saved. Check the backend connection and try again.",
+      "日本語": "同時実行数を保存できませんでした。バックエンド接続を確認して再試行してください。"
+    },
     "每分钟请求数": {
       "简中": "每分钟请求数",
       "繁中": "每分鐘請求數",

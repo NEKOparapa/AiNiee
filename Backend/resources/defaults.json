@@ -71,7 +71,8 @@
             "vad_threshold": 0.35,
             "export": {
                 "format": "srt",
-                "mode": "bilingual"
+                "mode": "bilingual",
+                "suffix": "_subtitles"
             }
         }
     },
@@ -85,7 +86,8 @@
             "vad_threshold": 0.35,
             "export": {
                 "format": "srt",
-                "mode": "bilingual"
+                "mode": "bilingual",
+                "suffix": "_subtitles"
             }
         }
     },
@@ -99,7 +101,8 @@
                 "watermark": false
             },
             "export": {
-                "format": "png"
+                "format": "png",
+                "suffix": "_translated"
             }
         }
     },
@@ -134,7 +137,6 @@
         "tokens_limit_switch": true,
         "lines_limit": 10,
         "tokens_limit": 1024,
-        "user_thread_counts": 0,
         "request_timeout": 300,
         "round_limit": 10
     },

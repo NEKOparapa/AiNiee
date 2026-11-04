@@ -287,6 +287,7 @@ class EditMediaProviderDialog(_ProviderDialog):
         self._closing = False
         self.buttonGroup.hide()
         self.form = MediaProviderForm(kind, self.widget)
+        self.form.key_edit.setEchoMode(QLineEdit.Normal)
         self.form.load(data)
         self._baseline = self.form.values()
         self._save_timer = QTimer(self)

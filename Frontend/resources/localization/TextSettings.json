@@ -1,0 +1,406 @@
+{
+  "TextSettings": {
+    "添加在文件名末尾、扩展名前；留空不添加后缀。": {
+      "简中": "添加在文件名末尾、扩展名前；留空不添加后缀。",
+      "繁中": "加在檔名末尾、副檔名前；留空則不加後綴。",
+      "English": "Append to the filename before the extension. Leave blank for no suffix.",
+      "日本語": "拡張子の前に追加します。空欄の場合は何も追加しません。"
+    },
+    "输出文件名后缀不能包含路径分隔符或非法文件名字符。": {
+      "简中": "输出文件名后缀不能包含路径分隔符或非法文件名字符。",
+      "繁中": "輸出檔名後綴不能包含路徑分隔符號或無效的檔名字元。",
+      "English": "The filename suffix cannot contain path separators or invalid filename characters.",
+      "日本語": "ファイル名の接尾辞にパス区切り文字や無効なファイル名の文字は使用できません。"
+    },
+    "系统预设只读": {
+      "简中": "系统预设只读",
+      "繁中": "系統預設唯讀",
+      "English": "Built-in presets are read-only",
+      "日本語": "システムプリセットは読み取り専用です"
+    },
+    "更多操作": {
+      "简中": "更多操作",
+      "繁中": "更多操作",
+      "English": "More actions",
+      "日本語": "その他の操作"
+    },
+    "返回{page}": {
+      "简中": "返回{page}",
+      "繁中": "返回{page}",
+      "English": "Back to {page}",
+      "日本語": "{page}に戻る"
+    },
+    "设置音频识别、长音频处理与字幕导出。": {
+      "简中": "设置音频识别、长音频处理与字幕导出。",
+      "繁中": "設定音訊辨識、長音訊處理與字幕匯出。",
+      "English": "Configure speech recognition, long audio processing, and subtitle export.",
+      "日本語": "音声認識、長時間音声の処理、字幕の出力を設定します。"
+    },
+    "提取视频中的音轨进行翻译，设置识别、切片与字幕导出。": {
+      "简中": "提取视频中的音轨进行翻译，设置识别、切片与字幕导出。",
+      "繁中": "提取影片中的音軌進行翻譯，設定辨識、切片與字幕匯出。",
+      "English": "Translate the video's audio track. Configure recognition, chunking, and subtitle export.",
+      "日本語": "動画の音声トラックを抽出して翻訳します。認識、分割、字幕の出力を設定します。"
+    },
+    "设置译图生成、翻译提示词与结果导出。": {
+      "简中": "设置译图生成、翻译提示词与结果导出。",
+      "繁中": "設定譯圖生成、翻譯提示詞與結果匯出。",
+      "English": "Configure translated image generation, prompts, and result export.",
+      "日本語": "翻訳画像の生成、プロンプト、結果の出力を設定します。"
+    },
+    "仅用于 TXT 和 EPUB 项目。": {
+      "简中": "仅用于 TXT 和 EPUB 项目。",
+      "繁中": "僅用於 TXT 和 EPUB 專案。",
+      "English": "Applies to TXT and EPUB projects only.",
+      "日本語": "TXT・EPUB プロジェクトのみ対象です。"
+    },
+    "任务执行": {
+      "简中": "任务执行",
+      "繁中": "任務執行",
+      "English": "Task execution",
+      "日本語": "タスク実行"
+    },
+    "使用输入目录旁的 AiNieeOutput 文件夹。": {
+      "简中": "使用输入目录旁的 AiNieeOutput 文件夹。",
+      "繁中": "使用輸入目錄旁的 AiNieeOutput 資料夾。",
+      "English": "Use the AiNieeOutput folder next to the input directory.",
+      "日本語": "入力フォルダーと同じ階層の AiNieeOutput を使用します。"
+    },
+    "例如将“亚瑟”和“亚瑟王”归并为同一角色。": {
+      "简中": "例如将“亚瑟”和“亚瑟王”归并为同一角色。",
+      "繁中": "例如將「亞瑟」和「亞瑟王」歸併為同一角色。",
+      "English": "For example, merge Arthur and King Arthur into one character.",
+      "日本語": "例：「アーサー」と「アーサー王」を同じ人物にまとめます。"
+    },
+    "保存修改": {
+      "简中": "保存修改",
+      "繁中": "儲存修改",
+      "English": "Save changes",
+      "日本語": "変更を保存"
+    },
+    "修改尚未保存，请检查后端连接后重试。": {
+      "简中": "修改尚未保存，请检查后端连接后重试。",
+      "繁中": "修改尚未儲存，請檢查後端連線後重試。",
+      "English": "Changes are unsaved. Check the backend connection and try again.",
+      "日本語": "変更は未保存です。バックエンドの接続を確認して再試行してください。"
+    },
+    "内容": {
+      "简中": "内容",
+      "繁中": "內容",
+      "English": "Content",
+      "日本語": "内容"
+    },
+    "删除提示词": {
+      "简中": "删除提示词",
+      "繁中": "刪除提示詞",
+      "English": "Delete prompt",
+      "日本語": "プロンプトを削除"
+    },
+    "删除此自定义提示词及尚未保存的修改？": {
+      "简中": "删除此自定义提示词及尚未保存的修改？",
+      "繁中": "刪除此自訂提示詞及尚未儲存的修改？",
+      "English": "Delete this custom prompt and its unsaved changes?",
+      "日本語": "このカスタムプロンプトと未保存の変更を削除しますか？"
+    },
+    "动态示例与预回复": {
+      "简中": "动态示例与预回复",
+      "繁中": "動態範例與預回覆",
+      "English": "Dynamic examples and prefill",
+      "日本語": "動的な例と応答の事前入力"
+    },
+    "启用此指导": {
+      "简中": "启用此指导",
+      "繁中": "啟用此指導",
+      "English": "Enable this guidance",
+      "日本語": "このガイドを有効にする"
+    },
+    "字符不兼容时使用 UTF-8；关闭后始终使用 UTF-8。": {
+      "简中": "字符不兼容时使用 UTF-8；关闭后始终使用 UTF-8。",
+      "繁中": "字元不相容時使用 UTF-8；關閉後一律使用 UTF-8。",
+      "English": "Fall back to UTF-8 for incompatible characters. When disabled, always use UTF-8.",
+      "日本語": "文字が非対応の場合は UTF-8 を使用します。無効時は常に UTF-8 になります。"
+    },
+    "将角色信息补充到基础提示词中；可用 [Separator] 分隔姓和名。": {
+      "简中": "将角色信息补充到基础提示词中；可用 [Separator] 分隔姓和名。",
+      "繁中": "將角色資訊補充到基礎提示詞中；可用 [Separator] 分隔姓和名。",
+      "English": "Add character information to the base prompt. Use [Separator] to separate family and given names.",
+      "日本語": "基本プロンプトに人物情報を追加します。姓と名は [Separator] で区切れます。"
+    },
+    "当前使用：{name}": {
+      "简中": "当前使用：{name}",
+      "繁中": "目前使用：{name}",
+      "English": "Active: {name}",
+      "日本語": "使用中：{name}"
+    },
+    "待保存": {
+      "简中": "待保存",
+      "繁中": "待儲存",
+      "English": "Unsaved changes",
+      "日本語": "未保存の変更"
+    },
+    "所选提示词已不存在，请重新打开页面后选择。": {
+      "简中": "所选提示词已不存在，请重新打开页面后选择。",
+      "繁中": "所選提示詞已不存在，請重新開啟頁面後選擇。",
+      "English": "This prompt no longer exists. Reopen the page and select another.",
+      "日本語": "選択したプロンプトは存在しません。ページを開き直して選択してください。"
+    },
+    "指定译文语气、措辞和表达习惯。": {
+      "简中": "指定译文语气、措辞和表达习惯。",
+      "繁中": "指定譯文語氣、措辭和表達習慣。",
+      "English": "Specify tone, wording, and expression preferences.",
+      "日本語": "訳文の口調、言葉選び、表現の方針を指定します。"
+    },
+    "按 Token 数切分待翻译文本。": {
+      "简中": "按 Token 数切分待翻译文本。",
+      "繁中": "依 Token 數切分待翻譯文字。",
+      "English": "Split source text by token count.",
+      "日本語": "原文をトークン数で分割します。"
+    },
+    "按行数切分待翻译文本。": {
+      "简中": "按行数切分待翻译文本。",
+      "繁中": "依行數切分待翻譯文字。",
+      "English": "Split source text by line count.",
+      "日本語": "原文を行数で分割します。"
+    },
+    "按需补充角色、背景、风格与示例，各项可独立启用。": {
+      "简中": "按需补充角色、背景、风格与示例，各项可独立启用。",
+      "繁中": "依需求補充角色、背景、風格與範例，各項可獨立啟用。",
+      "English": "Add characters, context, style, and examples. Enable each independently.",
+      "日本語": "人物、背景、文体、翻訳例を必要に応じて追加できます。各項目は個別に有効化できます。"
+    },
+    "提取任务专用，决定每次提交给模型的原文大小。": {
+      "简中": "提取任务专用，决定每次提交给模型的原文大小。",
+      "繁中": "提取任務專用，決定每次提交給模型的原文大小。",
+      "English": "Extraction only: the amount of source text sent to the model per request.",
+      "日本語": "抽出専用です。モデルに一度に送る原文の量を指定します。"
+    },
+    "提取后可在结果中审查和筛选，确认需要保留的内容。": {
+      "简中": "提取后可在结果中审查和筛选，确认需要保留的内容。",
+      "繁中": "提取後可在結果中審查和篩選，確認需要保留的內容。",
+      "English": "Review and filter extracted results to choose which entries to keep.",
+      "日本語": "抽出結果を確認・選別し、残す項目を選択できます。"
+    },
+    "提取规则": {
+      "简中": "提取规则",
+      "繁中": "提取規則",
+      "English": "Extraction rules",
+      "日本語": "抽出ルール"
+    },
+    "提示与上下文": {
+      "简中": "提示与上下文",
+      "繁中": "提示與上下文",
+      "English": "Prompts and context",
+      "日本語": "プロンプトと文脈"
+    },
+    "文本处理": {
+      "简中": "文本处理",
+      "繁中": "文字處理",
+      "English": "Text processing",
+      "日本語": "テキスト処理"
+    },
+    "无法读取任务设置，请检查后端连接后重新打开此页面。": {
+      "简中": "无法读取任务设置，请检查后端连接后重新打开此页面。",
+      "繁中": "無法讀取任務設定，請檢查後端連線後重新開啟此頁面。",
+      "English": "Cannot load settings. Check the backend connection and reopen this page.",
+      "日本語": "設定を読み込めません。バックエンドの接続を確認してページを開き直してください。"
+    },
+    "是否确认重置为默认数据?": {
+      "简中": "是否确认重置为默认数据?",
+      "繁中": "是否確認重設為預設資料？",
+      "English": "Reset to the default data?",
+      "日本語": "初期データに戻しますか？"
+    },
+    "最大翻译轮次": {
+      "简中": "最大翻译轮次",
+      "繁中": "最大翻譯輪次",
+      "English": "Maximum translation rounds",
+      "日本語": "翻訳の最大実行回数"
+    },
+    "未完成的条目在下一轮重试，直到完成或达到上限。": {
+      "简中": "未完成的条目在下一轮重试，直到完成或达到上限。",
+      "繁中": "未完成的項目在下一輪重試，直到完成或達到上限。",
+      "English": "Retry unfinished entries in subsequent rounds until complete or the limit is reached.",
+      "日本語": "未完了の項目は、完了または上限に達するまで次の回で再試行します。"
+    },
+    "根据任务内容构建翻译示例和预回复；不支持本地接口。": {
+      "简中": "根据任务内容构建翻译示例和预回复；不支持本地接口。",
+      "繁中": "根據任務內容建立翻譯範例和預回覆；不支援本機介面。",
+      "English": "Build examples and response prefill from the task. Not supported by local providers.",
+      "日本語": "タスクに応じた翻訳例と応答の事前入力を作成します。ローカル API は非対応です。"
+    },
+    "根据正则库与禁翻表保护非翻译内容，翻译后还原。": {
+      "简中": "根据正则库与禁翻表保护非翻译内容，翻译后还原。",
+      "繁中": "依正規表示式庫與禁翻表保護非翻譯內容，翻譯後還原。",
+      "English": "Protect non-translatable content using regex rules and the exclusion list, then restore it after translation.",
+      "日本語": "正規表現と翻訳除外表に従って翻訳対象外の内容を保護し、翻訳後に復元します。"
+    },
+    "检查与修复": {
+      "简中": "检查与修复",
+      "繁中": "檢查與修復",
+      "English": "Checks and repairs",
+      "日本語": "チェックと修復"
+    },
+    "检查原文与译文的换行符数量是否一致。": {
+      "简中": "检查原文与译文的换行符数量是否一致。",
+      "繁中": "檢查原文與譯文的換行符數量是否一致。",
+      "English": "Check that source and translation have the same number of line breaks.",
+      "日本語": "原文と訳文の改行数が一致するか確認します。"
+    },
+    "检查译文中是否残留应当翻译的原文。": {
+      "简中": "检查译文中是否残留应当翻译的原文。",
+      "繁中": "檢查譯文中是否殘留應當翻譯的原文。",
+      "English": "Check for source text that should have been translated.",
+      "日本語": "翻訳すべき原文が訳文に残っていないか確認します。"
+    },
+    "检查译文是否与原文完全相同。": {
+      "简中": "检查译文是否与原文完全相同。",
+      "繁中": "檢查譯文是否與原文完全相同。",
+      "English": "Check whether the translation is identical to the source.",
+      "日本語": "訳文が原文と完全に同じでないか確認します。"
+    },
+    "残留原文检查": {
+      "简中": "残留原文检查",
+      "繁中": "殘留原文檢查",
+      "English": "Untranslated text check",
+      "日本語": "原文残存チェック"
+    },
+    "每批 Token 数": {
+      "简中": "每批 Token 数",
+      "繁中": "每批 Token 數",
+      "English": "Tokens per batch",
+      "日本語": "バッチごとのトークン数"
+    },
+    "每批行数": {
+      "简中": "每批行数",
+      "繁中": "每批行數",
+      "English": "Lines per batch",
+      "日本語": "バッチごとの行数"
+    },
+    "用原文与译文对照示例指导模型的表达方式。": {
+      "简中": "用原文与译文对照示例指导模型的表达方式。",
+      "繁中": "用原文與譯文對照範例指導模型的表達方式。",
+      "English": "Guide the model with source and translation examples.",
+      "日本語": "原文と訳文の対比例でモデルの表現を指定します。"
+    },
+    "管理提示词": {
+      "简中": "管理提示词",
+      "繁中": "管理提示詞",
+      "English": "Manage prompts",
+      "日本語": "プロンプトを管理"
+    },
+    "管理翻译指导": {
+      "简中": "管理翻译指导",
+      "繁中": "管理翻譯指導",
+      "English": "Manage translation guidance",
+      "日本語": "翻訳ガイドを管理"
+    },
+    "结果导出": {
+      "简中": "结果导出",
+      "繁中": "結果匯出",
+      "English": "Export results",
+      "日本語": "結果の出力"
+    },
+    "翻译指导": {
+      "简中": "翻译指导",
+      "繁中": "翻譯指導",
+      "English": "Translation guidance",
+      "日本語": "翻訳ガイド"
+    },
+    "自动": {
+      "简中": "自动",
+      "繁中": "自動",
+      "English": "Auto",
+      "日本語": "自動"
+    },
+    "自动保存": {
+      "简中": "自动保存",
+      "繁中": "自動儲存",
+      "English": "Auto-save",
+      "日本語": "自動保存"
+    },
+    "补充故事背景、世界观和专有概念，帮助模型理解上下文。": {
+      "简中": "补充故事背景、世界观和专有概念，帮助模型理解上下文。",
+      "繁中": "補充故事背景、世界觀和專有概念，協助模型理解上下文。",
+      "English": "Add story background, worldbuilding, and concepts to help the model understand context.",
+      "日本語": "物語の背景、世界観、固有の概念を追加して、モデルの文脈理解を助けます。"
+    },
+    "角色介绍、背景设定、翻译风格与翻译示例": {
+      "简中": "角色介绍、背景设定、翻译风格与翻译示例",
+      "繁中": "角色介紹、背景設定、翻譯風格與翻譯範例",
+      "English": "Characters, background, style, and translation examples",
+      "日本語": "人物紹介・背景設定・翻訳スタイル・翻訳例"
+    },
+    "设置文本翻译的任务处理、提示词、质量检查与结果导出。": {
+      "简中": "设置文本翻译的任务处理、提示词、质量检查与结果导出。",
+      "繁中": "設定文字翻譯的任務處理、提示詞、品質檢查與結果匯出。",
+      "English": "Configure text translation tasks, prompts, quality checks, and exports.",
+      "日本語": "テキスト翻訳のタスク処理、プロンプト、品質チェック、結果出力を設定します。"
+    },
+    "识别原文中的角色、术语与禁翻项，并统一提取结果。": {
+      "简中": "识别原文中的角色、术语与禁翻项，并统一提取结果。",
+      "繁中": "識別原文中的角色、術語與禁翻項，並統一提取結果。",
+      "English": "Identify characters, terminology, and excluded terms, then consolidate the results.",
+      "日本語": "原文の人物、用語、翻訳除外項目を抽出し、結果を統合します。"
+    },
+    "请填写提示词名称和内容，且不要包含空字符。": {
+      "简中": "请填写提示词名称和内容，且不要包含空字符。",
+      "繁中": "請填寫提示詞名稱和內容，且不要包含空字元。",
+      "English": "Enter a prompt name and content without null characters.",
+      "日本語": "プロンプト名と内容を入力してください。ヌル文字は使用できません。"
+    },
+    "请补全每行的原名或原文，再保存。": {
+      "简中": "请补全每行的原名或原文，再保存。",
+      "繁中": "請補全每行的原名或原文，再儲存。",
+      "English": "Fill in the source name or text for each row before saving.",
+      "日本語": "各行の原名または原文を入力してから保存してください。"
+    },
+    "读取失败": {
+      "简中": "读取失败",
+      "繁中": "讀取失敗",
+      "English": "Failed to load",
+      "日本語": "読み込み失敗"
+    },
+    "返回原文检查": {
+      "简中": "返回原文检查",
+      "繁中": "返回原文檢查",
+      "English": "Identical source check",
+      "日本語": "原文返却チェック"
+    },
+    "返回或切换时保存": {
+      "简中": "返回或切换时保存",
+      "繁中": "返回或切換時儲存",
+      "English": "Saved when returning or switching",
+      "日本語": "戻るときや切り替えるときにも保存"
+    },
+    "返回提取设置": {
+      "简中": "返回提取设置",
+      "繁中": "返回提取設定",
+      "English": "Back to extraction settings",
+      "日本語": "抽出設定に戻る"
+    },
+    "返回翻译设置": {
+      "简中": "返回翻译设置",
+      "繁中": "返回翻譯設定",
+      "English": "Back to translation settings",
+      "日本語": "翻訳設定に戻る"
+    },
+    "选择输入文件后自动确定": {
+      "简中": "选择输入文件后自动确定",
+      "繁中": "選擇輸入檔案後自動決定",
+      "English": "Determined after choosing input files",
+      "日本語": "入力ファイルを選択すると自動設定されます"
+    },
+    "配置无效": {
+      "简中": "配置无效",
+      "繁中": "設定無效",
+      "English": "Invalid settings",
+      "日本語": "無効な設定"
+    },
+    "随翻译任务提供的前文数量；0 表示不提供。": {
+      "简中": "随翻译任务提供的前文数量；0 表示不提供。",
+      "繁中": "隨翻譯任務提供的前文數量；0 表示不提供。",
+      "English": "Number of preceding lines supplied with each task; 0 disables context.",
+      "日本語": "タスクに添える前文の行数です。0 の場合は添えません。"
+    }
+  }
+}

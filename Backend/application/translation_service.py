@@ -8,6 +8,7 @@ from Backend.application.execution_context import ExecutionContext
 from Backend.application.pipeline_common import PipelineError
 from Backend.application.tasks.translator_task import TranslatorTask
 from Backend.domain.config.task_config import TaskConfig
+from Backend.domain.config.platform_concurrency import validate_thread_count
 from Backend.domain.config.tables import TableConfigHelper
 from Backend.domain.languages import get_source_language_for_file, map_language_name_to_code
 from Backend.domain.models.cache_item import TranslationStatus
@@ -74,15 +75,16 @@ def _apply_legacy_table_overrides(values, overrides):
 
 def resolve_translation_config(config=None) -> TaskConfig:
     """Read defaults once, then resolve a private, non-persisting snapshot."""
+    thread_count_override = None
     if isinstance(config, TaskConfig):
         values = copy.deepcopy(getattr(config, "_source_snapshot", config.get_vars()))
         # Runtime changes on a prepared object (e.g. an explicit language) win.
         values.update({key: copy.deepcopy(value) for key, value in config.get_vars().items()
-                       if key in TRANSLATION_OVERRIDE_FIELDS and key != "provider_id"})
+                       if key in TRANSLATION_OVERRIDE_FIELDS and key not in ("provider_id", "user_thread_counts")})
         if getattr(config, "prepared_interface_role", None) == "translate":
             # Preserve the resolved worker count; do not probe a local model's
             # slots endpoint a second time for the desktop's prepared snapshot.
-            values["user_thread_counts"] = config.actual_thread_counts
+            thread_count_override = config.actual_thread_counts
         # Legacy configurations historically selected the mode by this flag.
         values["lines_limit_switch"] = not values.get("tokens_limit_switch", True)
         provider_id = getattr(config, "target_platform", None)
@@ -94,6 +96,11 @@ def resolve_translation_config(config=None) -> TaskConfig:
         unknown = set(config) - TRANSLATION_OVERRIDE_FIELDS
         if unknown:
             raise PipelineError("INVALID_TRANSLATION_CONFIG", "不支持的翻译配置字段", details={"fields": sorted(unknown)})
+        if "user_thread_counts" in config:
+            try:
+                thread_count_override = validate_thread_count(config["user_thread_counts"])
+            except ValueError as error:
+                raise PipelineError("INVALID_TRANSLATION_CONFIG", str(error)) from error
         try:
             values = TaskConfig.read_snapshot()
         except (OSError, ValueError) as error:
@@ -112,7 +119,6 @@ def resolve_translation_config(config=None) -> TaskConfig:
     for name, low, high in (
         ("lines_limit", 1, 9999999), ("tokens_limit", 1, 9999999),
         ("pre_line_counts", 0, 9999999), ("round_limit", 0, 9999999),
-        ("user_thread_counts", 0, 9999999),
     ):
         value = values.get(name)
         if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
@@ -139,7 +145,10 @@ def resolve_translation_config(config=None) -> TaskConfig:
             except (ValueError, LookupError) as error:
                 raise PipelineError("INVALID_TRANSLATION_CONFIG", f"{name} 无效") from error
     try:
-        resolved = TaskConfig.from_snapshot(values, "translate", provider_id=provider_id)
+        resolved = TaskConfig.from_snapshot(values, "translate", provider_id=provider_id,
+                                            user_thread_counts=thread_count_override)
+        if isinstance(config, TaskConfig) and getattr(config, "prepared_interface_role", None) == "translate":
+            resolved.copy_prepared_concurrency(config)
         if not resolved.model:
             raise ValueError("所选接口未设置模型")
         if isinstance(resolved.rpm_limit, bool) or not isinstance(resolved.rpm_limit, (int, float)) or resolved.rpm_limit <= 0:
@@ -282,7 +291,7 @@ def translate_model(model, config=None, context=None) -> dict:
                 tasks.append((task, items, file_path))
             GlossaryHelper.clear_cache()
             stage = "batch_execution"
-            executor = ThreadPoolExecutor(max_workers=max(1, min(resolved.actual_thread_counts, len(tasks))), thread_name_prefix="translator")
+            executor = ThreadPoolExecutor(max_workers=max(1, min(resolved.worker_thread_counts, len(tasks))), thread_name_prefix="translator")
             pending = {}
             try:
                 for task, items, file_path in tasks:

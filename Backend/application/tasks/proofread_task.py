@@ -71,7 +71,7 @@ class ProofreadTask(LogMixin):
             if single_tasks and not self.context.is_cancelled():
                 self.config = TaskConfig.from_snapshot(TaskConfig.read_snapshot(), interface_role="proofread")
                 self.request_limiter.set_limit(self.config.rpm_limit)
-                workers = max(1, int(self.config.actual_thread_counts))
+                workers = max(1, min(self.config.worker_thread_counts, total_items))
                 executor = concurrent.futures.ThreadPoolExecutor(max_workers=workers, thread_name_prefix="proofreader")
                 self._set_active_executor(executor)
                 next_index = 0

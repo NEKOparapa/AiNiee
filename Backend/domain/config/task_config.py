@@ -2,6 +2,7 @@ import copy
 import re
 import threading
 import urllib.request
+from urllib.parse import urlsplit, urlunsplit
 
 import rapidjson as json
 
@@ -10,8 +11,12 @@ from Backend.core.config import ConfigMixin, get_config_snapshot
 from Backend.core.headers import normalize_extra_headers
 from Backend.domain.config.tables import TableConfigHelper
 from Backend.domain.config.request_defaults import normalize_request_timeouts
+from Backend.domain.config.platform_concurrency import normalize_platform_concurrency, validate_thread_count
 from Backend.core.paths import auto_output_dir
 from Backend.core.log import LogMixin
+from Backend.infrastructure.llm.auto_concurrency import (
+    AutoConcurrency, MAX_AUTO_CONCURRENCY, initial_concurrency, validate_rpm,
+)
 
 
 # 接口请求器
@@ -33,6 +38,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         self.prepared_interface_role = None
         self.apikey_index = 0
         self.apikey_list = []
+        self._auto_concurrency = None
         self.project_characters_data = []
         self.project_terms_data = []
         self.project_non_translate_data = []
@@ -197,6 +203,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
 
         config = self._normalize_api_settings(self.load_config(), persist=True)
         normalize_request_timeouts(config)
+        normalize_platform_concurrency(config)
         if self._snapshot_mode:
             self._source_snapshot = copy.deepcopy(config)
 
@@ -212,6 +219,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         snapshot = get_config_snapshot()
         if snapshot is not None:
             normalize_request_timeouts(snapshot)
+            normalize_platform_concurrency(snapshot)
             return snapshot
 
         from Backend.core.paths import config_path
@@ -228,10 +236,12 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
                     raise ValueError("配置根节点必须是对象")
                 result.update(saved)
         normalize_request_timeouts(result)
+        normalize_platform_concurrency(result)
         return copy.deepcopy(result)
 
     @classmethod
-    def from_snapshot(cls, snapshot: dict, interface_role: str = "translate", provider_id: str | None = None):
+    def from_snapshot(cls, snapshot: dict, interface_role: str = "translate", provider_id: str | None = None,
+                      *, user_thread_counts: int | None = None):
         """Resolve an operation-owned configuration; never save global settings."""
         from Backend.infrastructure.config.defaults import get_defaults
         from Backend.domain.config.prompt_selection import TranslationPromptConfigHelper
@@ -243,6 +253,7 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         instance.prepared_interface_role = None
         values = get_defaults()
         values.update(copy.deepcopy(snapshot))
+        normalize_platform_concurrency(values)
         RegexSwitchHelper.normalize_config(values)
         TableConfigHelper.normalize_config(values)
         TranslationPromptConfigHelper.normalize_config(values)
@@ -251,6 +262,13 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             if provider_id not in values.get("platforms", {}):
                 raise ValueError("指定的 provider_id 不存在")
             values["api_settings"][instance.interface_role] = provider_id
+        if user_thread_counts is not None:
+            # Explicit REST/MCP overrides apply only to this operation's selected
+            # provider copy; saved provider settings and other roles stay intact.
+            validate_thread_count(user_thread_counts)
+            target = values["api_settings"].get(instance.interface_role) or values["api_settings"].get("active")
+            if target is not None:
+                values["platforms"][target]["user_thread_counts"] = user_thread_counts
         instance._source_snapshot = copy.deepcopy(values)
         for key, value in values.items():
             if not key.startswith("_"):
@@ -338,12 +356,10 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
 
         # 分割密钥字符串
         api_key = platform_data.get("api_key")
-        if api_key == "":
-            self.apikey_list = ["no_key_required"]
-            self.apikey_index = 0
-        else:
-            self.apikey_list = re.sub(r"\s+", "", api_key or "").split(",")
-            self.apikey_index = 0
+        self.apikey_list = list(dict.fromkeys(
+            key for key in re.sub(r"\s+", "", api_key or "").split(",") if key
+        )) or ["no_key_required"]
+        self.apikey_index = 0
 
         # 处理 API URL 和限额
         raw_url = platform_data.get("api_url", "")
@@ -352,10 +368,10 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         self.base_url = self.process_api_url(raw_url, self.target_platform, auto_complete_setting, api_format)
 
         # 获取接口限额
-        self.rpm_limit = platform_data.get("rpm_limit", 4096)
+        self.rpm_limit = validate_rpm(platform_data.get("rpm_limit", 4096))
 
         # 根据密钥数量给 RPM 限额翻倍
-        self.rpm_limit = self.rpm_limit * len(self.apikey_list)
+        self.rpm_limit = validate_rpm(self.rpm_limit * len(self.apikey_list))
 
         # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
         if self.auto_set_output_path is True:
@@ -367,7 +383,8 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             config["label_output_path"] = self.label_output_path
             self.save_config(config)
 
-        # 计算实际线程数
+        # 按实际选中的接口计算并发，旧全局值不再参与任务设置。
+        self.user_thread_counts = validate_thread_count(platform_data.get("user_thread_counts", 0))
         self.actual_thread_counts = self.thread_counts_setting(
             self.user_thread_counts,
             self.target_platform,
@@ -375,57 +392,58 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
         )
 
     # 自动计算实际请求线程数
-    def thread_counts_setting(self, user_thread_counts, target_platform, rpm_limit) -> None:
+    def thread_counts_setting(self, user_thread_counts, target_platform, rpm_limit) -> int:
+        self._auto_concurrency = None
         # 如果用户指定了线程数，则使用用户指定的线程数
         if user_thread_counts > 0:
-            actual_thread_counts = user_thread_counts
+            return user_thread_counts
 
         # 如果是本地类接口，尝试访问 slots 数
         elif target_platform.startswith("sakura") or target_platform.startswith("LocalLLM"):
             num = self.get_llama_cpp_slots_num(self.platforms.get(target_platform).get("api_url"))
-            actual_thread_counts = num if num > 0 else 4
-            self.info(f"根据 llama.cpp 接口信息，自动设置同时执行的任务数量为 {actual_thread_counts} 个 ...")
+            slots = min(MAX_AUTO_CONCURRENCY, num) if num > 0 else 2
+            self._auto_concurrency = AutoConcurrency(rpm_limit, self.request_timeout, fixed_limit=slots)
+            source = "本地模型槽位" if num > 0 else "本地槽位探测失败，使用保守默认值"
+            self.info(f"{source}：自动并发 {slots} 个 ...")
 
         # 如果用户没有指定线程数，则自动计算
         else:
-            actual_thread_counts = self.calculate_thread_count(rpm_limit)
-            self.info(f"根据账号类型和接口限额，自动设置同时执行的任务数量为 {actual_thread_counts} 个 ...")
+            self._auto_concurrency = AutoConcurrency(rpm_limit, self.request_timeout)
+            self.info(f"自动并发从 {self._auto_concurrency.initial_limit} 个开始，根据响应耗时调整，"
+                      f"最多 {self._auto_concurrency.max_concurrency} 个，连续请求失败时降低并发 ...")
 
-        return actual_thread_counts
+        return self._auto_concurrency.initial_limit
+
+    @property
+    def worker_thread_counts(self):
+        """Pool capacity; automatic mode admits requests through its own gate."""
+        return self._auto_concurrency.max_concurrency if self._auto_concurrency else self.actual_thread_counts
+
+    def copy_prepared_concurrency(self, original):
+        """Keep a prepared snapshot's policy without sharing live request state."""
+        self.user_thread_counts = original.user_thread_counts
+        self.actual_thread_counts = original.actual_thread_counts
+        self.platforms[self.target_platform]["user_thread_counts"] = original.user_thread_counts
+        self._source_snapshot["platforms"][self.target_platform]["user_thread_counts"] = original.user_thread_counts
+        self._auto_concurrency = original._auto_concurrency.fresh() if original._auto_concurrency else None
 
     # 获取 llama.cpp 的 slots 数量，获取失败则返回 -1
     def get_llama_cpp_slots_num(self, url: str) -> int:
         try:
-            num = -1
-            url = url.replace("/v1", "") if url.endswith("/v1") else url
-            with urllib.request.urlopen(f"{url}/slots", timeout=10) as response:
+            parts = urlsplit(url)
+            path = parts.path.rstrip("/").removesuffix("/v1") + "/slots"
+            endpoint = urlunsplit((parts.scheme, parts.netloc, path, "", ""))
+            with urllib.request.urlopen(endpoint, timeout=2) as response:
                 data = json.loads(response.read().decode("utf-8"))
-                num = len(data) if data is not None and len(data) > 0 else num
+                if isinstance(data, list) and data and all(isinstance(slot, dict) for slot in data):
+                    return len(data)
         except Exception:
             pass
-        finally:
-            return num
+        return -1
 
-    # 线性计算并发线程数
+    # 先按短请求估算初始并发，再由请求控制器根据实际耗时调整。
     def calculate_thread_count(self, rpm_limit):
-        min_rpm = 1
-        max_rpm = 10000
-        min_threads = 1
-        max_threads = 100
-
-        if rpm_limit <= min_rpm:
-            rpm_threads = min_threads
-        elif rpm_limit >= max_rpm:
-            rpm_threads = max_threads
-        else:
-            # 线性插值计算 RPM 对应的线程数
-            rpm_threads = min_threads + (rpm_limit - min_rpm) * (max_threads - min_threads) / (max_rpm - min_rpm)
-
-        rpm_threads = int(round(rpm_threads))
-
-        # 确保线程数在 1-100 范围内
-        actual_thread_counts = max(1, min(100, rpm_threads))
-        return actual_thread_counts
+        return initial_concurrency(rpm_limit)
 
     # 获取当前角色对应接口的配置信息包
     def get_active_platform_configuration(self, interface_role: str | None = None):
@@ -462,4 +480,6 @@ class TaskConfig(ConfigMixin, LogMixin, Base):
             "thinking_level": platform_data.get("thinking_level", "high"),
         }
 
+        if self._auto_concurrency is not None:
+            params["_auto_concurrency"] = self._auto_concurrency
         return params

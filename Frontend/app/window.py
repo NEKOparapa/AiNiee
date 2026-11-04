@@ -19,8 +19,8 @@ from qfluentwidgets import (
 from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
 from Frontend.core.events import EventManager
+from Frontend.core.icons import TaskSettingsIcon
 from Frontend.core.resources import frontend_resource_path
-from Frontend.services.editor import PromptBuilderExtraction
 from Frontend.services.backend_client import BackendError
 from Frontend.platform.platform_paths import is_macos
 from Frontend.core.log import LogMixin
@@ -31,25 +31,16 @@ from Frontend.pages.providers.platform_page import PlatformPage
 from Frontend.pages.providers.transcription_page import TranscriptionPage
 from Frontend.pages.providers.image_generation_page import ImageGenerationPage
 from Frontend.pages.media.workspace_page import ImageTranslationPage, AudioTranslationPage, VideoTranslationPage
-from Frontend.pages.prompts.extraction.extraction_prompt_page import ExtractionPromptPage
-from Frontend.pages.prompts.image_translation_prompt_page import ImageTranslationPromptPage
 from Frontend.pages.logs.log_view_page import LogViewPage
-from Frontend.pages.settings.advanced_settings_page import AdvancedSettingsPage
 from Frontend.pages.settings.app_settings_page import AppSettingsPage
 from Frontend.pages.settings.audio_translation_settings_page import AudioTranslationSettingsPage
 from Frontend.pages.settings.video_translation_settings_page import VideoTranslationSettingsPage
 from Frontend.pages.settings.image_translation_settings_page import ImageTranslationSettingsPage
-from Frontend.pages.settings.output_settings_page import OutputSettingsPage
-from Frontend.pages.settings.task_settings_page import TaskSettingsPage
+from Frontend.pages.settings.text_settings_page import TextSettingsPage
 from Frontend.pages.tables.exclusion_list_page import ExclusionListPage
 from Frontend.pages.tables.prompt_dictionary_page import PromptDictionaryPage
 from Frontend.pages.tables.text_replace_a_page import TextReplaceAPage
 from Frontend.pages.tables.text_replace_b_page import TextReplaceBPage
-from Frontend.pages.prompts.translation.characterization_prompt_page import CharacterizationPromptPage
-from Frontend.pages.prompts.translation.system_prompt_page import SystemPromptPage
-from Frontend.pages.prompts.translation.translation_example_prompt_page import TranslationExamplePromptPage
-from Frontend.pages.prompts.translation.world_building_prompt_page import WorldBuildingPromptPage
-from Frontend.pages.prompts.translation.writing_style_prompt_page import WritingStylePromptPage
 from Frontend.app.updates import UpdateCheckerThread, VersionManager
 from Frontend.components.toast import ToastMixin
 
@@ -215,13 +206,14 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         if self._theme_mode == "auto":
             setTheme(Theme.AUTO)
 
-    # 应用主题模式（auto/light/dark），由应用设置页的主题下拉调用
-    def apply_theme_mode(self, mode: str) -> None:
+    # 应用设置页在保存成功后调用；其他入口默认先保存再切换。
+    def apply_theme_mode(self, mode: str, *, persist: bool = True) -> None:
         if mode == self._theme_mode:
             return
+        if persist:
+            self.save_config({"theme": mode})
         self._theme_mode = mode
         setTheme(self._theme_for_mode(mode))
-        self.save_config({"theme": mode})
         self.info_toast(self.tra("主题切换"), self._toast_for_mode(mode))
 
     @staticmethod
@@ -304,8 +296,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
     # 开始添加页面
     def add_pages(self, cache_manager, file_reader) -> None:
-        # ===== 快速开始 =====
-        self.navigationInterface.addItemHeader(self.tra("快速开始"), NavigationItemPosition.SCROLL)
+        # 接口管理位于快速开始分组上方。
         self.add_project_pages(cache_manager, file_reader)
 
         # ===== 任务配置 =====
@@ -346,8 +337,9 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             position=NavigationItemPosition.BOTTOM,
         )
 
-    # 添加快速开始
+    # 添加接口配置与快速开始
     def add_project_pages(self, cache_manager, file_reader) -> None:
+        self.navigationInterface.addItemHeader(self.tra("接口配置"), NavigationItemPosition.SCROLL)
         self.interface_management_navigation = BaseNavigationItem("interface_management_navigation", self)
         self.interface_management_item = self.addSubInterface(
             self.interface_management_navigation,
@@ -372,6 +364,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             parent=self.interface_management_navigation,
         )
 
+        self.navigationInterface.addItemHeader(self.tra("快速开始"), NavigationItemPosition.SCROLL)
         self.edit_view_page = EditViewPage("edit_view_page", self, cache_manager, file_reader)
         self.addSubInterface(self.edit_view_page, FluentIcon.DOCUMENT, self.tra("文本翻译"), NavigationItemPosition.SCROLL)
         self.image_translation_page = ImageTranslationPage(parent=self)
@@ -387,107 +380,38 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.text_translation_settings_navigation = BaseNavigationItem("text_translation_settings_navigation", self)
         self.text_translation_settings_item = self.addSubInterface(
             self.text_translation_settings_navigation,
-            FluentIcon.DOCUMENT,
+            TaskSettingsIcon.TEXT,
             self.tra("文译设置"),
             NavigationItemPosition.SCROLL,
         )
-        self.task_settings_page = TaskSettingsPage("task_settings_page", self)
+        self.extraction_settings_page = TextSettingsPage("extraction_settings_page", self, stage="extraction")
         self.addSubInterface(
-            self.task_settings_page, FluentIcon.ZOOM, self.tra("任务设置"),
+            self.extraction_settings_page, FluentIcon.SEARCH, self.tra("提取设置"),
+            parent=self.text_translation_settings_navigation,
+        )
+        self.translation_settings_page = TextSettingsPage("translation_settings_page", self, stage="translation")
+        self.addSubInterface(
+            self.translation_settings_page, FluentIcon.EDIT, self.tra("翻译设置"),
             parent=self.text_translation_settings_navigation,
         )
 
-        self.output_settings_page = OutputSettingsPage("output_settings_page", self)
-        self.addSubInterface(
-            self.output_settings_page, FluentIcon.ALBUM, self.tra("输出设置"),
-            parent=self.text_translation_settings_navigation,
-        )
-
-        self.advanced_settings_page = AdvancedSettingsPage("advanced_settings_page", self)
-        self.TranslationSettings = self.advanced_settings_page.translation_settings_page
-        self.addSubInterface(
-            self.advanced_settings_page, FluentIcon.TILES, self.tra("高级设置"),
-            parent=self.text_translation_settings_navigation,
-        )
-        self.add_prompt_setting_pages()
+        self.add_image_translation_setting_pages()
 
         self.audio_translation_settings_page = AudioTranslationSettingsPage("audio_translation_settings_page", self)
         self.addSubInterface(
-            self.audio_translation_settings_page, FluentIcon.MICROPHONE,
+            self.audio_translation_settings_page, TaskSettingsIcon.AUDIO,
             self.tra("音译设置"), NavigationItemPosition.SCROLL,
         )
         self.video_translation_settings_page = VideoTranslationSettingsPage("video_translation_settings_page", self)
-        self.addSubInterface(self.video_translation_settings_page, FluentIcon.VIDEO,
+        self.addSubInterface(self.video_translation_settings_page, TaskSettingsIcon.VIDEO,
                              self.tra("视译设置"), NavigationItemPosition.SCROLL)
-        self.add_image_translation_setting_pages()
 
     def add_image_translation_setting_pages(self) -> None:
-        self.image_translation_settings_navigation = BaseNavigationItem("image_translation_settings_navigation", self)
+        self.image_translation_settings_page = ImageTranslationSettingsPage("image_translation_settings_page", self)
         self.image_translation_settings_item = self.addSubInterface(
-            self.image_translation_settings_navigation, FluentIcon.PHOTO,
+            self.image_translation_settings_page, TaskSettingsIcon.IMAGE,
             self.tra("图译设置"), NavigationItemPosition.SCROLL,
         )
-        self.image_translation_settings_page = ImageTranslationSettingsPage("image_translation_settings_page", self)
-        self.addSubInterface(
-            self.image_translation_settings_page, FluentIcon.SETTING, self.tra("任务设置"),
-            parent=self.image_translation_settings_navigation,
-        )
-        self.image_translation_prompt_page = ImageTranslationPromptPage("image_translation_prompt_page", self)
-        self.addSubInterface(
-            self.image_translation_prompt_page, FluentIcon.BOOK_SHELF, self.tra("翻译提示词"),
-            parent=self.image_translation_settings_navigation,
-        )
-
-    # 添加提示词设置
-    def add_prompt_setting_pages(self) -> None:
-        # 提取提示词
-        self.extraction_prompt_navigation = BaseNavigationItem("extraction_prompt_navigation", self)
-        self.addSubInterface(
-            self.extraction_prompt_navigation,
-            FluentIcon.SEARCH,
-            self.tra("提取提示词"),
-            NavigationItemPosition.SCROLL,
-            parent=self.text_translation_settings_navigation,
-        )
-        self.extraction_system_prompt_page = ExtractionPromptPage(
-            "extraction_system_prompt_page", self, PromptBuilderExtraction.BASIC
-        )
-        self.addSubInterface(
-            self.extraction_system_prompt_page,
-            FluentIcon.LABEL,
-            self.tra("基础提示"),
-            parent=self.extraction_prompt_navigation,
-        )
-        self.extraction_judgment_prompt_page = ExtractionPromptPage(
-            "extraction_judgment_prompt_page", self, PromptBuilderExtraction.JUDGMENT
-        )
-        self.addSubInterface(
-            self.extraction_judgment_prompt_page,
-            FluentIcon.LABEL,
-            self.tra("裁定提示"),
-            parent=self.extraction_prompt_navigation,
-        )
-
-        self.prompt_optimization_navigation_item = BaseNavigationItem("prompt_optimization_navigation_item", self)
-        self.addSubInterface(
-            self.prompt_optimization_navigation_item,
-            FluentIcon.BOOK_SHELF,
-            self.tra("翻译提示词"),
-            NavigationItemPosition.SCROLL,
-            parent=self.text_translation_settings_navigation,
-        )
-
-        # 翻译提示词
-        self.system_prompt_page = SystemPromptPage("system_prompt_page", self)
-        self.addSubInterface(self.system_prompt_page, FluentIcon.LABEL, self.tra("基础提示"), parent=self.prompt_optimization_navigation_item)
-        self.characterization_prompt_page = CharacterizationPromptPage("characterization_prompt_page", self)
-        self.addSubInterface(self.characterization_prompt_page, FluentIcon.PEOPLE, self.tra("角色介绍"), parent=self.prompt_optimization_navigation_item)
-        self.world_building_prompt_page = WorldBuildingPromptPage("world_building_prompt_page", self)
-        self.addSubInterface(self.world_building_prompt_page, FluentIcon.QUICK_NOTE, self.tra("背景设定"), parent=self.prompt_optimization_navigation_item)
-        self.writing_style_prompt_page = WritingStylePromptPage("writing_style_prompt_page", self)
-        self.addSubInterface(self.writing_style_prompt_page, FluentIcon.PENCIL_INK, self.tra("翻译风格"), parent=self.prompt_optimization_navigation_item)
-        self.translation_example_prompt_page = TranslationExamplePromptPage("translation_example_prompt_page", self)
-        self.addSubInterface(self.translation_example_prompt_page, FluentIcon.FIT_PAGE, self.tra("翻译示例"), parent=self.prompt_optimization_navigation_item)
 
     # 添加表格设置
     def add_table_pages(self) -> None:
@@ -498,7 +422,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         self.addSubInterface(self.exclusion_list_page, FluentIcon.DICTIONARY, self.tra("禁翻表"), NavigationItemPosition.SCROLL)
 
         self.text_replace_navigation_item = BaseNavigationItem("text_replace_navigation_item", self)
-        self.addSubInterface(self.text_replace_navigation_item, FluentIcon.SYNC, self.tra("文本替换"), NavigationItemPosition.SCROLL)
+        self.addSubInterface(self.text_replace_navigation_item, FluentIcon.FONT, self.tra("文本替换"), NavigationItemPosition.SCROLL)
 
         self.text_replace_a_page = TextReplaceAPage("text_replace_a_page", self)
         self.addSubInterface(self.text_replace_a_page, FluentIcon.SEARCH, self.tra("译前替换"), parent=self.text_replace_navigation_item)

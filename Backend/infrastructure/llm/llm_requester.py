@@ -12,6 +12,29 @@ class LLMRequester():
 
     # 分发请求
     def sent_request(self, messages: list[dict], system_prompt: str, platform_config: dict) -> tuple[bool, str, str, int, int]:
+        controller = platform_config.get("_auto_concurrency")
+        if controller is None:
+            return self._dispatch_request(messages, system_prompt, platform_config)
+        # This runtime-only controller is never passed to provider SDKs or logs.
+        platform_config = dict(platform_config)
+        platform_config.pop("_auto_concurrency")
+        is_cancelled = platform_config.get("is_cancelled")
+        started = controller.acquire(is_cancelled)
+        if started is None:
+            return True, None, None, None, None
+        success = False
+        try:
+            result = self._dispatch_request(messages, system_prompt, platform_config)
+            success = not result[0]
+            return result
+        finally:
+            cancelled = False
+            try:
+                cancelled = bool(callable(is_cancelled) and is_cancelled())
+            finally:
+                controller.finish(started, success=success, cancelled=cancelled)
+
+    def _dispatch_request(self, messages, system_prompt, platform_config):
         # 获取平台参数
         target_platform = platform_config.get("target_platform")
         api_format = platform_config.get("api_format")

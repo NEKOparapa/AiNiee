@@ -138,7 +138,10 @@ class TranslatorTask(LogMixin, Base):
                 return {"check_result": False, "row_count": 0, "error": "等待请求限流超时"}
 
             # 检查 RPM 和单次 token 上限，如果符合条件，则继续
-            if self.request_limiter.check_limiter(self.request_tokens_consume):
+            allowed = (self.request_limiter.token_limiter(self.request_tokens_consume)
+                       if self.config._auto_concurrency is not None
+                       else self.request_limiter.check_limiter(self.request_tokens_consume))
+            if allowed:
                 break
 
             # 如果以上条件都不符合，则间隔 1 秒再次检查

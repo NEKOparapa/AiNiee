@@ -14,17 +14,13 @@ from Frontend.core.resources import frontend_resource_path
 _ICON_ROOT = frontend_resource_path("icons", "fluent")
 
 
-@lru_cache(maxsize=6)
+@lru_cache(maxsize=14)
 def _native_icon(path: str) -> QIcon:
     # Keep Qt's native SVG icon engine alive so it can reuse its rendered sizes.
     return QIcon(path)
 
 
-class ProviderIcon(FluentIconBase, Enum):
-    TRANSLATION = "chat_sparkle"
-    TRANSCRIPTION = "sound_wave_circle"
-    IMAGE_GENERATION = "image_sparkle"
-
+class _BundledFluentIcon(FluentIconBase):
     def __init__(self, name):
         self._paths = {
             color: str(_ICON_ROOT / f"{name}_24_regular_{color}.svg")
@@ -45,3 +41,16 @@ class ProviderIcon(FluentIconBase, Enum):
         # Navigation animations repaint frequently. Use Qt's native icon engine
         # instead of constructing a temporary QSvgRenderer in every paintEvent.
         _native_icon(self.path(theme)).paint(painter, QRectF(rect).toRect())
+
+
+class ProviderIcon(_BundledFluentIcon, Enum):
+    TRANSLATION = "chat_sparkle"
+    TRANSCRIPTION = "sound_wave_circle"
+    IMAGE_GENERATION = "image_sparkle"
+
+
+class TaskSettingsIcon(_BundledFluentIcon, Enum):
+    TEXT = "text_grammar_settings"
+    IMAGE = "image_edit"
+    AUDIO = "mic_settings"
+    VIDEO = "video_settings"

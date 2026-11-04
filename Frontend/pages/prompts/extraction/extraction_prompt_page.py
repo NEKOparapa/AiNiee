@@ -1,8 +1,8 @@
 from Frontend.services.editor import PromptBuilderExtraction
-from Frontend.pages.prompts.prompt_library_page import PromptLibraryPage
+from Frontend.pages.prompts.editable_prompt_library_page import EditablePromptLibraryPage
 
 
-class ExtractionPromptPage(PromptLibraryPage):
+class ExtractionPromptPage(EditablePromptLibraryPage):
     DESCRIPTIONS = {
         PromptBuilderExtraction.BASIC: "用于第一阶段：从原文提取角色、术语和禁翻项。",
         PromptBuilderExtraction.JUDGMENT: "用于第二阶段：合并候选结果，裁定角色和术语分类。",

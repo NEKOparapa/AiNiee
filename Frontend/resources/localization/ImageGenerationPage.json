@@ -1,5 +1,6 @@
 {
   "ImageGenerationPage": {
+    "谷歌": {"简中": "谷歌", "繁中": "Google", "English": "Google", "日本語": "Google"},
     "生图接口": {"简中": "生图接口", "繁中": "生圖介面", "English": "Image Generation Providers", "日本語": "画像生成 API"},
     "配置用于图片翻译的独立图像编辑接口。模型会编辑整张图片，结果请人工对照原图。": {"简中": "配置用于图片翻译的独立图像编辑接口。模型会编辑整张图片，结果请人工对照原图。", "繁中": "設定用於圖片翻譯的獨立圖像編輯介面。模型會編輯整張圖片，結果請人工對照原圖。", "English": "Configure an independent image-editing provider for image translation. The model edits the entire image; compare the result with the original.", "日本語": "画像翻訳用の独立した画像編集 API を設定します。画像全体が編集されるため、結果を原画像と見比べてください。"},
     "未激活生图接口": {"简中": "未激活生图接口", "繁中": "尚未啟用生圖介面", "English": "No active image generation provider", "日本語": "有効な画像生成 API はありません"},
