@@ -90,7 +90,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
         # 为侧边栏和原文、译文并排显示预留更多横向空间。
         desktop = QApplication.desktop().availableGeometry()
         initial_width = int(desktop.width() * 0.9)
-        initial_height = int(desktop.height() * 0.8)
+        initial_height = int(desktop.height() * 0.9)
         self.resize(initial_width, initial_height)
         self.setWindowTitle(version)
         self.setWindowIcon(QIcon(str(frontend_resource_path("icons", "Avatar.png"))))
