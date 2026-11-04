@@ -95,7 +95,7 @@ python -m Backend --host 127.0.0.1 --port 3389
 | `GET /api/v2/media` | 返回 `workspaces` 历史列表；可选 `kind`、`limit`（1–100，默认 20） |
 | `GET /api/v2/media/{workspace_id}` | 获取工作区模型、文件信息与处理状态 |
 | `POST /api/v2/media/{workspace_id}/model` | `model`、可选 `preview_files`；保存编辑后的模型 |
-| `POST /api/v2/media/{workspace_id}/run` | `stage`、`operation_id`，可选 `config/options`；运行一个处理阶段并保存结果 |
+| `POST /api/v2/media/{workspace_id}/run` | `stage`、`operation_id`，可选 `config/options/file_id`；运行一个处理阶段并保存结果 |
 | `DELETE /api/v2/media/{workspace_id}` | 删除工作区 |
 | `GET /api/v2/media/{workspace_id}/files/{file_id}/{variant}` | 预览 `source`、`translated` 或视频 `preview` 文件，支持 Range 请求 |
 | `POST /api/v2/media/{workspace_id}/files/{file_id}/video-preview` | 请求体 `{}` 或 `operation_id`；准备仅含选定音轨的视频预览，视频流直接复制，返回 `url` |
@@ -103,6 +103,8 @@ python -m Backend --host 127.0.0.1 --port 3389
 | `POST /api/v2/media/operations/{operation_id}/stop` | 停止指定 API 媒体任务 |
 
 图片 `stage` 支持 `generate`、`export`，以及仅复制已有生图产物的 `preview`；音频和视频支持 `recognize`、`translate`、`export`。导入图片只读取原图，生成阶段传 `config`，预览或导出阶段传 `options`。导出要求已有有效生成结果；旧 OCR 阶段与接口已移除。`operation_id` 必须为 16–80 位字母、数字、下划线或连字符。
+
+`file_id` 支持 `recognize`、`generate` 和 `translate`，按项目内的文件 ID 限定处理范围；省略时处理整个项目。重新转录音视频时传 `stage: recognize` 和 `config.retranscribe: true`；重新翻译时分别传 `config.regenerate: true` 或 `config.retranslate: true`。文件必须属于当前工作区，音视频翻译必须已有可翻译字幕。重新转录成功后替换该文件字幕并清空其旧译文，失败或取消时保留旧字幕；新增字幕编号会避开项目内其他文件的编号。服务在任务出队后读取最新项目，每次中间保存、完成、取消或失败都将该文件结果合并回完整项目，响应仍返回完整 `workspace`，其他文件保持原样。单图生成可使用独立提示词，其他译图的预览和导出不受影响；修改项目统一生图选项后仍会重新判断译图是否过期。多文件音视频项目已有目标语言时，单文件翻译须使用该目标语言；省略 `config.target_language` 时继承项目值，更换语言需全项目重译。
 
 ## 桌面当前项目接口
 

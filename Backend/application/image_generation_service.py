@@ -61,6 +61,8 @@ def generate_image_model(model, config=None, context=None):
     files = [file for file in project.files.values() if file.media_type == "image"]
     if not files:
         raise PipelineError("IMAGE_GENERATION_NO_IMAGES", "中间模型中没有图片", 400)
+    for file in files:
+        file.extra.pop("image_generation_selection", None)
     project.extra["image_translation_mode"] = "generation"
     # Persist the effective options used for this generation, including an
     # inherited task prompt, so preview and export compare the same snapshot.

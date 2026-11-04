@@ -30,6 +30,18 @@ def item_text_identity(file):
                    for item in file.get("items", [])])
 
 
+def generation_options_for_file(project, file):
+    """A single-file generation can use its own prompt until project options change."""
+    project_extra = project.extra if hasattr(project, "extra") else project.get("extra", {})
+    file_extra = file.extra if hasattr(file, "extra") else file.get("extra", {})
+    requested = project_extra.get("image_generation_options", {})
+    selection = file_extra.get("image_generation_selection", {})
+    if (isinstance(selection, dict) and selection.get("project_options") == requested
+            and isinstance(selection.get("settings"), dict)):
+        return selection["settings"]
+    return requested
+
+
 def generation_artifact_current(file):
     """Logical freshness only; exports separately verify pixels and disk hashes."""
     file = to_wire(file)

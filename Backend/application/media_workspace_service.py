@@ -115,11 +115,12 @@ def _generation_identity(file):
 
 def _generation_matches(model, file):
     from Backend.application.image_generation_service import generation_artifact_current
+    from Backend.infrastructure.image_generation.artifacts import generation_options_for_file
     if not generation_artifact_current(file):
         return False
     generation = file.get("extra", {}).get("image_generation", {})
     settings = generation.get("settings", {})
-    selected = model.get("extra", {}).get("image_generation_options", {})
+    selected = generation_options_for_file(model, file)
     if not isinstance(settings, dict) or not isinstance(selected, dict):
         return False
     return all(selected.get(key) == settings.get(key)

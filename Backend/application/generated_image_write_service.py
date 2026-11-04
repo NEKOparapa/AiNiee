@@ -12,7 +12,7 @@ from Backend.core.protocol import to_wire
 from Backend.domain.models.intermediate import parse_model
 from Backend.infrastructure.files.pipeline_support import file_sha256
 from Backend.infrastructure.image_generation.artifacts import (
-    output_directory, safe_target, atomic_bytes, verified_generated_image,
+    output_directory, safe_target, atomic_bytes, verified_generated_image, generation_options_for_file,
 )
 from Backend.infrastructure.image_generation.dashscope import safe_message
 
@@ -85,7 +85,7 @@ def write_generated_images(model, options=None, context=None):
         if context.is_cancelled():
             break
         try:
-            requested = project.extra.get("image_generation_options", {})
+            requested = generation_options_for_file(project, file)
             saved = file.extra.get("image_generation", {}).get("settings", {})
             if (not isinstance(requested, dict) or not isinstance(saved, dict)
                     or any(requested.get(key) != saved.get(key) for key in

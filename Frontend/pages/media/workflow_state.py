@@ -9,6 +9,18 @@ def _text(value):
     return isinstance(value, str) and bool(value.strip())
 
 
+def file_workspace(workspace, file_id=None):
+    """Restrict prerequisite checks to a selected file without editing the snapshot."""
+    if file_id is None:
+        return workspace
+    model = _object(_object(workspace).get("model"))
+    return {**_object(workspace), "model": {**model, "files": {
+        path: file for path, file in _object(model.get("files")).items()
+        if file.get("file_id") == file_id
+    }}, "files": [asset for asset in _object(workspace).get("files", [])
+                  if asset.get("file_id") == file_id]}
+
+
 def _items(file):
     values = file.get("items", [])
     return [item for item in values if isinstance(item, dict)] if isinstance(values, list) else []

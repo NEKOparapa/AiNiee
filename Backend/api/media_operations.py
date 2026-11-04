@@ -11,13 +11,15 @@ from Backend.api.audio_schemas import TranscriptionOptions, SubtitleOptions
 from Backend.api.pipeline_schemas import TranslationOptions
 from Backend.api.queued import media_lane, run_queued
 from Backend.application.pipeline_common import PipelineError
-from Backend.core.protocol import to_wire
+from Backend.application.media_run_scope import MediaRunScope
 from Backend.core.log_system import redact
 
 
 class MediaRunRequest(RequestModel):
     stage: Literal["recognize", "translate", "generate", "preview", "export"]
     operation_id: str = Field(pattern=r"^[A-Za-z0-9_-]{16,80}$")
+    file_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]+$",
+                                description="仅处理此文件；只支持 recognize/translate/generate，省略时处理整个项目")
     config: dict[str, Any] = Field(default_factory=dict)
     options: dict[str, Any] = Field(default_factory=dict)
 
@@ -84,17 +86,21 @@ def create_media_operation_router(runtime, authorized):
                     output_values = video_subtitle_options(output_values)
                 options = _validated(GeneratedImageWriteOptions if image else SubtitleOptions, output_values)
 
-            prepared = {"model": workspace["model"]}
+            scope = MediaRunScope(workspace, body.stage, body.file_id)
+            if body.stage in ("recognize", "translate", "generate"):
+                config = scope.configure(config)
+            prepared = {"model": scope.model}
 
             def checkpoint(*unused):
-                store.save_model(workspace_id, to_wire(prepared["model"]))
+                store.save_model(workspace_id, scope.merge(prepared["model"]))
 
             def on_prepared(model):
                 prepared["model"] = model
                 checkpoint()
 
             def progress(value):
-                runtime.pipeline_progress({**value, "workspace_id": workspace_id, "stage": body.stage})
+                runtime.pipeline_progress({**value, "workspace_id": workspace_id, "stage": body.stage,
+                                           "file_id": body.file_id})
                 # ASR commits its slice checkpoint before this callback.
                 if body.stage == "recognize" and not image:
                     checkpoint()
@@ -117,18 +123,19 @@ def create_media_operation_router(runtime, authorized):
                 else:
                     from Backend.application.subtitle_service import write_subtitles
                     result = write_subtitles(prepared["model"], options)
-                model = to_wire(result.get("model", prepared["model"]))
-                prepared["model"] = model
+                prepared["model"] = result.get("model", prepared["model"])
+                model = scope.merge(prepared["model"])
                 workspace = store.save_model(workspace_id, model,
-                    status=result["status"], report={"stage": body.stage, **result["report"]})
+                    status=result["status"], report={"stage": body.stage, "file_id": body.file_id, **result["report"]})
                 return {"status": result["status"], "workspace": workspace,
                         "report": result["report"], "files": result.get("files", [])}
             except Exception as error:
-                report = {**(result.get("report", {}) if isinstance(result, dict) else {}), "stage": body.stage}
+                report = {**(result.get("report", {}) if isinstance(result, dict) else {}),
+                          "stage": body.stage, "file_id": body.file_id}
                 report["errors"] = [*report.get("errors", []),
                     {"code": getattr(error, "code", "MEDIA_STAGE_FAILED"), "message": redact(str(error))}]
                 # Retain the latest in-memory paid results on exceptional exits too.
-                latest = to_wire(prepared["model"])
+                latest = scope.merge(prepared["model"])
                 try:
                     workspace = store.save_model(workspace_id, latest, status="failed", report=report)
                 except Exception as save_error:
@@ -139,7 +146,9 @@ def create_media_operation_router(runtime, authorized):
                     workspace = {**workspace, "model": latest, "status": "failed", "report": report,
                                  "persisted": False, "last_saved_model_path": workspace.get("model_path"),
                                  "model_path": None,
-                                 "files": [{**entry, "translated_url": None} for entry in workspace.get("files", [])]}
+                                 "files": [{**entry, "translated_url": None}
+                                           if body.file_id is None or entry["file_id"] == body.file_id else entry
+                                           for entry in workspace.get("files", [])]}
                 return {"status": "failed", "workspace": workspace, "report": report,
                         "files": result.get("files", []) if isinstance(result, dict) else []}
 

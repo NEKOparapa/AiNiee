@@ -9,8 +9,8 @@ from uuid import uuid4
 from PyQt5.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (QAbstractItemView, QFileDialog, QFrame, QHeaderView, QHBoxLayout,
     QSplitter, QStackedWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
-from qfluentwidgets import (CaptionLabel, ComboBox, FluentIcon, IconWidget,
-    MessageBox, PrimaryPushButton, SearchLineEdit, SimpleCardWidget,
+from qfluentwidgets import (Action, CaptionLabel, ComboBox, FluentIcon, IconWidget,
+    MessageBox, PrimaryPushButton, RoundMenu, SearchLineEdit, SimpleCardWidget,
     SingleDirectionScrollArea, StateToolTip, StrongBodyLabel, TransparentPushButton, TreeWidget)
 
 from Frontend.core.config import ConfigMixin
@@ -21,7 +21,7 @@ from Frontend.pages.media.start_page import MediaStartPage
 from Frontend.pages.media.monitoring_panel import MediaMonitoringPanel
 from Frontend.pages.media.workflow_header import MediaWorkflowHeader
 from Frontend.pages.media.workflow_selector import MediaWorkflowSelector
-from Frontend.pages.media.workflow_state import prerequisite_message, workflow_states
+from Frontend.pages.media.workflow_state import file_workspace, prerequisite_message, workflow_states
 from Frontend.pages.workspace.translation.language_settings_card import LanguageSettingsCard
 
 
@@ -126,10 +126,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         outer.addWidget(self.stack, 1)
         self.start_page = MediaStartPage(self.kind, self)
         self.start_page.layout().setContentsMargins(24, 24, 24, 20)
-        self.import_stop_button = TransparentPushButton(FluentIcon.CANCEL_MEDIUM, self.tra("停止导入"), self.start_page)
-        self.import_stop_button.clicked.connect(self.stop_operation)
-        self.import_stop_button.hide()
-        self.start_page.layout().insertWidget(1, self.import_stop_button, 0, Qt.AlignRight)
         self.drop_card = self.start_page.drop_card
         self.pick_files = self.start_page.pick_files
         self.pick_folder = self.start_page.pick_folder
@@ -256,7 +252,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         layout.setContentsMargins(0, 12, 0, 0)
         layout.setSpacing(0)
         splitter = QSplitter(Qt.Horizontal, self.proofreading_page)
-        splitter.setChildrenCollapsible(False)
+        splitter.setChildrenCollapsible(True)
         splitter.setHandleWidth(8)
         splitter.setStyleSheet("QSplitter::handle { width: 8px; background: transparent; }")
         sidebar = QWidget(splitter)
@@ -284,6 +280,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self.file_tree.setIndentation(16)
         self.file_tree.setSelectionMode(QAbstractItemView.SingleSelection)
         self.file_tree.currentItemChanged.connect(self._file_selected)
+        self.file_tree.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.file_tree.customContextMenuRequested.connect(self._show_file_menu)
         files.addWidget(self.file_tree, 1)
         self.file_search = SearchLineEdit(files_card)
         self.file_search.setPlaceholderText(self.tra("搜索文件"))
@@ -327,6 +325,26 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             return
         self.workflow_header.set_current_step(route)
         self.workflow_stack.setCurrentWidget(page)
+
+    def _show_file_menu(self, pos):
+        row = self.file_tree.itemAt(pos)
+        if row is None or not self.workspace:
+            return
+        file_id = row.data(0, Qt.UserRole)
+        if not file_id:
+            return
+        self.file_tree.setCurrentItem(row)
+        menu = RoundMenu(parent=self)
+        action = Action(FluentIcon.SYNC, self.tra("重新翻译"), triggered=lambda:
+                        self.run_stages(["generate" if self.kind == "image" else "translate"], file_id=file_id))
+        action.setEnabled(not self.busy)
+        menu.addAction(action)
+        if self.kind in ("audio", "video"):
+            recognize = Action(FluentIcon.SYNC, self.tra("重新转录"), triggered=lambda:
+                               self.run_stages(["recognize"], file_id=file_id))
+            recognize.setEnabled(not self.busy)
+            menu.addAction(recognize)
+        menu.exec(self.file_tree.viewport().mapToGlobal(pos))
 
     def _filter_files(self, text=None):
         query = self.file_search.text().strip().casefold()
@@ -410,8 +428,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if self.workflow_selector is not None:
             self.workflow_selector.set_busy(value)
         self.stop_button.setEnabled(value and cancellable)
-        self.import_stop_button.setVisible(value and cancellable and self.stack.currentWidget() is self.start_page)
-        self.import_stop_button.setEnabled(value and cancellable)
 
     def _close_load_tooltip(self):
         tooltip, self._load_tooltip = self._load_tooltip, None
@@ -977,7 +993,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             return None
         return {"provider_id": provider_id} if isinstance(provider_id, str) and provider_id else {}
 
-    def run_stages(self, stages, options=None):
+    def run_stages(self, stages, options=None, *, file_id=None):
         if not self.workspace or self.busy:
             return
         stages = list(stages)
@@ -987,15 +1003,27 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         if set(stages) - allowed:
             self.warning_toast(self.tra("不支持的步骤"), self.tra("图片翻译仅支持单步生成译图。" if self.kind == "image" else "请选择转录或翻译字幕步骤。"))
             return
-        hint = prerequisite_message(self.workspace, self.kind, self._image_mode(), stages)
+        selected_workspace = file_workspace(self.workspace, file_id)
+        if file_id is not None and not selected_workspace["model"]["files"]:
+            self.warning_toast(self.tra("文件不存在"), self.tra("所选文件不属于当前项目，请重新选择。"))
+            return
+        if (file_id is not None and self.kind in ("audio", "video")
+                and "translate" in stages and "recognize" not in stages and not any(
+                    str(item.get("source_text") or "").strip()
+                    for file in selected_workspace["model"]["files"].values() for item in file.get("items", [])
+                )):
+            self.warning_toast(self.tra("缺少前置结果"), self.tra("所选文件尚无可翻译字幕，请先完成转录。"))
+            return
+        hint = prerequisite_message(selected_workspace, self.kind, self._image_mode(), stages)
         if hint:
             if self.workflow_selector is not None:
                 self.workflow_selector.set_hint(self.tra(hint))
             self.warning_toast(self.tra("缺少前置结果"), self.tra(hint))
             return
         workspace_id = self.workspace["workspace_id"]
-        states = workflow_states(self.workspace, self.kind, self._image_mode())
-        recognition_config = {"retranscribe": self.kind != "video" or states.get("recognize", {}).get("status") == "已完成"}
+        states = workflow_states(selected_workspace, self.kind, self._image_mode())
+        recognition_config = {"retranscribe": file_id is not None or self.kind != "video"
+                              or states.get("recognize", {}).get("status") == "已完成"}
         if self.kind in ("audio", "video") and "recognize" in stages:
             provider_config = self._audio_recognition_config()
             if provider_config is None:
@@ -1004,7 +1032,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         prepare = self._prepare_checkpoint()
         config = {"source_language": self.source_combo.currentData(), "target_language": self.target_combo.currentData(),
                   "retranslate": True}
-        if self.kind == "video":
+        if self.kind == "video" and file_id is None:
             previous_target = self.workspace["model"].get("translation_context", {}).get("target_language")
             config["retranslate"] = (bool(previous_target and previous_target != config["target_language"])
                                      or states.get("translate", {}).get("status") == "已完成")
@@ -1026,7 +1054,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                 if worker.cancelled.is_set():
                     break
                 worker.stageChanged.emit(stage)
-                missing = prerequisite_message(checkpoint, self.kind, mode, [stage])
+                selected_checkpoint = file_workspace(checkpoint, file_id)
+                missing = prerequisite_message(selected_checkpoint, self.kind, mode, [stage])
                 if missing:
                     raise ValueError(missing)
                 worker.operation_id = uuid4().hex
@@ -1035,7 +1064,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
                     break
                 result = self.client.run(workspace_id, stage, worker.operation_id,
                                          config=generation_config if stage == "generate" else config if stage == "translate" else recognition_config if stage == "recognize" else {},
-                                         options=export_options if stage == "export" else {})
+                                         options=export_options if stage == "export" else {}, file_id=file_id)
                 worker.operation_id = None
                 results.append({**result, "stage": stage})
                 checkpoint = result["workspace"]
@@ -1079,7 +1108,6 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._run_state = "停止中"
         self._refresh_metrics()
         self.stop_button.setEnabled(False)
-        self.import_stop_button.setEnabled(False)
         self._set_status(self.tra("正在停止，等待在途请求完成并保存结果…"))
         identifier = self._worker.operation_id
         if identifier:
@@ -1151,7 +1179,9 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
 
     def prepare_to_close(self):
         if self.busy or self._aux_workers:
-            self.warning_toast(self.tra("正在处理媒体项目"), self.tra("请先停止并等待结果保存后再退出。"))
+            message = ("请等待项目加载完成后再退出。" if self.stack.currentWidget() is self.start_page
+                       else "请先停止并等待结果保存后再退出。")
+            self.warning_toast(self.tra("正在处理媒体项目"), self.tra(message))
             return False
         if self._dirty:
             self.save_workspace()

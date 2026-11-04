@@ -36,10 +36,14 @@ class MediaClient:
         return self.backend.request("POST", f"/api/v2/media/{quote(workspace_id, safe='')}/model",
                                     json={"model": model}, timeout=120)
 
-    def run(self, workspace_id, stage, operation_id, config=None, options=None):
-        return self.backend.request("POST", f"/api/v2/media/{quote(workspace_id, safe='')}/run", json={
+    def run(self, workspace_id, stage, operation_id, config=None, options=None, *, file_id=None):
+        payload = {
             "stage": stage, "operation_id": operation_id, "config": config or {}, "options": options or {},
-        }, timeout=None)
+        }
+        if file_id is not None:
+            payload["file_id"] = file_id
+        return self.backend.request("POST", f"/api/v2/media/{quote(workspace_id, safe='')}/run",
+                                    json=payload, timeout=None)
 
     def job(self, operation_id):
         return self.backend.request("GET", f"/api/jobs/{quote(operation_id, safe='')}", timeout=3)["job"]
