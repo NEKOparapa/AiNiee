@@ -3,7 +3,7 @@
 import copy
 from uuid import uuid4
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (
     Action, BodyLabel, CardWidget, FluentIcon, IconWidget, MessageBox,
@@ -135,6 +135,7 @@ class MediaProviderPage(QFrame, ConfigMixin, ToastMixin, Base):
         self._platforms = {}
         self._active_id = ""
         self._active_dialog = None
+        self._pending_config = None
         self._ready = False
         self.api_buttons = {}
         self.group_cards = {}
@@ -185,6 +186,14 @@ class MediaProviderPage(QFrame, ConfigMixin, ToastMixin, Base):
             if group == "online":
                 data.setdefault("icon", "dashscope" if data["api_format"] == "DashScope" else "volcengine")
             groups[group].append((identifier, data))
+        if self._active_dialog is not None:
+            # The menu's Qt mouse handler is still on the stack inside exec().
+            # Rebuilding here deletes that menu and crashes when exec() returns.
+            # Persist edits immediately, but keep its widgets alive until the
+            # modal dialog AND the originating menu event have both returned.
+            self._pending_config = copy.deepcopy(config)
+            return
+        self._pending_config = None
         self._platforms = copy.deepcopy(platforms)
         self._active_id = config.get(self._active_key, "")
         while self.container.count():
@@ -252,6 +261,12 @@ class MediaProviderPage(QFrame, ConfigMixin, ToastMixin, Base):
         finally:
             self._active_dialog = None
             dialog.deleteLater()
+            if self._pending_config is not None:
+                QTimer.singleShot(0, self._apply_pending_config)
+
+    def _apply_pending_config(self):
+        if self._active_dialog is None and self._pending_config is not None:
+            self._apply_config(self._pending_config)
 
     def _add_platform(self):
         identifier = f"{self.KIND}_{uuid4().hex}"
