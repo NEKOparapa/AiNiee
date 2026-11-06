@@ -126,7 +126,6 @@
       "English": "Interface"
     }
   },
-
   "PART_2": {
     "编辑接口": {
       "简中": "编辑接口",
@@ -179,7 +178,6 @@
       "English": "Third-party or Custom Configured Interface"
     }
   },
-
   "PART_3": {
     "请输入接口地址": {
       "简中": "请输入接口地址",
@@ -252,7 +250,6 @@
       "English": "Model Name"
     }
   },
-
   "PART_4": {
     "自定义请求头": {
       "简中": "自定义请求头",
@@ -295,7 +292,6 @@
       "English": "Thinking token budget for models like Gemini 2.5. -1 means automatic. Default is"
     }
   },
-
   "PART_5": {
     "提取和翻译使用此接口时应用。默认值为 0，表示自动设置：按接口限额和响应耗时调整，连续请求失败时降低并发；本地模型优先使用可用槽位。": {
       "简中": "提取和翻译使用此接口时应用。默认值为 0，表示自动设置：按接口限额和响应耗时调整，连续请求失败时降低并发；本地模型优先使用可用槽位。",
@@ -553,6 +549,23 @@
       "简中": "已激活接口",
       "繁中": "已激活介面",
       "English": "Active API"
+    }
+  },
+  "MEDIA_CONCURRENCY": {
+    "每个项目同时处理的任务上限，默认 3；设为 1 时串行执行。修改在下次提交任务时生效。": {
+      "简中": "每个项目同时处理的任务上限，默认 3；设为 1 时串行执行。修改在下次提交任务时生效。",
+      "繁中": "每個專案同時處理的任務上限，預設 3；設為 1 時依序執行。修改於下次提交任務時生效。",
+      "English": "Maximum simultaneous tasks per project. Default: 3; use 1 for sequential processing. Changes apply to newly submitted tasks."
+    },
+    "接口并发任务数必须是 1 至 64 的整数": {
+      "简中": "接口并发任务数必须是 1 至 64 的整数",
+      "繁中": "介面並行任務數必須是 1 至 64 的整數",
+      "English": "Interface concurrency must be an integer from 1 to 64."
+    },
+    "调整长音频的切片长度；请求并发在转录接口中设置": {
+      "简中": "调整长音频的切片长度；请求并发在转录接口中设置",
+      "繁中": "調整長音訊的切片長度；請求並行數在轉錄介面中設定",
+      "English": "Adjust long-audio chunk length. Set request concurrency in the transcription provider."
     }
   }
 }

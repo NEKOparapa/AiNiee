@@ -35,7 +35,9 @@ class TranscriptionOptions(RequestModel):
     retranscribe: bool | None = None
     chunk_duration_seconds: int | None = Field(default=None, ge=30, le=290, strict=True)
     chunk_overlap_seconds: float | None = Field(default=None, ge=0.5, le=5)
-    chunk_concurrency: int | None = Field(default=None, ge=1, le=8, strict=True)
+    user_thread_counts: int | None = Field(default=None, ge=1, le=64, strict=True)
+    chunk_concurrency: int | None = Field(default=None, ge=1, le=8, strict=True, deprecated=True,
+                                         description="兼容旧请求，作为 user_thread_counts 的别名。")
     vad_threshold: float | None = Field(default=None, ge=0.01, le=0.99)
 
 

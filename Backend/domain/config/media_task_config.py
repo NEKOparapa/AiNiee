@@ -2,13 +2,14 @@
 import copy
 import math
 
+from Backend.domain.config.media_concurrency import normalize_media_concurrency
+
 
 DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
     "language_hints": [],
     "speaker_diarization_enabled": False,
     "chunk_duration_seconds": 240,
     "chunk_overlap_seconds": 2,
-    "chunk_concurrency": 3,
     "vad_threshold": 0.35,
     "export": {"format": "srt", "mode": "bilingual", "suffix": "_subtitles"},
 }
@@ -51,7 +52,7 @@ def migrate_media_task_settings(config):
     empty strings and null seeds, always win. Malformed objects are left intact so
     validation can report them rather than silently discarding user settings.
     """
-    changed = False
+    changed = normalize_media_concurrency(config)
     for key in ("ocr_platforms", "active_ocr_platform"):
         if key in config:
             config.pop(key)
@@ -126,7 +127,7 @@ def validate_audio_translation_settings(settings):
         raise ValueError("语言提示最多包含 4 个受支持的小写语言代码")
     if type(values["speaker_diarization_enabled"]) is not bool:
         raise ValueError("说话人分离必须是布尔值")
-    for key, lower, upper in (("chunk_duration_seconds", 30, 290), ("chunk_concurrency", 1, 8)):
+    for key, lower, upper in (("chunk_duration_seconds", 30, 290),):
         if type(values[key]) is not int or not lower <= values[key] <= upper:
             raise ValueError(f"{key} 必须为 {lower} 至 {upper} 的整数")
     for key, lower, upper in (("chunk_overlap_seconds", 0.5, 5), ("vad_threshold", 0.01, 0.99)):

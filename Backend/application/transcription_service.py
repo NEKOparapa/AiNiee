@@ -1,5 +1,8 @@
 """Transcribe audio assets into an operation-owned intermediate model."""
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+
+from Backend.application.media_workers import copy_file, isolated_file_project, run_file_workers
 from pathlib import Path
 
 from Backend.application.execution_context import ExecutionContext
@@ -44,17 +47,120 @@ def _audio_source(cache_file, reference=None, metadata=None):
 
 
 def transcribe_model(model, config=None, context=None) -> dict:
+    """Coordinate isolated files and share one request pool across all slices."""
+    project = parse_model(model)
+    context = context or ExecutionContext()
+    files = [file for file in project.files.values() if file.media_type in ("audio", "video")]
+    if not files:
+        raise PipelineError("ASR_NO_AUDIO", "中间模型中没有音频文件", 400)
+    configs = {kind: resolve_transcription_config(config, kind=kind) for kind in {f.media_type for f in files}}
+    workers = next(iter(configs.values())).user_thread_counts
+    report = {
+        "total": len(files), "succeeded": 0, "skipped": 0, "failed": 0,
+        "cancelled": False, "cancelled_files": 0, "segment_count": 0,
+        "files": [], "errors": [], "warnings": [], "operation_errors": [],
+        "usage": {"requests": 0, "duration": 0, "input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+    }
+    results = {}
+    next_index = max((item.text_index for item in project.items_iter()), default=-1) + 1
+
+    def callback_failed():
+        if not report["operation_errors"]:
+            report["operation_errors"].append({"code": "ASR_CALLBACK_FAILED", "message": "无法保存转录进度"})
+        context.cancel()
+
+    if context.on_model_prepared:
+        try:
+            context.on_model_prepared(project)
+        except Exception:
+            callback_failed()
+            return {"status": "failed", "model": project, "report": report}
+
+    def event(index, payload):
+        file, progress = payload
+        project.files[file.storage_path] = file
+        if context.on_progress:
+            context.on_progress(progress)
+
+    def completed(index, result):
+        nonlocal next_index
+        results[index] = result["report"]
+        local = result["report"]
+        file = next(iter(result["model"].files.values()))
+        if local["succeeded"]:
+            old_indices = [item.text_index for item in files[index].items]
+            for ordinal, item in enumerate(file.items):
+                if ordinal < len(old_indices):
+                    item.text_index = old_indices[ordinal]
+                else:
+                    item.text_index = next_index
+                    next_index += 1
+            file.__dict__.pop("items_index_dict", None)
+            project.stats_data = None
+        project.files[file.storage_path] = file
+        for key in ("succeeded", "skipped", "failed", "cancelled_files", "segment_count"):
+            report[key] += local[key]
+        for key in report["usage"]:
+            report["usage"][key] += local["usage"].get(key, 0)
+        report["operation_errors"].extend(local["operation_errors"])
+        if local["operation_errors"]:
+            context.cancel()
+        try:
+            if context.on_progress:
+                context.on_progress({"operation": "transcription", "current": len(results), "total": len(files),
+                                     "succeeded": report["succeeded"], "failed": report["failed"],
+                                     "skipped": report["skipped"]})
+        except Exception:
+            callback_failed()
+
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="asr-request") as requests:
+        def work(index, file, emit):
+            local = isolated_file_project(project, file)
+
+            def progress(value):
+                # Slice and video-preparation checkpoints reach the project
+                # before persistence. Terminal progress is owned by completed().
+                emit((copy_file(local.files[file.storage_path]), value))
+
+            child = ExecutionContext(source=context.source, cancel_event=context.cancel_event, on_progress=progress)
+            return _transcribe_file(local, configs[file.media_type], child, requests)
+
+        try:
+            run_file_workers(files, work, workers=workers, context=context,
+                             on_event=event, on_result=completed, prefix="asr-file")
+        except Exception:
+            callback_failed()
+    for index in sorted(results):
+        for key in ("files", "errors", "warnings"):
+            report[key].extend(results[index][key])
+    report["cancelled_files"] += len(files) - len(results)
+    if not context.is_cancelled() and not report["operation_errors"]:
+        from Backend.application.read_service import ensure_media_language_metadata
+        try:
+            ensure_media_language_metadata(project, media_types=("audio", "video"))
+        except PipelineError as error:
+            report["operation_errors"].append({"code": error.code, "message": error.message})
+    report["cancelled"] = context.is_cancelled() and not report["operation_errors"]
+    if report["operation_errors"]:
+        status = "partial" if report["succeeded"] else "failed"
+    elif report["cancelled"]:
+        status = "cancelled"
+    elif report["failed"]:
+        status = "partial" if report["succeeded"] or report["skipped"] else "failed"
+    else:
+        status = "success"
+    return {"status": status, "model": project, "report": report}
+
+
+def _transcribe_file(project, resolved, context, request_executor) -> dict:
     """Preserve other media and commit each complete audio result atomically.
 
     Long files retain successful slices in a portable checkpoint. Cancelling or
     failing leaves the previous transcript untouched; complete files survive.
     """
-    project = parse_model(model)
-    context = context or ExecutionContext()
     audio_files = [cache_file for cache_file in project.files.values() if cache_file.media_type in ("audio", "video")]
     if not audio_files:
         raise PipelineError("ASR_NO_AUDIO", "中间模型中没有音频文件", 400)
-    resolved = resolve_transcription_config(config, kind="video" if any(f.media_type == "video" for f in audio_files) else "audio")
     request_config = resolved.to_request_config()
     next_index = max((item.text_index for item in project.items_iter()), default=-1) + 1
     report = {
@@ -103,7 +209,8 @@ def transcribe_model(model, config=None, context=None) -> dict:
                       (audio_format not in FAST_FORMATS or path.stat().st_size > FAST_MAX_BYTES)):
                     from Backend.application.long_transcription_service import transcribe_long_audio
                     outcome = transcribe_long_audio(cache_file, path, resolved, context, request_transcription,
-                                                    audio_reference=audio_reference, audio_metadata=audio_metadata)
+                                                    audio_reference=audio_reference, audio_metadata=audio_metadata,
+                                                    executor=request_executor)
                     chunk_report = outcome["report"]
                     for key in report["usage"]:
                         report["usage"][key] += chunk_report["usage"].get(key, 0)
@@ -121,12 +228,18 @@ def transcribe_model(model, config=None, context=None) -> dict:
                     result = outcome["result"]
                     duration_ms = result.get("duration_ms", duration_ms)
                 else:
-                    audio_bytes = path.read_bytes()
+                    def request_short():
+                        if context.is_cancelled():
+                            raise PipelineError("ASR_CANCELLED", "转录已取消", 409, {"attempts": 0})
+                        audio_bytes = path.read_bytes()
+                        # Drain an issued paid request; still gate every POST/retry.
+                        return request_transcription(
+                            audio_bytes, audio_format=audio_format, sample_rate=sample_rate,
+                            duration_ms=duration_ms, config=request_config,
+                            context=ExecutionContext(source=context.source), retry_context=context,
+                        )
                     request_started = True
-                    result = request_transcription(
-                        audio_bytes, audio_format=audio_format, sample_rate=sample_rate,
-                        duration_ms=duration_ms, config=request_config, context=context,
-                    )
+                    result = request_executor.submit(request_short).result()
                     report["usage"]["requests"] += result.get("attempts", 1)
                     for key in ("duration", "input_tokens", "output_tokens", "total_tokens"):
                         report["usage"][key] += result.get("usage", {}).get(key, 0)
@@ -205,26 +318,8 @@ def transcribe_model(model, config=None, context=None) -> dict:
         if report["operation_errors"]:
             report["cancelled_files"] = len(audio_files) - ordinal - 1
             break
-        if context.on_progress:
-            try:
-                context.on_progress({"operation": "transcription", "current": ordinal + 1, "total": len(audio_files),
-                                     "succeeded": report["succeeded"], "failed": report["failed"], "skipped": report["skipped"]})
-            except Exception:
-                report["operation_errors"].append({"code": "ASR_CALLBACK_FAILED", "message": "转录进度回调失败"})
-                context.cancel()
-                report["cancelled_files"] = len(audio_files) - ordinal - 1
-                break
     if changed:
         project.stats_data = None
-    if not context.is_cancelled() and not report["operation_errors"]:
-        from Backend.application.read_service import ensure_media_language_metadata
-        try:
-            # Include reused transcripts; short and merged long recordings both
-            # reach this boundary before their final model is saved or returned.
-            ensure_media_language_metadata(project, media_types=("audio", "video"))
-        except PipelineError as error:
-            # Local postprocessing must retain paid subtitles and provider usage.
-            report["operation_errors"].append({"code": error.code, "message": error.message})
     report["cancelled"] = context.is_cancelled() and not report["operation_errors"]
     if report["operation_errors"]:
         status = "partial" if report["succeeded"] else "failed"

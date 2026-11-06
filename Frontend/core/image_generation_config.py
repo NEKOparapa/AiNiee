@@ -11,6 +11,7 @@ DEFAULT_IMAGE_GENERATION_PLATFORM = {
     "api_key": "",
     "model": "qwen-image-3.0-pro",
     "request_timeout": 300,
+    "user_thread_counts": 3,
     "prompt_extend": True,
     "seed": None,
     "size": "auto",
@@ -64,6 +65,9 @@ def normalize_image_generation_platform(data=None):
         raise ValueError("生图接口配置必须是对象。")
     result = copy.deepcopy(DEFAULT_IMAGE_GENERATION_PLATFORM)
     result.update(copy.deepcopy(data or {}))
+    result.pop("chunk_concurrency", None)
+    if type(result["user_thread_counts"]) is not int or not 1 <= result["user_thread_counts"] <= 64:
+        raise ValueError("接口并发任务数必须是 1 至 64 的整数")
     for key in ("name", "api_format", "api_url", "api_key", "model", "size", "prompt"):
         if not isinstance(result[key], str):
             raise ValueError("生图接口的文本字段必须是字符串。")

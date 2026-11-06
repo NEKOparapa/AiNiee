@@ -11,6 +11,7 @@ class ImageGenerationOptions(RequestModel):
     api_key: str | None = Field(default=None, repr=False)
     api_format: Literal["DashScope", "VolcengineArk", "Gemini"] | None = None
     model: str | None = None
+    user_thread_counts: int | None = Field(default=None, ge=1, le=64, strict=True)
     request_timeout: float | None = Field(default=None, gt=0, le=3600)
     prompt_extend: bool | None = Field(default=None, description="兼容旧请求；百炼图像接口始终启用提示词自动改写，此值不影响请求。")
     watermark: bool | None = None

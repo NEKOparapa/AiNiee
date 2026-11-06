@@ -1,4 +1,4 @@
-"""Serial read -> image generation -> export, sharing the public model services."""
+"""Read -> concurrent image generation -> export, sharing the public model services."""
 from dataclasses import replace
 import json
 from pathlib import Path

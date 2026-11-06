@@ -25,8 +25,8 @@
                 "speaker_diarization_enabled": false,
                 "chunk_duration_seconds": 240,
                 "chunk_overlap_seconds": 2,
-                "chunk_concurrency": 3,
-                "vad_threshold": 0.35
+                "vad_threshold": 0.35,
+                "user_thread_counts": 3
             }
         },
         "active_transcription_platform": "bailian_asr"
@@ -43,7 +43,8 @@
                 "prompt_extend": true,
                 "seed": null,
                 "size": "auto",
-                "prompt": ""
+                "prompt": "",
+                "user_thread_counts": 3
             },
             "gemini_image": {
                 "name": "Gemini 官方生图",
@@ -56,7 +57,8 @@
                 "watermark": false,
                 "seed": null,
                 "size": "auto",
-                "prompt": ""
+                "prompt": "",
+                "user_thread_counts": 3
             }
         },
         "active_image_generation_platform": "bailian_image"
@@ -67,7 +69,6 @@
             "speaker_diarization_enabled": false,
             "chunk_duration_seconds": 240,
             "chunk_overlap_seconds": 2,
-            "chunk_concurrency": 3,
             "vad_threshold": 0.35,
             "export": {
                 "format": "srt",
@@ -82,7 +83,6 @@
             "speaker_diarization_enabled": false,
             "chunk_duration_seconds": 240,
             "chunk_overlap_seconds": 2,
-            "chunk_concurrency": 3,
             "vad_threshold": 0.35,
             "export": {
                 "format": "srt",

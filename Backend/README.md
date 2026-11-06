@@ -79,6 +79,10 @@ python -m Backend --host 127.0.0.1 --port 3389
 | `POST /api/v2/write/subtitles` | `model`、`options.output_dir`；导出字幕，可设置 `format/mode/bilingual_order` |
 | `POST /api/v2/audio/translate` | `path`、`output.output_dir`；可选 `read_options/transcription/translation`，执行读取 → 转录 → 翻译 → 字幕导出 |
 
+媒体并发按接口分别保存为 `transcription_platforms.<id>.user_thread_counts` 和 `image_generation_platforms.<id>.user_thread_counts`，严格整数 1～64，缺省为 3。每个运行项目独立限流，音频与视频队列同时运行时各自拥有额度。转录文件协调线程共用一个请求池，短音频和长音频切片的请求总并发不超过所选值；每个长文件完成全部切片后提交。图片使用有界文件线程池，逐项补入任务。模型、统计和保存回调在调用线程串行合并，报告仍按原文件顺序返回。
+
+REST/MCP 的转录、生图配置接受可选 `user_thread_counts`，显式值只覆盖本次任务，省略则读取所选接口。旧转录调用参数 `chunk_concurrency` 作为弃用别名继续支持（1～8）；两个字段同时传入时必须相等。配置读写/导入会清除持久化旧切片并发字段，缺少新值的接口统一初始化为 3。任务提交时冻结配置，包括生图接口；并发数不影响缓存指纹。取消后不发送新请求或重试，已发送请求继续接收并保存；切片可断点续跑，图片下载失败只重试下载，生成结果未知时仍要求显式重新生成以避免重复计费。
+
 转录使用独立的转录平台配置。字幕格式支持 `srt/vtt/lrc/ass`，模式支持 `translated/source/bilingual`；完整流程返回 `status/model/files/report`。长音频自动分片处理，依赖 FFmpeg。
 
 ## 视频接口

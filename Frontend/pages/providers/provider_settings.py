@@ -16,7 +16,9 @@ from Frontend.core.base import Base
 from Frontend.core.config import ConfigMixin
 from Frontend.core.media_provider_config import build_media_provider_update, normalize_media_provider
 from Frontend.pages.providers.api_item_card import APIItemCard
-from Frontend.pages.providers.media_provider_dialog import AddMediaProviderDialog, EditMediaProviderDialog
+from Frontend.pages.providers.media_provider_dialog import (
+    AddMediaProviderDialog, EditMediaProviderDialog, MediaProviderArgsDialog,
+)
 from Frontend.pages.providers.platform_page import APITypeCard
 
 
@@ -114,6 +116,8 @@ class MediaProviderItemCard(APIItemCard):
         menu.addSeparator()
         menu.addAction(Action(FluentIcon.EDIT, self.tra("编辑接口"),
                               triggered=lambda checked=False: self.editClicked.emit(self.api_tag)))
+        menu.addAction(Action(FluentIcon.DEVELOPER_TOOLS, self.tra("调整参数"),
+                              triggered=lambda checked=False: self.editArgsClicked.emit(self.api_tag)))
         menu.addSeparator()
         menu.addAction(Action(FluentIcon.DELETE, self.tra("删除接口"),
                               triggered=lambda checked=False: self.deleteClicked.emit(self.api_tag)))
@@ -202,6 +206,7 @@ class MediaProviderPage(QFrame, ConfigMixin, ToastMixin, Base):
                 button.set_active(identifier == self._active_id)
                 button.activateClicked.connect(self._activate_platform)
                 button.editClicked.connect(self._edit_platform)
+                button.editArgsClicked.connect(self._edit_parameters)
                 button.deleteClicked.connect(self._delete_platform)
                 self.api_buttons[identifier] = button
                 card.addWidget(button)
@@ -256,11 +261,12 @@ class MediaProviderPage(QFrame, ConfigMixin, ToastMixin, Base):
         )
         self._open_dialog(dialog)
 
-    def _edit_platform(self, identifier):
+    def _edit_platform(self, identifier, *, parameters=False):
         if identifier not in self._platforms:
             return
         try:
-            dialog = EditMediaProviderDialog(
+            dialog_type = MediaProviderArgsDialog if parameters else EditMediaProviderDialog
+            dialog = dialog_type(
                 self.KIND, self._platforms[identifier], self.window(),
                 on_save=lambda data: self._commit(identifier, data),
             )
@@ -268,6 +274,9 @@ class MediaProviderPage(QFrame, ConfigMixin, ToastMixin, Base):
             self.error_toast(self.tra("读取失败"), self.tra("无法打开接口配置，请重新打开页面后重试。"))
             return
         self._open_dialog(dialog)
+
+    def _edit_parameters(self, identifier):
+        self._edit_platform(identifier, parameters=True)
 
     def _activate_platform(self, identifier):
         try:

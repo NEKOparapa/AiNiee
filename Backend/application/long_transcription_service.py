@@ -2,6 +2,7 @@
 import copy
 import math
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from contextlib import nullcontext
 from pathlib import Path
 
 from Backend.application.execution_context import ExecutionContext
@@ -109,7 +110,7 @@ def _checkpoint(cache_file, prepared, resolved):
     return checkpoint
 
 
-def transcribe_long_audio(cache_file, path, resolved, context, requester, *, audio_reference=None, audio_metadata=None):
+def transcribe_long_audio(cache_file, path, resolved, context, requester, *, audio_reference=None, audio_metadata=None, executor=None):
     """Keep completed chunks on the operation's model, even after cancellation."""
     audio_reference = cache_file.source_ref if audio_reference is None else audio_reference
     audio_metadata = cache_file.media_metadata if audio_metadata is None else audio_metadata
@@ -168,9 +169,11 @@ def transcribe_long_audio(cache_file, path, resolved, context, requester, *, aud
                              config=request_config, context=request_context, retry_context=context)
 
         pending = {}
-        with ThreadPoolExecutor(max_workers=resolved.chunk_concurrency, thread_name_prefix="asr-chunk") as executor:
+        pool = (nullcontext(executor) if executor is not None else
+                ThreadPoolExecutor(max_workers=resolved.user_thread_counts, thread_name_prefix="asr-request"))
+        with pool as executor:
             def submit_available():
-                while len(pending) < resolved.chunk_concurrency and not context.is_cancelled():
+                while len(pending) < resolved.user_thread_counts and not context.is_cancelled():
                     chunk = next(missing, None)
                     if chunk is None:
                         break

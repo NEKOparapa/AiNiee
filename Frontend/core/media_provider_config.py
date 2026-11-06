@@ -12,7 +12,7 @@ DEFAULT_TRANSCRIPTION_PLATFORM = {
     "api_key": "", "model": "qwen-audio-3.1-asr-flash", "request_timeout": 300,
     "language_hints": [], "speaker_diarization_enabled": False,
     "chunk_duration_seconds": 240, "chunk_overlap_seconds": 2,
-    "chunk_concurrency": 3, "vad_threshold": 0.35,
+    "user_thread_counts": 3, "vad_threshold": 0.35,
 }
 SUPPORTED_LANGUAGE_HINTS = frozenset(
     "zh en ja ko vi th id ms tl hi ar fr de es pt ru it nl sv da fi no el pl cs hu ro bg hr sk".split()
@@ -68,6 +68,7 @@ def get_media_provider_presets(kind):
         "format_datas": list(PROVIDER_FORMATS[kind]),
     }
     for tag, preset in presets.items():
+        preset.setdefault("user_thread_counts", 3)
         preset["preset_id"] = tag
         preset.setdefault("format_datas", [preset["api_format"]])
         preset.setdefault("model_datas", [preset["model"]] if preset["model"] else [])
@@ -81,6 +82,10 @@ def normalize_media_provider(kind, data=None):
         raise ValueError("接口配置必须是对象。")
     result = copy.deepcopy(PROVIDER_DEFAULTS[kind])
     result.update(copy.deepcopy(data or {}))
+    result.pop("chunk_concurrency", None)
+    count = result["user_thread_counts"]
+    if type(count) is not int or not 1 <= count <= 64:
+        raise ValueError("接口并发任务数必须是 1 至 64 的整数")
     for key in ("name", "api_format", "api_url", "api_key", "model"):
         if not isinstance(result[key], str):
             raise ValueError("接口名称、格式、地址、密钥与模型必须是文本。")

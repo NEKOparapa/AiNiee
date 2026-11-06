@@ -100,7 +100,7 @@ def create_media_operation_router(runtime, authorized):
 
             def progress(value):
                 runtime.pipeline_progress({**value, "workspace_id": workspace_id, "stage": body.stage,
-                                           "file_id": body.file_id})
+                                           "file_id": body.file_id or value.get("file_id")})
                 # ASR commits its slice checkpoint before this callback.
                 if body.stage == "recognize" and not image:
                     checkpoint()

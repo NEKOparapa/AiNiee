@@ -2,7 +2,7 @@
 
 import copy
 
-from PyQt5.QtCore import QSize, Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import QSize, Qt, QTimer, QSignalBlocker, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLineEdit, QStackedWidget, QVBoxLayout, QWidget
 from qfluentwidgets import (
     CaptionLabel, ComboBox, FluentIcon, FlowLayout, LineEdit, MessageBoxBase,
@@ -10,6 +10,7 @@ from qfluentwidgets import (
     SubtitleLabel, TransparentToolButton,
 )
 
+from Frontend.components.cards.spin_card import SpinCard
 from Frontend.components.toast import ToastMixin
 from Frontend.core.config import ConfigMixin
 from Frontend.core.media_provider_config import (
@@ -352,3 +353,51 @@ class EditMediaProviderDialog(_ProviderDialog):
         # Ignoring the native close event keeps failed edits visible.
         event.ignore()
         self.reject()
+
+
+class MediaProviderArgsDialog(_ProviderDialog):
+    """Provider task parameters, matching the translation interface's cards."""
+
+    def __init__(self, kind, data, parent, *, on_save):
+        super().__init__("调整参数", parent)
+        self.on_save = on_save
+        self._saved_thread_count = normalize_media_provider(kind, data)["user_thread_counts"]
+        self.widget.setFixedHeight(280)
+        self.yesButton.setText(self.tra("关闭"))
+        self.cancelButton.hide()
+        content = QWidget(self.widget)
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        def init(card):
+            card.set_range(1, 64)
+            card.spin_box.setFixedWidth(160)
+            card.description_label.setWordWrap(True)
+            card.set_value(self._saved_thread_count)
+
+        self.concurrency_card = SpinCard(
+            self.tra("并发任务数"),
+            self.tra("每个项目同时处理的任务上限，默认 3；设为 1 时串行执行。修改在下次提交任务时生效。"),
+            init=init, value_changed=self._save_concurrency,
+        )
+        layout.addWidget(self.concurrency_card)
+        layout.addStretch(1)
+        self.viewLayout.addWidget(self._scroll(content), 1)
+
+    def _save_concurrency(self, card, value):
+        try:
+            self.on_save({"user_thread_counts": value})
+        except Exception:
+            with QSignalBlocker(card.spin_box):
+                card.set_value(self._saved_thread_count)
+            self.error_toast(self.tra("保存失败"), self.tra("并发任务数未保存，请检查后端连接后重试。"))
+            return
+        self._saved_thread_count = value
+
+    def prepare_to_leave(self):
+        self.concurrency_card.spin_box.interpretText()
+        return True
+
+    def done(self, result):
+        self.prepare_to_leave()
+        super().done(result)

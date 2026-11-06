@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 
 from Backend.application.pipeline_common import PipelineError
 from Backend.domain.config.media_task_config import migrate_media_task_settings
+from Backend.domain.config.media_concurrency import validate_media_concurrency
 from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 from Backend.domain.config.image_translation_prompt import (
     DEFAULT_IMAGE_TRANSLATION_PROMPT, SELECTION_KEY, USER_PROMPTS_KEY,
@@ -19,7 +20,7 @@ DEFAULT_IMAGE_GENERATION_PLATFORM = {
     "name": "百炼生图", "api_format": "DashScope",
     "api_url": "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
     "api_key": "", "model": "qwen-image-3.0-pro", "request_timeout": REQUEST_TIMEOUT_SECONDS,
-    "prompt_extend": True, "watermark": False, "size": "auto", "seed": None,
+    "prompt_extend": True, "watermark": False, "size": "auto", "seed": None, "user_thread_counts": 3,
 }
 VOLCENGINE_ARK_API_URL = "https://ark.cn-beijing.volces.com/api/v3/images/generations"
 VOLCENGINE_SEEDREAM_MODEL = "doubao-seedream-5-0-pro-260628"
@@ -35,6 +36,7 @@ class ImageGenerationConfig:
     api_format: str = "DashScope"
     model: str = "qwen-image-3.0-pro"
     request_timeout: float = REQUEST_TIMEOUT_SECONDS
+    user_thread_counts: int = 3
     prompt_extend: bool = True
     watermark: bool = False
     size: str = "auto"
@@ -54,6 +56,14 @@ class ImageGenerationConfig:
             DEFAULT_IMAGE_GENERATION_PROVIDER_ID: copy.deepcopy(DEFAULT_IMAGE_GENERATION_PLATFORM)},
             "active_image_generation_platform": DEFAULT_IMAGE_GENERATION_PROVIDER_ID,
             "image_translation_settings": {}, SELECTION_KEY: {}, USER_PROMPTS_KEY: []}
+        from Backend.core.config import get_config_snapshot
+        snapshot = get_config_snapshot()
+        if snapshot is not None:
+            for key in result:
+                if key in snapshot:
+                    result[key] = copy.deepcopy(snapshot[key])
+            migrate_media_task_settings(result)
+            return result
         try:
             with ConfigStore.CONFIG_FILE_LOCK:
                 path = config_path()
@@ -181,6 +191,10 @@ def resolve_image_generation_config(config=None):
     if (not isinstance(values["translation_prompt"], str) or not values["translation_prompt"].strip()
             or len(values["translation_prompt"]) > MAX_PROMPT_LENGTH or "\x00" in values["translation_prompt"]):
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "图片翻译提示词需为非空且不超过10000字的文本", 422)
+    try:
+        validate_media_concurrency(values["user_thread_counts"])
+    except ValueError as error:
+        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", str(error), 422) from None
     return ImageGenerationConfig(**values)
 
 
@@ -194,6 +208,7 @@ def validate_image_generation_platform(identifier: str, platform: dict) -> None:
     for field in ("prompt_extend", "watermark"):
         if field in platform and type(platform[field]) is not bool:
             raise ValueError(f"生图接口字段 {field} 必须是布尔值")
+    validate_media_concurrency(platform.get("user_thread_counts", 3))
     seed = platform.get("seed")
     if seed is not None and (type(seed) is not int or not 0 <= seed <= 2147483647):
         raise ValueError("生图随机种子必须为空或0至2147483647的整数")

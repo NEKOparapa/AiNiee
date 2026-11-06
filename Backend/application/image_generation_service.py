@@ -1,13 +1,15 @@
-"""Serial image-to-image translation with durable, fee-aware recovery."""
+"""Concurrent image translation with durable, fee-aware per-file recovery."""
 import copy
 import hashlib
 import json
 import os
 from pathlib import Path
+from threading import Lock
 import time
 import uuid
 
 from Backend.application.execution_context import ExecutionContext
+from Backend.application.media_workers import copy_file, isolated_file_project, run_file_workers
 from Backend.application.pipeline_common import PipelineError
 from Backend.core.paths import project_cache_root
 from Backend.domain.config.image_generation_config import resolve_image_generation_config
@@ -21,13 +23,20 @@ from Backend.infrastructure.image_generation.client import request_generation, d
 from Backend.infrastructure.image_generation.prompts import prepare_generation
 
 
+_DIRECTORY_LOCK = Lock()
+
+
 def _state_directory(project, file):
-    root = (project_cache_root() / "ImageGeneration").resolve()
-    destination = (root / project.project_id / file.file_id).resolve()
-    if not destination.is_relative_to(root):
-        raise PipelineError("IMAGE_GENERATION_STORAGE_FAILED", "生成缓存目录越界", 400)
-    destination.mkdir(parents=True, exist_ok=True)
-    return root, destination
+    # Windows realpath may retain its extended-path prefix when an ancestor is
+    # created during resolution. Resolve and create shared parents together so
+    # sibling workers compare paths in the same canonical form.
+    with _DIRECTORY_LOCK:
+        root = (project_cache_root() / "ImageGeneration").resolve()
+        destination = (root / project.project_id / file.file_id).resolve()
+        if not destination.is_relative_to(root):
+            raise PipelineError("IMAGE_GENERATION_STORAGE_FAILED", "生成缓存目录越界", 400)
+        destination.mkdir(parents=True, exist_ok=True)
+        return root, destination
 
 
 def _read_state(path):
@@ -64,6 +73,95 @@ def generate_image_model(model, config=None, context=None):
     for file in files:
         file.extra.pop("image_generation_selection", None)
     project.extra["image_translation_mode"] = "generation"
+    project.extra["image_generation_options"] = {
+        key: getattr(resolved, key) for key in ("source_language", "target_language", "prompt", "translation_prompt")}
+    protected = {os.path.normcase(str(Path(file.source_ref["path"]).resolve()))
+                 for file in project.files.values() if file.source_ref.get("path")}
+    report = {"total": len(files), "succeeded": 0, "skipped": 0, "failed": 0, "cancelled": False,
+              "cancelled_files": 0, "files": [], "errors": [], "warnings": [], "operation_errors": [],
+              "usage": {"requests": 0, "downloads": 0}}
+    results, usage = {}, {}
+
+    def failure(error):
+        report["operation_errors"].append({"code": "IMAGE_GENERATION_CALLBACK_FAILED",
+                                           "message": safe_message(error, resolved.api_key)})
+        context.cancel()
+
+    if context.on_model_prepared:
+        try:
+            context.on_model_prepared(project)
+        except Exception as error:
+            failure(error)
+            return {"status": "failed", "model": project, "report": report, "files": []}
+
+    def update_usage(index, values):
+        usage[index] = values
+        report["usage"] = {"requests": 0, "downloads": 0}
+        for value in usage.values():
+            _accumulate_usage(report, value)
+
+    def event(index, payload):
+        file, metadata = payload
+        project.files[file.storage_path] = file
+        update_usage(index, metadata["usage"])
+        if context.on_batch_complete:
+            context.on_batch_complete(file.items, file.storage_path, {**metadata, "usage": dict(report["usage"])})
+
+    def completed(index, result):
+        results[index] = result
+        file = next(iter(result["model"].files.values()))
+        project.files[file.storage_path] = file
+        local = result["report"]
+        for key in ("succeeded", "skipped", "failed", "cancelled_files"):
+            report[key] += local[key]
+        report["operation_errors"].extend(local["operation_errors"])
+        update_usage(index, local["usage"])
+        if local["operation_errors"]:
+            context.cancel()
+        try:
+            if context.on_progress:
+                context.on_progress({"operation": "image_generation", "current": len(results), "total": len(files),
+                                     "succeeded": report["succeeded"], "skipped": report["skipped"], "failed": report["failed"]})
+        except Exception as error:
+            failure(error)
+
+    def work(index, file, emit):
+        local = isolated_file_project(project, file)
+
+        def checkpoint(items, path, metadata):
+            emit((copy_file(local.files[path]), metadata))
+
+        child = ExecutionContext(source=context.source, cancel_event=context.cancel_event, on_batch_complete=checkpoint)
+        return _generate_file(local, resolved, child, protected)
+
+    try:
+        run_file_workers(files, work, workers=resolved.user_thread_counts, context=context,
+                         on_event=event, on_result=completed, prefix="image-generation")
+    except Exception as error:
+        failure(error)
+    outputs = []
+    for index in sorted(results):
+        result = results[index]
+        outputs.extend(result["files"])
+        for key in ("files", "errors", "warnings"):
+            for entry in result["report"][key]:
+                if key != "warnings" or entry not in report[key]:
+                    report[key].append(entry)
+    report["cancelled_files"] += len(files) - len(results)
+    report["cancelled"] = context.is_cancelled() and not report["operation_errors"]
+    status = ("cancelled" if report["cancelled"] else "partial"
+              if (report["failed"] or report["operation_errors"]) and (report["succeeded"] or report["skipped"])
+              else "failed" if report["failed"] or report["operation_errors"] else "success")
+    return {"status": status, "model": project, "report": report, "files": outputs}
+
+
+def _generate_file(project, resolved, context, protected):
+    files = [file for file in project.files.values() if file.media_type == "image"]
+    if not files:
+        raise PipelineError("IMAGE_GENERATION_NO_IMAGES", "中间模型中没有图片", 400)
+    for file in files:
+        file.extra.pop("image_generation_selection", None)
+    project.extra["image_translation_mode"] = "generation"
     # Persist the effective options used for this generation, including an
     # inherited task prompt, so preview and export compare the same snapshot.
     # A later request without a prompt still resolves the latest task default.
@@ -84,7 +182,6 @@ def generate_image_model(model, config=None, context=None):
         except Exception as error:
             report["operation_errors"].append({"code": "IMAGE_GENERATION_CHECKPOINT_FAILED", "message": safe_message(error, resolved.api_key)})
             return {"status": "failed", "model": project, "report": report, "files": outputs}
-    protected = {os.path.normcase(str(Path(file.source_ref["path"]).resolve())) for file in project.files.values() if file.source_ref.get("path")}
     processed = 0
     for file in files:
         if context.is_cancelled():

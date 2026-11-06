@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 from Backend.application.pipeline_common import PipelineError
 from Backend.domain.config.media_task_config import migrate_media_task_settings
+from Backend.domain.config.media_concurrency import validate_media_concurrency
 from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 
 
@@ -17,7 +18,7 @@ DEFAULT_TRANSCRIPTION_PLATFORM = {
     "api_key": "", "model": "qwen-audio-3.1-asr-flash", "api_format": "DashScope",
     "request_timeout": REQUEST_TIMEOUT_SECONDS, "language_hints": [], "speaker_diarization_enabled": False,
     "chunk_duration_seconds": 240, "chunk_overlap_seconds": 2,
-    "chunk_concurrency": 3, "vad_threshold": 0.35,
+    "user_thread_counts": 3, "vad_threshold": 0.35,
 }
 LANGUAGE_HINTS = frozenset("zh en ja ko vi th id ms tl hi ar fr de es pt ru it nl sv da fi no el pl cs hu ro bg hr sk".split())
 VOLCENGINE_LANGUAGES = {
@@ -28,7 +29,7 @@ VOLCENGINE_LANGUAGES = {
 }
 _OVERRIDE_FIELDS = frozenset({
     "provider_id", "api_url", "api_key", "model", "api_format", "request_timeout", "timeout",
-    "app_id", "resource_id",
+    "app_id", "resource_id", "user_thread_counts",
     "language_hints", "speaker_diarization_enabled", "keep_dialect", "stream", "max_retries", "retranscribe",
     "chunk_duration_seconds", "chunk_overlap_seconds", "chunk_concurrency", "vad_threshold",
 })
@@ -52,7 +53,7 @@ class TranscriptionConfig:
     retranscribe: bool = False
     chunk_duration_seconds: int = 240
     chunk_overlap_seconds: float = 2
-    chunk_concurrency: int = 3
+    user_thread_counts: int = 3
     vad_threshold: float = 0.35
 
     @classmethod
@@ -110,6 +111,13 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
         if not isinstance(config, dict) or set(config) - _OVERRIDE_FIELDS:
             raise PipelineError("ASR_CONFIG_ERROR", "转录配置必须为仅包含支持字段的对象", 400)
         overrides = copy.deepcopy(config)
+        if "chunk_concurrency" in overrides:
+            legacy = overrides.pop("chunk_concurrency")
+            if type(legacy) is not int or not 1 <= legacy <= 8:
+                raise PipelineError("ASR_CONFIG_ERROR", "chunk_concurrency 必须为 1 至 8 的整数", 400)
+            if "user_thread_counts" in overrides and overrides["user_thread_counts"] != legacy:
+                raise PipelineError("ASR_CONFIG_ERROR", "chunk_concurrency 与 user_thread_counts 不一致", 400)
+            overrides.setdefault("user_thread_counts", legacy)
         if "timeout" in overrides:
             if "request_timeout" in overrides and overrides["request_timeout"] != overrides["timeout"]:
                 raise PipelineError("ASR_CONFIG_ERROR", "timeout 与 request_timeout 不一致", 400)
@@ -131,7 +139,7 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
             raise PipelineError("ASR_CONFIG_ERROR", "音译设置必须为对象", 400)
         values.update({key: copy.deepcopy(value) for key, value in task_settings.items()
                        if key in ("language_hints", "speaker_diarization_enabled", "chunk_duration_seconds",
-                                  "chunk_overlap_seconds", "chunk_concurrency", "vad_threshold")})
+                                  "chunk_overlap_seconds", "vad_threshold")})
         values.update(overrides)
         values["provider_id"] = provider_id
 
@@ -189,7 +197,7 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
     if values["api_format"] == "VolcengineASRFast":
         if explicit_hints and (len(hints) > 1 or any(hint not in VOLCENGINE_LANGUAGES for hint in hints)):
             raise PipelineError("ASR_CONFIG_ERROR", "火山录音识别只接受一种受支持的语言提示，例如 zh、en、ja；也可留空", 400)
-    for key, lower, upper in (("chunk_duration_seconds", 30, 290), ("chunk_concurrency", 1, 8)):
+    for key, lower, upper in (("chunk_duration_seconds", 30, 290),):
         value = values[key]
         if type(value) is not int or not lower <= value <= upper:
             raise PipelineError("ASR_CONFIG_ERROR", f"{key} 必须为 {lower} 至 {upper} 的整数", 400)
@@ -197,6 +205,10 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
         value = values[key]
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not lower <= value <= upper:
             raise PipelineError("ASR_CONFIG_ERROR", f"{key} 必须为 {lower} 至 {upper} 之间的数字", 400)
+    try:
+        validate_media_concurrency(values["user_thread_counts"])
+    except ValueError as error:
+        raise PipelineError("ASR_CONFIG_ERROR", str(error), 400) from None
     return TranscriptionConfig(**values)
 
 
@@ -216,7 +228,8 @@ def validate_transcription_platform(identifier: str, platform: dict) -> None:
         raise ValueError("转录接口字段 language_hints 必须是字符串列表")
     if "speaker_diarization_enabled" in platform and not isinstance(platform["speaker_diarization_enabled"], bool):
         raise ValueError("转录接口字段 speaker_diarization_enabled 必须是布尔值")
-    for field in ("chunk_duration_seconds", "chunk_concurrency"):
+    validate_media_concurrency(platform.get("user_thread_counts", 3))
+    for field in ("chunk_duration_seconds",):
         if field in platform and type(platform[field]) is not int:
             raise ValueError(f"转录接口字段 {field} 必须是整数")
     for field in ("chunk_overlap_seconds", "vad_threshold"):

@@ -11,7 +11,6 @@ DEFAULT_AUDIO_TRANSLATION_SETTINGS = {
     "speaker_diarization_enabled": False,
     "chunk_duration_seconds": 240,
     "chunk_overlap_seconds": 2,
-    "chunk_concurrency": 3,
     "vad_threshold": 0.35,
     "export": {"format": "srt", "mode": "bilingual", "suffix": "_subtitles"},
 }
@@ -140,7 +139,6 @@ def normalize_audio_translation_settings(values):
         raise ValueError("说话人分离必须是开启或关闭。")
     for key, label, lower, upper in (
         ("chunk_duration_seconds", "长音频切片时长", 30, 290),
-        ("chunk_concurrency", "切片并发数", 1, 8),
     ):
         if type(result[key]) is not int or not lower <= result[key] <= upper:
             raise ValueError(f"{label}必须为 {lower} 至 {upper} 的整数。")
