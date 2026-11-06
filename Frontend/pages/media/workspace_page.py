@@ -32,9 +32,10 @@ class MediaWorker(QThread):
     stageChanged = pyqtSignal(str)
     stageFinished = pyqtSignal(str, object)
 
-    def __init__(self, action, parent=None):
+    def __init__(self, action, parent=None, *, loading=False):
         super().__init__(parent)
         self.action = action
+        self.loading = loading
         self.cancelled = threading.Event()
         self.operation_id = None
         self.operation_kind = None
@@ -107,7 +108,8 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
         self._refresh_status_visibility()
 
     def _refresh_status_visibility(self, *unused):
-        hide_footer = self.stack.currentWidget() is self.work_page
+        hide_footer = (self.stack.currentWidget() is self.work_page
+                       or self._worker is not None and self._worker.loading)
         self.status_label.setVisible(bool(self._status_message) and not hide_footer)
         if self.kind == "video":
             proofreading = (self.stack.currentWidget() is self.work_page
@@ -467,7 +469,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             return False
         self._history_revision += 1
         self._save_timer.stop()
-        worker = MediaWorker(action, self)
+        worker = MediaWorker(action, self, loading=loading)
         self._worker = worker
         if cancellable:
             self._run_started = time.monotonic()
@@ -509,6 +511,7 @@ class MediaWorkspacePage(QFrame, ConfigMixin, ToastMixin):
             self._progress_timer.stop()
             self._set_busy(False)
             self._refresh_metrics()
+            self._refresh_status_visibility()
             if self.isVisible() and self.stack.currentWidget() is self.start_page:
                 QTimer.singleShot(0, self._load_history)
         worker.deleteLater()
