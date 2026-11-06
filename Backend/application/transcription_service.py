@@ -13,7 +13,7 @@ from Backend.domain.models.intermediate import parse_model
 from Backend.infrastructure.files.pipeline_support import file_sha256
 from Backend.infrastructure.transcription.provider import SUPPORTED_FORMATS, request_transcription
 from Backend.infrastructure.transcription.volcengine import FAST_FORMATS, FAST_MAX_BYTES
-from Backend.infrastructure.transcription import minimax
+from Backend.infrastructure.transcription import minimax, openai
 
 
 def _audio_source(cache_file, reference=None, metadata=None):
@@ -210,7 +210,9 @@ def _transcribe_file(project, resolved, context, request_executor) -> dict:
                         or resolved.api_format == "VolcengineASRFast" and
                         (audio_format not in FAST_FORMATS or path.stat().st_size > FAST_MAX_BYTES)
                         or resolved.api_format == "MiniMax" and
-                        (audio_format not in minimax.SUPPORTED_FORMATS or path.stat().st_size > minimax.MAX_AUDIO_BYTES)):
+                        (audio_format not in minimax.SUPPORTED_FORMATS or path.stat().st_size > minimax.MAX_AUDIO_BYTES)
+                        or resolved.api_format == "OpenAI" and
+                        (audio_format not in openai.SUPPORTED_FORMATS or path.stat().st_size > openai.MAX_AUDIO_BYTES)):
                     from Backend.application.long_transcription_service import transcribe_long_audio
                     outcome = transcribe_long_audio(cache_file, path, resolved, context, request_transcription,
                                                     audio_reference=audio_reference, audio_metadata=audio_metadata,

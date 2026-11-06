@@ -589,5 +589,52 @@
       "繁中": "MiniMax API Key 必須是不含空白的 ASCII 文字",
       "English": "The MiniMax API key must be ASCII text without whitespace"
     }
+  },
+  "OPENAI_MEDIA": {
+    "OpenAI · 音频转录与字幕时间戳": {
+      "简中": "OpenAI · 音频转录与字幕时间戳",
+      "繁中": "OpenAI · 音訊轉錄與字幕時間戳",
+      "English": "OpenAI · Audio transcription and subtitle timestamps"
+    },
+    "OpenAI · 图片编辑与翻译": {
+      "简中": "OpenAI · 图片编辑与翻译",
+      "繁中": "OpenAI · 圖片編輯與翻譯",
+      "English": "OpenAI · Image editing and translation"
+    },
+    "OpenAI 请填写 API 基地址（可含 /v1）或对应的完整接口地址。": {
+      "简中": "OpenAI 请填写 API 基地址（可含 /v1）或对应的完整接口地址。",
+      "繁中": "OpenAI 請填寫 API 基底位址（可含 /v1）或對應的完整介面位址。",
+      "English": "Enter an OpenAI API base URL (optionally ending in /v1) or the full endpoint URL."
+    },
+    "OpenAI API Key 必须是不含空白的 ASCII 文本。": {
+      "简中": "OpenAI API Key 必须是不含空白的 ASCII 文本。",
+      "繁中": "OpenAI API Key 必須是不含空白的 ASCII 文字。",
+      "English": "The OpenAI API key must be ASCII text without whitespace."
+    },
+    "OpenAI 生图尺寸需为 auto、1024x1024、1536x1024 或 1024x1536": {
+      "简中": "OpenAI 生图尺寸需为 auto、1024x1024、1536x1024 或 1024x1536",
+      "繁中": "OpenAI 生圖尺寸需為 auto、1024x1024、1536x1024 或 1024x1536",
+      "English": "OpenAI image size must be auto, 1024x1024, 1536x1024, or 1024x1536"
+    },
+    "请选择 OpenAI、DashScope、VolcengineArk 或 Gemini 图像编辑接口。": {
+      "简中": "请选择 OpenAI、DashScope、VolcengineArk 或 Gemini 图像编辑接口。",
+      "繁中": "請選擇 OpenAI、DashScope、VolcengineArk 或 Gemini 圖片編輯介面。",
+      "English": "Select OpenAI, DashScope, VolcengineArk, or Gemini for image editing."
+    },
+    "whisper-1 返回逐句时间戳（官方计划于 2027-02-26 停用）；纯文本模型按整段保存。": {
+      "简中": "whisper-1 返回逐句时间戳（官方计划于 2027-02-26 停用）；纯文本模型按整段保存。",
+      "繁中": "whisper-1 回傳逐句時間戳（官方計畫於 2027-02-26 停用）；純文字模型按整段儲存。",
+      "English": "whisper-1 returns sentence timestamps (scheduled retirement: 2027-02-26). Text-only models are saved as whole segments."
+    },
+    "使用图片编辑接口上传原图；地址可填 API 基地址或完整 /v1/images/edits 地址。": {
+      "简中": "使用图片编辑接口上传原图；地址可填 API 基地址或完整 /v1/images/edits 地址。",
+      "繁中": "使用圖片編輯介面上傳原圖；位址可填 API 基底位址或完整 /v1/images/edits 位址。",
+      "English": "Uploads the original to the image editing API. Enter a base URL or the full /v1/images/edits endpoint."
+    },
+    "auto 由接口自动选择。OpenAI 支持 1024x1024、1536x1024、1024x1536；Gemini 支持 1K、2K、4K；Seedream 支持 1K、1.5K、2K。": {
+      "简中": "auto 由接口自动选择。OpenAI 支持 1024x1024、1536x1024、1024x1536；Gemini 支持 1K、2K、4K；Seedream 支持 1K、1.5K、2K。",
+      "繁中": "auto 由介面自動選擇。OpenAI 支援 1024x1024、1536x1024、1024x1536；Gemini 支援 1K、2K、4K；Seedream 支援 1K、1.5K、2K。",
+      "English": "auto lets the service choose. OpenAI: 1024x1024, 1536x1024, 1024x1536; Gemini: 1K, 2K, 4K; Seedream: 1K, 1.5K, 2K."
+    }
   }
 }

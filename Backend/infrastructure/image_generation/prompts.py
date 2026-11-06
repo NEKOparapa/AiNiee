@@ -9,13 +9,14 @@ from Backend.infrastructure.image_generation.artifacts import digest
 from Backend.infrastructure.image_generation.dashscope import MAX_INPUT_BYTES as DASHSCOPE_MAX_INPUT_BYTES
 from Backend.infrastructure.image_generation.volcengine_ark import MAX_INPUT_BYTES as ARK_MAX_INPUT_BYTES
 from Backend.infrastructure.image_generation.gemini import MAX_INPUT_BYTES as GEMINI_MAX_INPUT_BYTES
+from Backend.infrastructure.image_generation.openai import MAX_INPUT_BYTES as OPENAI_MAX_INPUT_BYTES
 
 _LANGUAGES = {"auto": "图中原文的语言", "japanese": "日语", "chinese_simplified": "简体中文",
               "chinese_traditional": "繁体中文", "english": "英语", "korean": "韩语"}
 
 
 def output_size(width, height, requested="auto", api_format="DashScope"):
-    if api_format == "Gemini":
+    if api_format in ("Gemini", "OpenAI"):
         return validate_size(requested, api_format)
     if requested not in (None, "auto"):
         return validate_size(requested, api_format)
@@ -42,16 +43,17 @@ def output_size(width, height, requested="auto", api_format="DashScope"):
 def prepare_generation(file, image, config):
     is_ark = config.api_format == "VolcengineArk"
     is_gemini = config.api_format == "Gemini"
+    is_openai = config.api_format == "OpenAI"
     if is_ark:
         if min(image.size) <= 14 or image.width * image.height > 36_000_000 or max(image.size) / min(image.size) > 16:
             raise PipelineError("IMAGE_GENERATION_INPUT_TOO_LARGE", "火山生图输入宽高需大于14，总像素不超过3600万，宽高比不超过16", 422)
-    elif not is_gemini and (max(image.size) > 8000 or max(image.size) / min(image.size) > 10):
+    elif not (is_gemini or is_openai) and (max(image.size) > 8000 or max(image.size) / min(image.size) > 10):
         raise PipelineError("IMAGE_GENERATION_INPUT_TOO_LARGE", "生图输入边长不能超过8000，宽高比不能超过10", 422)
     stream = io.BytesIO()
     image.save(stream, format="PNG")
     data = stream.getvalue()
-    max_bytes = ARK_MAX_INPUT_BYTES if is_ark else GEMINI_MAX_INPUT_BYTES if is_gemini else DASHSCOPE_MAX_INPUT_BYTES
-    if len(data) > max_bytes:
+    max_bytes = OPENAI_MAX_INPUT_BYTES if is_openai else ARK_MAX_INPUT_BYTES if is_ark else GEMINI_MAX_INPUT_BYTES if is_gemini else DASHSCOPE_MAX_INPUT_BYTES
+    if len(data) > max_bytes or is_openai and len(data) == max_bytes:
         raise PipelineError("IMAGE_GENERATION_INPUT_TOO_LARGE", f"规范化图片超过{max_bytes // (1024 * 1024)}MiB，请先缩小图片", 422)
     size = output_size(*image.size, config.size, config.api_format)
     source = _LANGUAGES.get(config.source_language, config.source_language)
@@ -80,6 +82,8 @@ def prepare_generation(file, image, config):
         # invalidate the generated artifact and trigger another charge.
         identity.update(api_format="VolcengineArk", seed=None, prompt_extend=None,
                         optimize_prompt_mode="standard", output_format="png")
+    if is_openai:
+        identity.update(api_format="OpenAI", seed=None, prompt_extend=None, watermark=None, output_format="png")
     if is_gemini:
         identity.update(api_format="Gemini", seed=None, prompt_extend=None, watermark=None,
                         response_modalities=["IMAGE"])

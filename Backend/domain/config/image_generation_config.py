@@ -7,6 +7,7 @@ import re
 from urllib.parse import urlsplit
 
 from Backend.application.pipeline_common import PipelineError
+from Backend.domain.config.openai_media import openai_media_endpoint, validate_openai_key
 from Backend.domain.config.media_task_config import migrate_media_task_settings
 from Backend.domain.config.media_concurrency import validate_media_concurrency
 from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
@@ -88,6 +89,10 @@ class ImageGenerationConfig:
 def validate_size(value, api_format="DashScope"):
     if value is None or value == "auto":
         return "auto"
+    if api_format == "OpenAI":
+        if isinstance(value, str) and value.replace("*", "x") in ("1024x1024", "1536x1024", "1024x1536"):
+            return value.replace("*", "x")
+        raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "OpenAI 生图尺寸需为 auto、1024x1024、1536x1024 或 1024x1536", 422)
     if api_format == "Gemini":
         if isinstance(value, str) and value.upper() in ("1K", "2K", "4K"):
             return value.upper()
@@ -168,8 +173,14 @@ def resolve_image_generation_config(config=None):
         _ = address.port
     except ValueError:
         valid = False
-    if not valid or values["api_format"] not in ("DashScope", "VolcengineArk", "Gemini"):
+    if not valid or values["api_format"] not in ("DashScope", "VolcengineArk", "Gemini", "OpenAI"):
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请使用无凭据或查询参数的HTTP(S)地址与受支持的生图接口格式", 400)
+    if values["api_format"] == "OpenAI":
+        try:
+            values["api_url"] = openai_media_endpoint(values["api_url"], "/images/edits")
+            validate_openai_key(values["api_key"])
+        except ValueError as error:
+            raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", str(error), 422) from None
     if values["api_format"] == "DashScope":
         # Retain legacy inputs, but fingerprint and send the always-enabled value.
         values["prompt_extend"] = True
@@ -214,8 +225,11 @@ def validate_image_generation_platform(identifier: str, platform: dict) -> None:
         raise ValueError("生图随机种子必须为空或0至2147483647的整数")
     try:
         api_format = platform.get("api_format", "DashScope")
-        if api_format not in ("DashScope", "VolcengineArk", "Gemini"):
+        if api_format not in ("DashScope", "VolcengineArk", "Gemini", "OpenAI"):
             raise ValueError("不支持的生图接口格式")
+        if api_format == "OpenAI":
+            openai_media_endpoint(platform.get("api_url", ""), "/images/edits")
+            validate_openai_key(platform.get("api_key", ""))
         if api_format == "Gemini":
             gemini_endpoint(platform.get("api_url", GEMINI_API_URL), platform.get("model", GEMINI_IMAGE_MODEL))
         validate_size(platform.get("size", "auto"), platform.get("api_format", "DashScope"))

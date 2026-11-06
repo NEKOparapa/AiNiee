@@ -20,7 +20,7 @@ class ImageTranslationSettingsOverview(GroupedSettingsPage):
         self.size_edit = LineEdit(self.editor)
         self.size_edit.setPlaceholderText("auto / 1536*1024 / 2K")
         generation.add_field("输出尺寸", self.size_edit,
-                             "auto 由接口自动选择。Gemini 支持 1K、2K、4K；Seedream 支持 1K、1.5K、2K；其他尺寸范围由模型决定。")
+                             "auto 由接口自动选择。OpenAI 支持 1024x1024、1536x1024、1024x1536；Gemini 支持 1K、2K、4K；Seedream 支持 1K、1.5K、2K。")
         prompts = self._add_section("翻译提示词", FluentIcon.BOOK_SHELF)
         self.prompt_button = PushButton(FluentIcon.EDIT, self.tra("管理提示词"), self.editor)
         self.prompt_button.clicked.connect(lambda: self.editorRequested.emit("prompts"))
@@ -52,7 +52,9 @@ class ImageTranslationSettingsOverview(GroupedSettingsPage):
     def _load_fields(self, values):
         generation = values["generation"]
         self.size_edit.setText(generation["size"])
-        self.size_edit.setPlaceholderText("auto / 1K / 2K / 4K" if self._active_format == "Gemini" else "auto / 1536*1024 / 2K")
+        self.size_edit.setPlaceholderText("auto / 1K / 2K / 4K" if self._active_format == "Gemini" else
+                                         "auto / 1024x1024 / 1536x1024 / 1024x1536" if self._active_format == "OpenAI" else
+                                         "auto / 1536*1024 / 2K")
         self.export_format_combo.setCurrentIndex(self.export_format_combo.findData(values["export"]["format"]))
         self.export_suffix_edit.setText(values["export"]["suffix"])
         self.prompt_summary.setText(self.tra("当前使用：{name}").format(name=self._prompt_name))

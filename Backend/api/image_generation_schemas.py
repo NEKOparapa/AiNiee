@@ -9,7 +9,7 @@ class ImageGenerationOptions(RequestModel):
     provider_id: str | None = None
     api_url: str | None = None
     api_key: str | None = Field(default=None, repr=False)
-    api_format: Literal["DashScope", "VolcengineArk", "Gemini"] | None = None
+    api_format: Literal["DashScope", "VolcengineArk", "Gemini", "OpenAI"] | None = None
     model: str | None = None
     user_thread_counts: int | None = Field(default=None, ge=1, le=64, strict=True)
     request_timeout: float | None = Field(default=None, gt=0, le=3600)

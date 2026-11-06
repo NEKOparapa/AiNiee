@@ -2,6 +2,7 @@
 import copy
 import re
 from urllib.parse import urlsplit
+from Frontend.core.openai_media_config import validate_openai_connection
 
 
 DEFAULT_IMAGE_GENERATION_PLATFORM = {
@@ -43,6 +44,10 @@ def normalize_generation_size(value, api_format=None):
     value = value.strip().lower()
     if value == "auto":
         return value
+    if api_format == "OpenAI":
+        if value.replace("*", "x") in ("1024x1024", "1536x1024", "1024x1536"):
+            return value.replace("*", "x")
+        raise ValueError("OpenAI 生图尺寸需为 auto、1024x1024、1536x1024 或 1024x1536")
     presets = {"DashScope": (), "VolcengineArk": ("1K", "1.5K", "2K"), "Gemini": ("1K", "2K", "4K")}
     if value.upper() in presets.get(api_format, ("1K", "1.5K", "2K", "4K")):
         return value.upper()
@@ -83,8 +88,8 @@ def validate_image_generation_platform(data, *, require_api_key=False):
     result = normalize_image_generation_platform(data)
     if not result["name"]:
         raise ValueError("请输入生图接口名称。")
-    if result["api_format"] not in ("DashScope", "VolcengineArk", "Gemini"):
-        raise ValueError("请选择 DashScope、VolcengineArk 或 Gemini 图像编辑接口。")
+    if result["api_format"] not in ("DashScope", "VolcengineArk", "Gemini", "OpenAI"):
+        raise ValueError("请选择 OpenAI、DashScope、VolcengineArk 或 Gemini 图像编辑接口。")
     try:
         parsed = urlsplit(result["api_url"])
         valid_url = (parsed.scheme in ("http", "https") and bool(parsed.hostname)
@@ -103,6 +108,8 @@ def validate_image_generation_platform(data, *, require_api_key=False):
         raise ValueError("请先填写并保存接口密钥，再激活此生图接口。")
     if result["api_format"] == "Gemini":
         validate_gemini_connection(result["api_url"], result["model"], result["api_key"])
+    if result["api_format"] == "OpenAI":
+        validate_openai_connection(result["api_url"], result["api_key"], "image_generation")
     if type(result["prompt_extend"]) is not bool:
         raise ValueError("自动改写必须是开启或关闭。")
     seed = result["seed"]

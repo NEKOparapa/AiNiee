@@ -4,6 +4,7 @@ import copy
 from urllib.parse import urlsplit
 
 from Frontend.core.image_generation_config import DEFAULT_IMAGE_GENERATION_PLATFORM, validate_gemini_connection
+from Frontend.core.openai_media_config import validate_openai_connection
 
 
 DEFAULT_TRANSCRIPTION_PLATFORM = {
@@ -18,8 +19,8 @@ SUPPORTED_LANGUAGE_HINTS = frozenset(
     "zh en ja ko vi th id ms tl hi ar fr de es pt ru it nl sv da fi no el pl cs hu ro bg hr sk".split()
 )
 PROVIDER_FORMATS = {
-    "transcription": ("DashScope", "VolcengineASRFast", "MiniMax"),
-    "image_generation": ("DashScope", "VolcengineArk", "Gemini"),
+    "transcription": ("OpenAI", "DashScope", "VolcengineASRFast", "MiniMax"),
+    "image_generation": ("OpenAI", "DashScope", "VolcengineArk", "Gemini"),
 }
 PROVIDER_DEFAULTS = {
     "transcription": DEFAULT_TRANSCRIPTION_PLATFORM,
@@ -30,6 +31,13 @@ PROVIDER_DEFAULTS = {
 def get_media_provider_presets(kind):
     defaults = copy.deepcopy(PROVIDER_DEFAULTS[kind])
     presets = {
+        "openai": {
+            **defaults, "name": "OpenAI", "api_format": "OpenAI", "api_key": "",
+            "api_url": "https://api.openai.com/v1/" + ("audio/transcriptions" if kind == "transcription" else "images/edits"),
+            "model": "whisper-1" if kind == "transcription" else "gpt-image-2.5-sunburst",
+            "group": "online", "icon": "openai",
+            "description": "OpenAI · 音频转录与字幕时间戳" if kind == "transcription" else "OpenAI · 图片编辑与翻译",
+        },
         "bailian": {
             **defaults, "name": "阿里云百炼", "group": "online", "icon": "dashscope",
             "description": {"transcription": "本地音频转录",
@@ -70,6 +78,7 @@ def get_media_provider_presets(kind):
         }
     presets["custom"] = {
         **defaults, "name": "自定义接口", "group": "custom", "icon": "custom",
+        "api_format": "OpenAI",
         "api_url": "", "api_key": "", "model": "", "description": "兼容所选协议的第三方服务",
         "format_datas": list(PROVIDER_FORMATS[kind]),
     }
@@ -113,6 +122,7 @@ def normalize_media_provider(kind, data=None):
         official = host.endswith(".aliyuncs.com") or host in (
             "openspeech.bytedance.com", "ark.cn-beijing.volces.com", "generativelanguage.googleapis.com",
             "api.minimax.cn", "api.minimax.io",
+            "api.openai.com",
         )
         result["group"] = "online" if official else "custom"
     return result
@@ -142,6 +152,8 @@ def validate_media_provider(kind, data, *, require_credentials=False):
         raise ValueError("请先填写接口密钥，再激活此接口。")
     if kind == "image_generation" and result["api_format"] == "Gemini":
         validate_gemini_connection(result["api_url"], result["model"], result["api_key"])
+    if result["api_format"] == "OpenAI":
+        validate_openai_connection(result["api_url"], result["api_key"], kind)
     if kind == "transcription" and result["api_format"] == "MiniMax":
         if not url.path.rstrip("/").endswith("/v1/speech_to_text"):
             raise ValueError("MiniMax 接口地址必须以 /v1/speech_to_text 结尾")

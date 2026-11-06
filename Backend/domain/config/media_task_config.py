@@ -148,7 +148,7 @@ def validate_image_translation_settings(settings):
     if not isinstance(generation["size"], str):
         raise ValueError("生图尺寸必须为 auto 或 宽*高")
     size_error = None
-    for api_format in ("DashScope", "VolcengineArk", "Gemini"):
+    for api_format in ("DashScope", "VolcengineArk", "Gemini", "OpenAI"):
         try:
             validate_size(generation["size"], api_format)
             break

@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from Backend.application.pipeline_common import PipelineError
 from Backend.domain.config.media_task_config import migrate_media_task_settings
 from Backend.domain.config.media_concurrency import validate_media_concurrency
+from Backend.domain.config.openai_media import openai_media_endpoint, validate_openai_key
 from Backend.domain.config.request_defaults import REQUEST_TIMEOUT_SECONDS
 
 
@@ -163,11 +164,17 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
         raise PipelineError("ASR_CONFIG_ERROR", "转录接口必须为不含凭证或查询参数的 HTTP(S) 地址", 400)
     if any(char in values["api_key"] for char in "\r\n"):
         raise PipelineError("ASR_CONFIG_ERROR", "转录接口 API Key 格式无效", 400)
-    formats = {"dashscope": "DashScope", "volcengineasrfast": "VolcengineASRFast", "minimax": "MiniMax"}
+    formats = {"dashscope": "DashScope", "volcengineasrfast": "VolcengineASRFast", "minimax": "MiniMax", "openai": "OpenAI"}
     api_format = values["api_format"]
     if not isinstance(api_format, str) or api_format.lower() not in formats:
-        raise PipelineError("ASR_CONFIG_ERROR", "转录格式仅支持 DashScope、VolcengineASRFast 或 MiniMax", 400)
+        raise PipelineError("ASR_CONFIG_ERROR", "转录格式仅支持 DashScope、VolcengineASRFast、MiniMax 或 OpenAI", 400)
     values["api_format"] = formats[api_format.lower()]
+    if values["api_format"] == "OpenAI":
+        try:
+            values["api_url"] = openai_media_endpoint(values["api_url"], "/audio/transcriptions")
+            validate_openai_key(values["api_key"])
+        except ValueError as error:
+            raise PipelineError("ASR_CONFIG_ERROR", str(error), 400) from None
     if values["api_format"] == "MiniMax":
         if not url.path.rstrip("/").endswith("/v1/speech_to_text"):
             raise PipelineError("ASR_CONFIG_ERROR", "MiniMax 接口地址必须以 /v1/speech_to_text 结尾", 400)
@@ -212,6 +219,8 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
     if values["api_format"] == "MiniMax":
         if explicit_hints and (len(hints) > 1 or any(hint not in MINIMAX_LANGUAGES for hint in hints)):
             raise PipelineError("ASR_CONFIG_ERROR", "MiniMax 只接受一种受支持的语言提示，例如 zh、en、yue；也可留空", 400)
+    if values["api_format"] == "OpenAI" and explicit_hints and len(hints) > 1 and not values["model"].lower().startswith("gpt-transcribe"):
+        raise PipelineError("ASR_CONFIG_ERROR", "当前 OpenAI 转录模型只接受一种语言提示；也可留空", 400)
     for key, lower, upper in (("chunk_duration_seconds", 30, 290),):
         value = values[key]
         if type(value) is not int or not lower <= value <= upper:

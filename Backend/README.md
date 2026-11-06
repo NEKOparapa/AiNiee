@@ -70,6 +70,9 @@ python -m Backend --host 127.0.0.1 --port 3389
 
 `GET /api/config/prompt-presets/image_translation` 返回完整的内置图片翻译模板，包含语言任务句。根配置 `image_translation_user_prompt_data` 保存自定义提示词库，`image_translation_prompt_selection.last_selected_id` 选择正在使用的条目。模板使用与文译相同的 `{source_language}`、`{target_language}`，发送前替换为项目语言名称；原文语言为 `auto` 时替换为“图中原文的语言”。自定义内容整体替换系统预设，不再额外拼接语言任务句，已有自定义提示词需按需补上占位符。只替换这两个占位符，其他花括号原样保留，保存的模板不变。原图仍独立随请求提交；旧版 `image_translation_settings.generation.prompt` 作为补充要求兼容，也支持这两个占位符。提示词修改在下次生成生效，已有译图仍可预览、导出。图译提示词配置与文译提示词相互独立。
 
+
+OpenAI 生图使用 `api_format: "OpenAI"`，默认模型 `gpt-image-2.5-sunburst`。通过 `POST /v1/images/edits` 以 multipart 同时提交原图、提示词、`n=1` 和 PNG 输出要求；此流程是图片编辑，不调用纯文生图端点。地址接受 API 基地址、以 `/v1` 结尾的基地址或完整编辑端点，也可指向兼容服务。当前尺寸支持 `auto`、`1024x1024`、`1536x1024`、`1024x1536`（也接受 `*` 分隔）。不发送 `seed`、`watermark`、`prompt_extend`，这些无效参数不参与 OpenAI 结果指纹。支持返回 `data[0].b64_json`，并兼容 HTTPS `url` 的下载续传；响应未知、超时或保存失败时沿用禁止自动重复付费的规则。见 [OpenAI 图片编辑文档](https://developers.openai.com/api/reference/python/resources/images/methods/edit)。
+
 ## 音频接口
 
 | 接口 | 主要参数与用途 |
@@ -80,6 +83,9 @@ python -m Backend --host 127.0.0.1 --port 3389
 | `POST /api/v2/audio/translate` | `path`、`output.output_dir`；可选 `read_options/transcription/translation`，执行读取 → 转录 → 翻译 → 字幕导出 |
 
 转录支持 `DashScope`、`VolcengineASRFast` 和 `MiniMax`，音频与视频共用接口配置。MiniMax 使用模型 `asr-1.0` 和完整地址 `https://api.minimax.cn/v1/speech_to_text`，以 Bearer API Key 鉴权，通过 multipart 上传本地音频。REST/MCP 的转录配置可设置 `api_format: "MiniMax"`，也可只传已保存的 `provider_id`。
+
+
+OpenAI 转录使用 `api_format: "OpenAI"` 和 `POST /v1/audio/transcriptions`，同样接受基地址或完整端点。默认 `whisper-1` 请求非流式 `verbose_json` 和分句时间戳；`gpt-4o-transcribe-diarize` 使用 `diarized_json` 与 `chunking_strategy=auto`。程序不根据开关擅自更换模型。`gpt-transcribe`、`gpt-4o-transcribe`、`gpt-4o-mini-transcribe` 使用 `json`；若模型只返回文本，则按当前音频/切片整体时长保存并报告缺少逐句时间戳，不能视为精确字幕。`gpt-transcribe` 支持多个语言提示，其余模型显式指定时仅接受一种。单次上传不超过 25 MB，过大或格式不适合直接上传时复用本地 WAV 切片，并继续共用项目请求池、取消和检查点恢复。请求失败不会自动重发。官方已公告 `whisper-1` 及上述 GPT-4o 转录系列于 **2027-02-26** 停用；当前保留 Whisper 默认值是为了字幕时间戳，使用官方服务时需留意该日期。见 [OpenAI 转录文档](https://developers.openai.com/api/docs/guides/speech-to-text)。
 
 ## 视频接口
 

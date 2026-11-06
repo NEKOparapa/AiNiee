@@ -94,6 +94,8 @@ class MediaProviderForm(QWidget, ConfigMixin):
         if not self._loading and self.kind == "transcription" and format_ == "MiniMax":
             if not self.model_edit.text().strip():
                 self.model_edit.setText("asr-1.0")
+        if not self._loading and format_ == "OpenAI" and not self.model_edit.text().strip():
+            self.model_edit.setText("whisper-1" if self.kind == "transcription" else "gpt-image-2.5-sunburst")
         self._sync_format_fields()
         self._changed()
 
@@ -113,6 +115,14 @@ class MediaProviderForm(QWidget, ConfigMixin):
                                         "https://api.minimax.cn/v1/speech_to_text" if minimax else "https://")
         self.model_edit.setPlaceholderText("gemini-3-pro-image" if gemini else "asr-1.0" if minimax
                                           else self.tra("请输入模型名称或 Endpoint ID"))
+        if format_ == "OpenAI":
+            transcription = self.kind == "transcription"
+            self.protocol_hint.show()
+            self.protocol_hint.setText(self.tra(
+                "whisper-1 返回逐句时间戳（官方计划于 2027-02-26 停用）；纯文本模型按整段保存。"
+                if transcription else "使用图片编辑接口上传原图；地址可填 API 基地址或完整 /v1/images/edits 地址。"))
+            self.url_edit.setPlaceholderText("https://api.openai.com/v1")
+            self.model_edit.setPlaceholderText("whisper-1" if transcription else "gpt-image-2.5-sunburst")
 
     def load(self, data):
         values = normalize_media_provider(self.kind, data)
