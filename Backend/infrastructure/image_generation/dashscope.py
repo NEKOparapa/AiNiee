@@ -87,7 +87,7 @@ def parse_generation_response(payload):
 def request_generation(image_bytes, *, prompt, size, config, client=None):
     if not image_bytes or len(image_bytes) > MAX_INPUT_BYTES:
         raise PipelineError("IMAGE_GENERATION_INPUT_TOO_LARGE", "提交图片超过10MiB限制", 422)
-    parameters = {"n": 1, "size": size, "prompt_extend": config["prompt_extend"], "watermark": config["watermark"]}
+    parameters = {"n": 1, "size": size, "prompt_extend": True, "watermark": config["watermark"]}
     if config.get("seed") is not None:
         parameters["seed"] = config["seed"]
     payload = {"model": config["model"], "input": {"messages": [{"role": "user", "content": [

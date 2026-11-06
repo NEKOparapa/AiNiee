@@ -12,7 +12,7 @@ class ImageGenerationOptions(RequestModel):
     api_format: Literal["DashScope", "VolcengineArk", "Gemini"] | None = None
     model: str | None = None
     request_timeout: float | None = Field(default=None, gt=0, le=3600)
-    prompt_extend: bool | None = None
+    prompt_extend: bool | None = Field(default=None, description="兼容旧请求；百炼图像接口始终启用提示词自动改写，此值不影响请求。")
     watermark: bool | None = None
     size: str | None = None
     seed: int | None = Field(default=None, ge=0, le=2147483647, strict=True)

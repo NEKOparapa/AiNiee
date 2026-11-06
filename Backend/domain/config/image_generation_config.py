@@ -160,6 +160,9 @@ def resolve_image_generation_config(config=None):
         valid = False
     if not valid or values["api_format"] not in ("DashScope", "VolcengineArk", "Gemini"):
         raise PipelineError("IMAGE_GENERATION_CONFIG_ERROR", "请使用无凭据或查询参数的HTTP(S)地址与受支持的生图接口格式", 400)
+    if values["api_format"] == "DashScope":
+        # Retain legacy inputs, but fingerprint and send the always-enabled value.
+        values["prompt_extend"] = True
     if values["api_format"] == "Gemini":
         gemini_endpoint(values["api_url"], values["model"])
         if any(not 33 <= ord(char) <= 126 for char in values["api_key"]):

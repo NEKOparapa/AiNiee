@@ -1,6 +1,6 @@
 """Settings for single-step image translation and export."""
 
-from qfluentwidgets import CaptionLabel, ComboBox, FluentIcon, LineEdit, PushButton, SwitchButton
+from qfluentwidgets import CaptionLabel, ComboBox, FluentIcon, LineEdit, PushButton
 
 from Frontend.core.media_task_config import (
     MEDIA_EXPORT_FORMATS, build_image_translation_settings_update, normalize_image_translation_settings,
@@ -21,9 +21,6 @@ class ImageTranslationSettingsOverview(GroupedSettingsPage):
         self.size_edit.setPlaceholderText("auto / 1536*1024 / 2K")
         generation.add_field("输出尺寸", self.size_edit,
                              "auto 由接口自动选择。Gemini 支持 1K、2K、4K；Seedream 支持 1K、1.5K、2K；其他尺寸范围由模型决定。")
-        self.prompt_extend_switch = SwitchButton(self.editor)
-        generation.add_field("自动改写提示词", self.prompt_extend_switch,
-                             "仅用于百炼图像接口；Seedream 使用标准优化，Gemini 按原提示词生成。")
         prompts = self._add_section("翻译提示词", FluentIcon.BOOK_SHELF)
         self.prompt_button = PushButton(FluentIcon.EDIT, self.tra("管理提示词"), self.editor)
         self.prompt_button.clicked.connect(lambda: self.editorRequested.emit("prompts"))
@@ -38,7 +35,6 @@ class ImageTranslationSettingsOverview(GroupedSettingsPage):
         self.export_suffix_edit.setPlaceholderText("_translated")
         export.add_field("输出文件名后缀", self.export_suffix_edit,
                          "添加在文件名末尾、扩展名前；留空不添加后缀。")
-        self.prompt_extend_switch.checkedChanged.connect(self._schedule_save)
         self.size_edit.textChanged.connect(self._schedule_save)
         self.size_edit.editingFinished.connect(self._save_settings)
         self.export_format_combo.currentIndexChanged.connect(self._schedule_save)
@@ -57,15 +53,13 @@ class ImageTranslationSettingsOverview(GroupedSettingsPage):
         generation = values["generation"]
         self.size_edit.setText(generation["size"])
         self.size_edit.setPlaceholderText("auto / 1K / 2K / 4K" if self._active_format == "Gemini" else "auto / 1536*1024 / 2K")
-        self.prompt_extend_switch.setChecked(generation["prompt_extend"])
-        self.prompt_extend_switch.setEnabled(self._active_format == "DashScope")
         self.export_format_combo.setCurrentIndex(self.export_format_combo.findData(values["export"]["format"]))
         self.export_suffix_edit.setText(values["export"]["suffix"])
         self.prompt_summary.setText(self.tra("当前使用：{name}").format(name=self._prompt_name))
 
     def _form_values(self):
         return {
-            "generation": {"size": self.size_edit.text(), "prompt_extend": self.prompt_extend_switch.isChecked()},
+            "generation": {"size": self.size_edit.text()},
             "export": {"format": self.export_format_combo.currentData(), "suffix": self.export_suffix_edit.text()},
         }
 
