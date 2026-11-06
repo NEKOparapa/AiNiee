@@ -18,7 +18,7 @@ SUPPORTED_LANGUAGE_HINTS = frozenset(
     "zh en ja ko vi th id ms tl hi ar fr de es pt ru it nl sv da fi no el pl cs hu ro bg hr sk".split()
 )
 PROVIDER_FORMATS = {
-    "transcription": ("DashScope", "VolcengineASRFast"),
+    "transcription": ("DashScope", "VolcengineASRFast", "MiniMax"),
     "image_generation": ("DashScope", "VolcengineArk", "Gemini"),
 }
 PROVIDER_DEFAULTS = {
@@ -42,6 +42,12 @@ def get_media_provider_presets(kind):
             "group": "online", "request_timeout": 300,
         }
         presets.update({
+            "minimax_asr": {
+                "name": "MiniMax", "api_format": "MiniMax",
+                "api_url": "https://api.minimax.cn/v1/speech_to_text",
+                "api_key": "", "model": "asr-1.0", "request_timeout": 300,
+                "group": "online", "icon": "custom", "description": "MiniMax · 语音识别与逐句时间戳",
+            },
             "volcengine_asr_fast": {
                 **common, "name": "火山豆包（极速）", "api_format": "VolcengineASRFast",
                 "api_url": "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash",
@@ -106,6 +112,7 @@ def normalize_media_provider(kind, data=None):
             host = ""
         official = host.endswith(".aliyuncs.com") or host in (
             "openspeech.bytedance.com", "ark.cn-beijing.volces.com", "generativelanguage.googleapis.com",
+            "api.minimax.cn", "api.minimax.io",
         )
         result["group"] = "online" if official else "custom"
     return result
@@ -135,6 +142,12 @@ def validate_media_provider(kind, data, *, require_credentials=False):
         raise ValueError("请先填写接口密钥，再激活此接口。")
     if kind == "image_generation" and result["api_format"] == "Gemini":
         validate_gemini_connection(result["api_url"], result["model"], result["api_key"])
+    if kind == "transcription" and result["api_format"] == "MiniMax":
+        if not url.path.rstrip("/").endswith("/v1/speech_to_text"):
+            raise ValueError("MiniMax 接口地址必须以 /v1/speech_to_text 结尾")
+        if result["api_key"] and (not result["api_key"].isascii() or any(
+                char.isspace() or ord(char) < 32 or ord(char) == 127 for char in result["api_key"])):
+            raise ValueError("MiniMax API Key 必须是不含空白的 ASCII 文本")
     if kind == "transcription" and result["api_format"] == "VolcengineASRFast":
         expected_path = "/api/v3/auc/bigmodel/recognize/flash"
         if not url.path.rstrip("/").endswith(expected_path):

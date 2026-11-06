@@ -184,7 +184,7 @@ class MediaProviderPage(QFrame, ConfigMixin, ToastMixin, Base):
             data = normalize_media_provider(self.KIND, platform)
             group = "online" if data.get("group") == "online" else "custom"
             if group == "online":
-                data.setdefault("icon", "dashscope" if data["api_format"] == "DashScope" else "volcengine")
+                data.setdefault("icon", {"DashScope": "dashscope", "MiniMax": "custom"}.get(data["api_format"], "volcengine"))
             groups[group].append((identifier, data))
         if self._active_dialog is not None:
             # The menu's Qt mouse handler is still on the stack inside exec().

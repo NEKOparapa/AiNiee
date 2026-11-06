@@ -567,5 +567,27 @@
       "繁中": "調整長音訊的切片長度；請求並行數在轉錄介面中設定",
       "English": "Adjust long-audio chunk length. Set request concurrency in the transcription provider."
     }
+  },
+  "MINIMAX_ASR": {
+    "MiniMax · 语音识别与逐句时间戳": {
+      "简中": "MiniMax · 语音识别与逐句时间戳",
+      "繁中": "MiniMax · 語音識別與逐句時間戳",
+      "English": "MiniMax · Speech recognition with sentence timestamps"
+    },
+    "使用非流式识别获取逐句时间戳；长音频自动切片。": {
+      "简中": "使用非流式识别获取逐句时间戳；长音频自动切片。",
+      "繁中": "使用非串流識別取得逐句時間戳；長音訊自動切片。",
+      "English": "Uses non-streaming recognition for sentence timestamps; long audio is split automatically."
+    },
+    "MiniMax 接口地址必须以 /v1/speech_to_text 结尾": {
+      "简中": "MiniMax 接口地址必须以 /v1/speech_to_text 结尾",
+      "繁中": "MiniMax 介面地址必須以 /v1/speech_to_text 結尾",
+      "English": "The MiniMax URL must end with /v1/speech_to_text"
+    },
+    "MiniMax API Key 必须是不含空白的 ASCII 文本": {
+      "简中": "MiniMax API Key 必须是不含空白的 ASCII 文本",
+      "繁中": "MiniMax API Key 必須是不含空白的 ASCII 文字",
+      "English": "The MiniMax API key must be ASCII text without whitespace"
+    }
   }
 }

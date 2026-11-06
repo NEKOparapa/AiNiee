@@ -91,6 +91,9 @@ class MediaProviderForm(QWidget, ConfigMixin):
                 self.model_edit.setText("bigmodel")
             if not self.resource_id_edit.text().strip():
                 self.resource_id_edit.setText("volc.bigasr.auc_turbo")
+        if not self._loading and self.kind == "transcription" and format_ == "MiniMax":
+            if not self.model_edit.text().strip():
+                self.model_edit.setText("asr-1.0")
         self._sync_format_fields()
         self._changed()
 
@@ -102,9 +105,14 @@ class MediaProviderForm(QWidget, ConfigMixin):
         self.key_edit.setPlaceholderText(self.tra("请输入 API Key 或 Access Token") if volcengine_asr
                                         else self.tra("请输入此接口的 API Key"))
         gemini = self.kind == "image_generation" and format_ == "Gemini"
-        self.protocol_hint.setVisible(gemini)
-        self.url_edit.setPlaceholderText("https://generativelanguage.googleapis.com" if gemini else "https://")
-        self.model_edit.setPlaceholderText("gemini-3-pro-image" if gemini else self.tra("请输入模型名称或 Endpoint ID"))
+        minimax = self.kind == "transcription" and format_ == "MiniMax"
+        self.protocol_hint.setVisible(gemini or minimax)
+        self.protocol_hint.setText(self.tra("使用非流式识别获取逐句时间戳；长音频自动切片。" if minimax
+                                           else "填写 Gemini API 基地址，模型名称单独填写。"))
+        self.url_edit.setPlaceholderText("https://generativelanguage.googleapis.com" if gemini else
+                                        "https://api.minimax.cn/v1/speech_to_text" if minimax else "https://")
+        self.model_edit.setPlaceholderText("gemini-3-pro-image" if gemini else "asr-1.0" if minimax
+                                          else self.tra("请输入模型名称或 Endpoint ID"))
 
     def load(self, data):
         values = normalize_media_provider(self.kind, data)

@@ -21,6 +21,10 @@ DEFAULT_TRANSCRIPTION_PLATFORM = {
     "user_thread_counts": 3, "vad_threshold": 0.35,
 }
 LANGUAGE_HINTS = frozenset("zh en ja ko vi th id ms tl hi ar fr de es pt ru it nl sv da fi no el pl cs hu ro bg hr sk".split())
+MINIMAX_LANGUAGES = {code: code for code in
+                     "zh yue ja ko th vi id ms fil en fr de es it pt pl ru uk ar tr".split()}
+# Existing task settings use the ISO 639-1 code for Filipino.
+MINIMAX_LANGUAGES["tl"] = "fil"
 VOLCENGINE_LANGUAGES = {
     "zh": "zh-CN", "en": "en-US", "ja": "ja-JP", "id": "id-ID", "es": "es-MX",
     "pt": "pt-BR", "de": "de-DE", "fr": "fr-FR", "ko": "ko-KR", "tl": "fil-PH",
@@ -159,11 +163,18 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
         raise PipelineError("ASR_CONFIG_ERROR", "转录接口必须为不含凭证或查询参数的 HTTP(S) 地址", 400)
     if any(char in values["api_key"] for char in "\r\n"):
         raise PipelineError("ASR_CONFIG_ERROR", "转录接口 API Key 格式无效", 400)
-    formats = {"dashscope": "DashScope", "volcengineasrfast": "VolcengineASRFast"}
+    formats = {"dashscope": "DashScope", "volcengineasrfast": "VolcengineASRFast", "minimax": "MiniMax"}
     api_format = values["api_format"]
     if not isinstance(api_format, str) or api_format.lower() not in formats:
-        raise PipelineError("ASR_CONFIG_ERROR", "转录格式仅支持 DashScope 或 VolcengineASRFast", 400)
+        raise PipelineError("ASR_CONFIG_ERROR", "转录格式仅支持 DashScope、VolcengineASRFast 或 MiniMax", 400)
     values["api_format"] = formats[api_format.lower()]
+    if values["api_format"] == "MiniMax":
+        if not url.path.rstrip("/").endswith("/v1/speech_to_text"):
+            raise PipelineError("ASR_CONFIG_ERROR", "MiniMax 接口地址必须以 /v1/speech_to_text 结尾", 400)
+        values["api_url"] = values["api_url"].rstrip("/")
+        if not values["api_key"].isascii() or any(char.isspace() or ord(char) < 32 or ord(char) == 127
+                                                for char in values["api_key"]):
+            raise PipelineError("ASR_CONFIG_ERROR", "MiniMax API Key 必须是不含空白的 ASCII 文本", 400)
     for key in ("app_id", "resource_id"):
         if not isinstance(values[key], str) or any(ord(char) < 32 for char in values[key]):
             raise PipelineError("ASR_CONFIG_ERROR", "火山应用 ID 和资源 ID 必须为单行文本", 400)
@@ -191,12 +202,16 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
         if not isinstance(values[key], bool):
             raise PipelineError("ASR_CONFIG_ERROR", "转录开关必须为布尔值", 400)
     hints = values["language_hints"]
-    if not isinstance(hints, (list, tuple)) or len(hints) > 4 or any(not isinstance(hint, str) or hint not in LANGUAGE_HINTS for hint in hints):
+    allowed_hints = LANGUAGE_HINTS | MINIMAX_LANGUAGES.keys() if values["api_format"] == "MiniMax" else LANGUAGE_HINTS
+    if not isinstance(hints, (list, tuple)) or len(hints) > 4 or any(not isinstance(hint, str) or hint not in allowed_hints for hint in hints):
         raise PipelineError("ASR_CONFIG_ERROR", "language_hints 最多包含 4 个受支持的语言代码", 400)
     values["language_hints"] = tuple(dict.fromkeys(hints))
     if values["api_format"] == "VolcengineASRFast":
         if explicit_hints and (len(hints) > 1 or any(hint not in VOLCENGINE_LANGUAGES for hint in hints)):
             raise PipelineError("ASR_CONFIG_ERROR", "火山录音识别只接受一种受支持的语言提示，例如 zh、en、ja；也可留空", 400)
+    if values["api_format"] == "MiniMax":
+        if explicit_hints and (len(hints) > 1 or any(hint not in MINIMAX_LANGUAGES for hint in hints)):
+            raise PipelineError("ASR_CONFIG_ERROR", "MiniMax 只接受一种受支持的语言提示，例如 zh、en、yue；也可留空", 400)
     for key, lower, upper in (("chunk_duration_seconds", 30, 290),):
         value = values[key]
         if type(value) is not int or not lower <= value <= upper:
