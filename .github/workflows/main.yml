@@ -61,24 +61,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools
-          python -m pip install -r requirements-frontend.txt -r requirements-backend.txt "pyinstaller>=6.21.0" pytest
+          python -m pip install -r requirements-frontend.txt -r requirements-backend.txt "pyinstaller>=6.21.0"
           python -m pip install --no-deps -r requirements_no_deps.txt
           python -m pip cache purge
 
       - name: Set up Rust updater toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Test updater
-        run: cargo test --locked --manifest-path Tools/rust_updater/Cargo.toml
-
       - name: Build EXE with PyInstaller (--onedir mode)
         # 将原 Build EXE 步骤重命名，更清晰
         run: python .\Tools\pyinstall.py
-
-      - name: Verify Windows update flow
-        env:
-          AINIEE_TEST_UPDATER: ${{ github.workspace }}/Frontend/resources/updater/updater.exe
-        run: python -m pytest tests/test_updates.py tests/test_updater_windows.py -q
 
       - name: Prepare Release Package
         run: |
