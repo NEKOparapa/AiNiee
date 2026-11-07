@@ -105,8 +105,14 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
     def _find_download_url(self, assets: list[dict]) -> str | None:
         expected_suffix = self._expected_update_asset_suffix()
+        if is_windows():
+            # Prefer the complete desktop package over source/backend-only ZIPs.
+            assets = sorted(assets, key=lambda asset: "windows" not in asset.get("name", "").lower())
         for asset in assets:
-            if asset["name"].endswith(expected_suffix):
+            name = asset.get("name", "").lower()
+            if is_windows() and any(part in name for part in ("macos", "darwin", "linux", "source", "backend", "frontend", "arm64", "aarch64")):
+                continue
+            if name.endswith(expected_suffix) and asset.get("browser_download_url"):
                 return asset["browser_download_url"]
         return None
 
@@ -532,6 +538,9 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             self.update_button.setEnabled(False)
             version_info_text.setText(self.tra("您已经使用最新版本"))
             self.status_label.setText(self.tra("无需更新"))
+        elif not getattr(sys, "frozen", False):
+            self.update_button.setEnabled(False)
+            self.status_label.setText(self.tra("源码运行时请通过 Git 更新，自动安装仅支持打包版本"))
 
     def _start_download_with_url(self, url):
         """使用指定URL开始下载"""
@@ -685,8 +694,9 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                     pass
 
             # 获取文件大小信息
-            file_size_response = requests.head(url, allow_redirects=True, timeout=(10, 30))
-            total_size = int(file_size_response.headers.get('content-length', 0))
+            with requests.head(url, allow_redirects=True, timeout=(10, 30),
+                               headers={"Accept-Encoding": "identity"}) as response:
+                total_size = int(response.headers.get('content-length', 0)) if response.ok else 0
 
             # 记录下载信息
             download_info = {
@@ -699,7 +709,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
             # 检查是否存在临时文件，如果存在则续传
             downloaded = 0
-            headers = {}
+            headers = {"Accept-Encoding": "identity"}
 
             if total_size > 0 and os.path.exists(temp_filename) and os.path.exists(download_info_file):
                 try:
@@ -729,6 +739,15 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
                 if downloaded > 0 and r.status_code != 206:
                     downloaded = 0
                     download_info["downloaded"] = 0
+                    total_size = 0  # The full response may have changed since HEAD.
+                if r.status_code == 206:
+                    content_range = re.fullmatch(r"bytes (\d+)-(\d+)/(\d+)", r.headers.get("Content-Range", ""))
+                    if (not content_range or int(content_range[1]) != downloaded
+                            or int(content_range[2]) != int(content_range[3]) - 1
+                            or int(content_range[3]) <= downloaded):
+                        raise ValueError(self.tra("更新包续传范围无效，请重新下载"))
+                    total_size = int(content_range[3])
+                    download_info["total_size"] = total_size
                 # HEAD 未给大小时从 GET 响应补全，确保完整性校验可用
                 if total_size <= 0:
                     cl = r.headers.get('content-length')
@@ -841,11 +860,7 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
             # 通过rust更新器更新
             self._run_updater(filename)
         else:
-            # 将下载的文件路径保存到配置文件中，便于稍后安装
-            config = self.load_config()
-            config["pending_update_file"] = filename
-            self.save_config(config)
-
+            # download_info.json belongs to this desktop, even with a remote backend.
             # 显示成功提示
             if self.main_window:
                 self.main_window.success_toast(self.tra("更新已下载"), self.tra("更新已下载，可以通过更新按钮重新安装"))
@@ -979,42 +994,59 @@ class VersionManager(ConfigMixin, LogMixin, ToastMixin, Base):
 
 
             import subprocess
-            if is_macos():
-                if os.path.exists(update_file):
-                    self.config_backend().shutdown()
-                    subprocess.Popen(["open", update_file])
-                    _, _, download_info_file = self._download_paths()
-                    try:
-                        os.remove(str(download_info_file))
-                    except OSError:
-                        pass
-                    self._exit_for_update()
+            if not getattr(sys, "frozen", False):
+                raise RuntimeError(self.tra("源码运行时请通过 Git 更新，自动安装仅支持打包版本"))
+            if not is_windows() and not is_macos():
+                raise RuntimeError(self.tra("当前系统不支持自动安装，请手动更新"))
+            if not os.path.isfile(update_file):
+                raise FileNotFoundError(update_file)
+
+            if is_windows():
+                from Frontend.services.update_package import validate_windows_update
+                validate_windows_update(update_file)
+                if not os.path.isfile(os.path.join(current_dir, "AiNiee.exe")):
+                    raise RuntimeError(self.tra("安装目录缺少 AiNiee.exe，请手动更新"))
+                # Fail before shutdown if staging/backups cannot be created here.
+                import tempfile
+                with tempfile.TemporaryFile(dir=current_dir):
+                    pass
+
+            # Flush unsaved settings before the configuration service goes away.
+            if self.main_window is not None:
+                for page in getattr(self.main_window, "media_pages", ()):
+                    if not page.prepare_to_close():
+                        return
+                current = self.main_window.stackedWidget.currentWidget()
+                prepare = getattr(current, "prepare_to_leave", None)
+                if callable(prepare) and not prepare():
                     return
 
-                if self.latest_version_url:
-                    QDesktopServices.openUrl(QUrl(self.latest_version_url))
-                    return
+            client = self.config_backend()
+            from Frontend.app.backend_connection import _local_endpoint
+            local_backend = _local_endpoint(client.url) is not None
+            if is_macos():
+                if local_backend:
+                    client.shutdown()
+                # macOS installation is manual: the DMG opens for the user to replace the app.
+                subprocess.Popen(["open", update_file])
+                self._exit_for_update()
+                return
 
             updater_path = str(frontend_resource_path("updater", "updater.exe"))
 
             if os.path.exists(updater_path):
                 # Stop the service before replacing its executable and DLLs.
                 # If shutdown fails, leave the UI and downloaded update intact.
-                self.config_backend().shutdown()
-                if is_windows():
-                    subprocess.Popen(
-                        [updater_path, update_file, current_dir],
-                        creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-                    )
-                else:
-                    subprocess.Popen([updater_path, update_file, current_dir])
+                if local_backend:
+                    client.shutdown()
+                subprocess.Popen(
+                    [updater_path, os.path.abspath(update_file), current_dir,
+                     "--restart-arg=--backend-url", f"--restart-arg={client.url}"],
+                    cwd=current_dir,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                )
 
-                _, _, download_info_file = self._download_paths()
-                try:
-                    os.remove(str(download_info_file))
-                except OSError:
-                    pass
-
+                # Keep the archive and metadata until installation succeeds.
                 # 退出当前程序
                 self._exit_for_update()
 

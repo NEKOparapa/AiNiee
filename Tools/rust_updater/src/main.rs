@@ -1,277 +1,318 @@
-///  这个更新器一般情况下不需要再次构建，可以删除我在工作流中添加的构建流程
 use std::env;
-use std::fs::{self, File};
-use std::io;
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::thread::sleep;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
-use log::{error, info, warn};
-use simple_logger::SimpleLogger;
 use zip::ZipArchive;
 
-const MAX_WAIT_SECONDS: u64 = 60;
-const MAX_COPY_RETRIES: usize = 60;
+const MAX_WAIT_SECONDS: u64 = 300;
 
 #[derive(Parser, Debug)]
-#[clap(author, version, about = "Ainiee 更新器")]
+#[clap(author, version, about = "AiNiee 前后端更新器")]
 struct Args {
-    /// 源文件路径（ZIP文件）
     #[clap(index = 1)]
-    src: String,
-
-    /// 目标目录路径
+    src: PathBuf,
     #[clap(index = 2)]
-    dst: String,
+    dst: PathBuf,
+    /// Arguments passed unchanged to the updated desktop (including backend URL).
+    #[clap(long)]
+    restart_arg: Vec<String>,
 }
 
-/// 检查文件是否被锁定，不存在的文件视为未锁定
-fn is_file_locked(filepath: &Path) -> bool {
-    if !filepath.exists() {
-        return false;
-    }
-
-    match File::options().read(true).write(true).open(filepath) {
-        Ok(_) => false,
-        Err(_) => true,
+fn log(dst: &Path, message: &str) {
+    eprintln!("{message}");
+    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(dst.join("update.log")) {
+        let _ = writeln!(file, "{message}");
     }
 }
 
-/// 将更新包路径转换为绝对路径，避免临时更新器继承不同工作目录后找不到文件
-fn resolve_update_file_path(src: &str, dst: &Path) -> PathBuf {
-    let src_path = PathBuf::from(src);
-    if src_path.is_absolute() {
-        src_path
-    } else {
-        dst.join(src_path)
-    }
+fn unique_name(prefix: &str) -> String {
+    let time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
+    format!("{prefix}-{}-{time}", std::process::id())
 }
 
-/// 判断子路径是否位于父路径内
-fn is_path_inside(child: &Path, parent: &Path) -> bool {
-    match (child.canonicalize(), parent.canonicalize()) {
-        (Ok(child), Ok(parent)) => child.starts_with(parent),
-        _ => false,
+fn command(executable: &Path) -> Command {
+    let mut command = Command::new(executable);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
+    command
 }
 
-/// 如果当前 updater.exe 位于安装目录中，则复制到临时目录并重新启动，避免覆盖自身失败
-fn relaunch_from_temp_if_needed(src: &Path, dst: &Path) -> Result<bool> {
-    let current_exe = env::current_exe().context("无法获取当前更新器路径")?;
-    if !is_path_inside(&current_exe, dst) {
+fn relaunch_from_temp(args: &Args) -> Result<bool> {
+    let current = env::current_exe()?.canonicalize()?;
+    if !current.starts_with(&args.dst) {
         return Ok(false);
     }
-
-    let temp_dir = env::temp_dir().join("AiNieeUpdater");
-    fs::create_dir_all(&temp_dir).context("无法创建临时更新器目录")?;
-
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
-    let temp_exe = temp_dir.join(format!("updater_{}_{}.exe", std::process::id(), timestamp));
-
-    fs::copy(&current_exe, &temp_exe).with_context(|| {
-        format!(
-            "无法复制更新器到临时目录: {:?} -> {:?}",
-            current_exe, temp_exe
-        )
-    })?;
-
-    info!("更新器位于安装目录内，切换到临时副本运行: {:?}", temp_exe);
-    Command::new(&temp_exe)
-        .arg(src)
-        .arg(dst)
-        .current_dir(dst)
-        .spawn()
-        .with_context(|| format!("无法启动临时更新器: {:?}", temp_exe))?;
-
+    let temp = env::temp_dir().join("AiNieeUpdater");
+    fs::create_dir_all(&temp)?;
+    let executable = temp.join(format!("{}.exe", unique_name("updater")));
+    fs::copy(current, &executable)?;
+    let mut child = command(&executable);
+    child.arg(&args.src).arg(&args.dst).current_dir(&args.dst);
+    for arg in &args.restart_arg {
+        child.arg(format!("--restart-arg={arg}"));
+    }
+    child.spawn().context("无法启动临时更新器")?;
     Ok(true)
 }
 
-/// 解压ZIP文件到指定目录
 fn extract_zip(src: &Path, dst: &Path) -> Result<()> {
-    let file = File::open(src).with_context(|| format!("无法打开源ZIP文件: {:?}", src))?;
-    let mut archive = ZipArchive::new(file).context("无法读取ZIP文件")?;
-
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let outpath = match file.enclosed_name() {
-            Some(path) => dst.join(path),
-            None => continue,
-        };
-
-        if file.name().ends_with('/') {
-            fs::create_dir_all(&outpath)?;
+    let mut archive = ZipArchive::new(File::open(src)?)?;
+    for index in 0..archive.len() {
+        let mut file = archive.by_index(index)?;
+        let name = file.name().replace('\\', "/");
+        if name.starts_with('/') || name.split('/').any(|part| part == ".." || part.contains(':')) {
+            bail!("更新包包含不安全路径: {name}");
+        }
+        if file.unix_mode().map(|mode| mode & 0o170000 == 0o120000).unwrap_or(false) {
+            bail!("更新包不能包含符号链接: {name}");
+        }
+        let output = dst.join(file.enclosed_name().context("更新包路径无效")?);
+        if file.is_dir() {
+            fs::create_dir_all(output)?;
         } else {
-            if let Some(p) = outpath.parent() {
-                if !p.exists() {
-                    fs::create_dir_all(p)?;
-                }
-            }
-            let mut outfile = File::create(&outpath)?;
-            io::copy(&mut file, &mut outfile)?;
+            fs::create_dir_all(output.parent().context("更新文件缺少父目录")?)?;
+            let mut target = OpenOptions::new().write(true).create_new(true).open(output)?;
+            io::copy(&mut file, &mut target).context("更新包损坏，解压校验失败")?;
         }
     }
-
     Ok(())
 }
 
-/// 带重试的文件复制，自动等待 Windows 短暂释放被占用文件
-fn copy_file_with_retry(src: &Path, dst: &Path) -> Result<()> {
-    for attempt in 1..=MAX_COPY_RETRIES {
-        match fs::copy(src, dst) {
-            Ok(_) => return Ok(()),
-            Err(err) if attempt < MAX_COPY_RETRIES => {
-                warn!(
-                    "复制文件失败，准备重试 ({}/{}): {:?} -> {:?}, 原因: {}",
-                    attempt, MAX_COPY_RETRIES, src, dst, err
-                );
+fn find_release(dir: &Path) -> Result<PathBuf> {
+    fn collect(dir: &Path, found: &mut Vec<PathBuf>) -> Result<()> {
+        if dir.join("AiNiee.exe").is_file() {
+            found.push(dir.to_path_buf());
+        }
+        for entry in fs::read_dir(dir)? {
+            let path = entry?.path();
+            if path.is_dir() {
+                collect(&path, found)?;
+            }
+        }
+        Ok(())
+    }
+    let mut found = Vec::new();
+    collect(dir, &mut found)?;
+    if found.len() != 1 {
+        bail!("更新包必须包含唯一的 AiNiee.exe");
+    }
+    let root = found.remove(0);
+    if !root.join("backend/AiNieeBackend.exe").is_file()
+        || !root.join("_internal").is_dir()
+        || !root.join("backend/_internal").is_dir()
+    {
+        bail!("更新包缺少配套前端或后端，拒绝安装不完整的发布包");
+    }
+    Ok(root)
+}
+
+fn protected(relative: &Path) -> bool {
+    let first = relative.components().next().unwrap().as_os_str().to_string_lossy().to_lowercase();
+    matches!(first.as_str(), "data" | "projectcache" | "logs" | "downloads" | "portable.txt" | "update.log")
+}
+
+fn release_files(root: &Path, relative: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
+    for entry in fs::read_dir(root.join(relative))? {
+        let path = relative.join(entry?.file_name());
+        if protected(&path) {
+            continue;
+        }
+        if root.join(&path).is_dir() {
+            release_files(root, &path, files)?;
+        } else {
+            files.push(path);
+        }
+    }
+    Ok(())
+}
+
+fn is_file_locked(path: &Path) -> bool {
+    path.exists() && OpenOptions::new().read(true).write(true).open(path).is_err()
+}
+
+fn wait_for_exit(dst: &Path, files: &[PathBuf], timeout: Duration) -> Result<()> {
+    let start = Instant::now();
+    loop {
+        let fixed = [PathBuf::from("AiNiee.exe"), PathBuf::from("backend/AiNieeBackend.exe")];
+        let locked = fixed.iter().chain(files).find(|file| is_file_locked(&dst.join(file)));
+        match locked {
+            None => return Ok(()),
+            Some(file) if start.elapsed() >= timeout => bail!("等待前后端退出超时，文件仍被占用: {}", file.display()),
+            Some(file) => {
+                if start.elapsed().as_secs() % 10 == 0 {
+                    log(dst, &format!("等待前后端退出并保存数据: {}", file.display()));
+                }
                 sleep(Duration::from_secs(1));
             }
-            Err(err) => {
-                return Err(anyhow!(
-                    "复制文件失败: {:?} -> {:?}, 原因: {}",
-                    src,
-                    dst,
-                    err
-                ));
-            }
         }
     }
-
-    unreachable!("复制重试循环应当在成功或最终失败时返回")
 }
 
-/// 复制文件夹内容到目标目录
-fn copy_directory(src: &Path, dst: &Path) -> Result<()> {
-    if !src.exists() {
-        return Err(anyhow!("源目录不存在: {:?}", src));
-    }
-
-    if !dst.exists() {
-        fs::create_dir_all(dst)?;
-    }
-
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
-        let path = entry.path();
-        let target = dst.join(path.file_name().unwrap());
-
-        if path.is_dir() {
-            copy_directory(&path, &target)?;
-        } else {
-            copy_file_with_retry(&path, &target)?;
+fn install_files(src: &Path, dst: &Path, backup: &Path, files: &[PathBuf]) -> Result<()> {
+    // Complete all backups before the first replacement.
+    for relative in files {
+        let target = dst.join(relative);
+        let mut ancestor = target.clone();
+        while ancestor != dst {
+            if let Ok(metadata) = fs::symlink_metadata(&ancestor) {
+                if metadata.file_type().is_symlink() {
+                    bail!("安装目录包含符号链接，拒绝覆盖: {}", ancestor.display());
+                }
+            }
+            if !ancestor.pop() {
+                bail!("安装路径不在目标目录内");
+            }
+        }
+        if target.exists() {
+            let saved = backup.join(relative);
+            fs::create_dir_all(saved.parent().unwrap())?;
+            fs::copy(target, saved).context("备份原文件失败")?;
         }
     }
-
+    let mut changed = Vec::new();
+    let result = (|| -> Result<()> {
+        for relative in files {
+            let target = dst.join(relative);
+            fs::create_dir_all(target.parent().unwrap())?;
+            changed.push(relative); // Include partially written files in rollback.
+            fs::copy(src.join(relative), target).with_context(|| format!("替换失败: {}", relative.display()))?;
+        }
+        Ok(())
+    })();
+    if let Err(error) = result {
+        let mut failures = Vec::new();
+        for relative in changed.into_iter().rev() {
+            let saved = backup.join(relative);
+            let target = dst.join(relative);
+            let restored = if saved.exists() {
+                fs::copy(saved, target).map(|_| ())
+            } else if target.exists() {
+                fs::remove_file(target)
+            } else {
+                Ok(())
+            };
+            if let Err(failure) = restored {
+                failures.push(format!("{}: {failure}", relative.display()));
+            }
+        }
+        if !failures.is_empty() {
+            bail!("{error:#}; 回滚未完成，原文件备份位于 {}: {}", backup.display(), failures.join(", "));
+        }
+        return Err(error.context("更新失败，已恢复原程序；更新包已保留"));
+    }
     Ok(())
 }
 
-/// 在解压目录中递归查找包含 AiNiee.exe 的目录
-fn find_ainiee_dir(dir: &Path) -> Option<PathBuf> {
-    // 检查当前目录是否直接包含 AiNiee.exe
-    if dir.join("AiNiee.exe").exists() {
-        return Some(dir.to_path_buf());
-    }
-
-    // 递归搜索子目录
-    if let Ok(entries) = fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                if let Some(found) = find_ainiee_dir(&path) {
-                    return Some(found);
-                }
-            }
+fn apply_update(args: &Args) -> Result<()> {
+    let staging = args.dst.join(unique_name(".ainiee-update"));
+    fs::create_dir(&staging)?;
+    let extracted = staging.join("package");
+    fs::create_dir(&extracted)?;
+    // Failures retain staging/backups for diagnosis and manual recovery.
+    extract_zip(&args.src, &extracted)?;
+    let root = find_release(&extracted)?;
+    let mut files = Vec::new();
+    release_files(&root, Path::new(""), &mut files)?;
+    wait_for_exit(&args.dst, &files, Duration::from_secs(MAX_WAIT_SECONDS))?;
+    install_files(&root, &args.dst, &staging.join("backup"), &files)?;
+    // Only remove our unique directory directly inside the verified install root.
+    let resolved = staging.canonicalize()?;
+    if resolved.parent() == Some(args.dst.as_path()) {
+        if let Err(error) = fs::remove_dir_all(&resolved) {
+            log(&args.dst, &format!("更新成功，临时目录清理失败: {error}"));
         }
     }
+    Ok(())
+}
 
-    None
+fn run(mut args: Args) -> Result<()> {
+    args.dst = args.dst.canonicalize().context("安装目录不存在")?;
+    if !args.src.is_absolute() {
+        args.src = args.dst.join(&args.src);
+    }
+    args.src = args.src.canonicalize().context("更新包不存在")?;
+    if !args.dst.join("AiNiee.exe").is_file() {
+        bail!("目标目录不是 AiNiee 安装目录");
+    }
+    if relaunch_from_temp(&args)? {
+        return Ok(());
+    }
+    log(&args.dst, "开始更新前端和后端");
+    if let Err(error) = apply_update(&args) {
+        log(&args.dst, &format!("更新失败，保留更新包，请查看此日志并重试: {error:#}"));
+        return Err(error);
+    }
+    log(&args.dst, "前端和后端更新成功，正在重新启动");
+    let mut restart = command(&args.dst.join("AiNiee.exe"));
+    restart.args(&args.restart_arg).current_dir(&args.dst).env("PYINSTALLER_RESET_ENVIRONMENT", "1");
+    for (name, _) in env::vars_os() {
+        if name.to_string_lossy().starts_with("_PYI_") {
+            restart.env_remove(name);
+        }
+    }
+    restart.spawn().context("文件更新成功，但重新启动失败，请手动启动 AiNiee.exe")?;
+    if let Err(error) = fs::remove_file(&args.src) {
+        log(&args.dst, &format!("无法清理已安装的更新包: {error}"));
+    }
+    Ok(())
 }
 
 fn main() -> Result<()> {
-    // 初始化日志
-    SimpleLogger::new().init().unwrap();
-
-    // 解析命令行参数
     let args = Args::parse();
-    let dst_path = PathBuf::from(args.dst);
-    let src_path = resolve_update_file_path(&args.src, &dst_path);
-
-    info!("");
-
-    // 先切换到临时副本运行，避免更新时覆盖正在运行的 updater.exe
-    if relaunch_from_temp_if_needed(&src_path, &dst_path)? {
-        info!("已启动临时更新器，当前安装目录内的更新器即将退出 …");
-        return Ok(());
+    let dst = args.dst.clone();
+    let result = run(args);
+    if let Err(error) = &result {
+        log(&dst, &format!("{error:#}"));
     }
+    result
+}
 
-    // 等待安装目录中的主程序退出，避免相对路径误判
-    let main_exe = dst_path.join("AiNiee.exe");
-    for i in 0..MAX_WAIT_SECONDS {
-        if !is_file_locked(&main_exe) {
-            break;
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        info!("准备中 {}", "…".repeat((i + 1) as usize));
-        info!("Preparing {}", "…".repeat((i + 1) as usize));
-        info!("");
-        sleep(Duration::from_secs(1));
-    }
-
-    // 执行更新
-    let result = (|| -> Result<()> {
-        if is_file_locked(&main_exe) {
-            return Err(anyhow!("主程序仍被占用，无法更新: {:?}", main_exe));
-        }
-
-        // 创建临时目录
-        let temp_dir = dst_path.join("temp_update");
-        if temp_dir.exists() {
-            fs::remove_dir_all(&temp_dir)?;
-        }
-        fs::create_dir_all(&temp_dir)?;
-
-        // 解压文件
-        extract_zip(&src_path, &temp_dir)?;
-
-        // 智能查找包含 AiNiee.exe 的实际内容目录
-        // 支持多种zip结构: dist/AiNiee/..., AiNiee/..., 直接文件等
-        let extracted_folder = find_ainiee_dir(&temp_dir)
-            .ok_or_else(|| anyhow!("解压后未找到包含 AiNiee.exe 的目录"))?;
-
-        info!("找到更新内容目录: {:?}", extracted_folder);
-        copy_directory(&extracted_folder, &dst_path)?;
-
-        fs::remove_dir_all(temp_dir)?;
-
+    #[test]
+    fn copy_failure_restores_both_components() -> Result<()> {
+        let root = env::temp_dir().join(unique_name("ainiee-rollback-test"));
+        let source = root.join("source");
+        let target = root.join("target");
+        fs::create_dir_all(source.join("backend"))?;
+        fs::create_dir_all(target.join("backend"))?;
+        fs::write(source.join("AiNiee.exe"), b"new frontend")?;
+        fs::write(target.join("AiNiee.exe"), b"old frontend")?;
+        fs::write(target.join("backend/AiNieeBackend.exe"), b"old backend")?;
+        let files = vec![PathBuf::from("AiNiee.exe"), PathBuf::from("backend/AiNieeBackend.exe")];
+        assert!(install_files(&source, &target, &root.join("backup"), &files).is_err());
+        assert_eq!(fs::read(target.join("AiNiee.exe"))?, b"old frontend");
+        assert_eq!(fs::read(target.join("backend/AiNieeBackend.exe"))?, b"old backend");
+        fs::remove_dir_all(root)?;
         Ok(())
-    })();
-
-    if let Err(e) = fs::remove_file(&src_path) {
-        error!("无法删除源文件: {:?}, 原因: {}", src_path, e);
     }
 
-    match result {
-        Ok(_) => {
-            info!("文件更新成功 …");
-            info!("File Update Success …");
-            info!("");
+    #[test]
+    fn release_does_not_replace_user_state() {
+        for path in ["Data/config.json", "ProjectCache/project.json", "Logs/test.log", "downloads/package.zip", "portable.txt"] {
+            assert!(protected(Path::new(path)));
         }
-        Err(e) => {
-            error!("文件更新失败 … {}", e);
-            error!("File Update Failure … {}", e);
-            info!("");
-        }
+        assert!(!protected(Path::new("backend/_internal/Backend/resources/default.json")));
     }
 
-    info!("10 秒后自动关闭本窗口 …");
-    info!("This window will automatically close in 10 seconds …");
-    sleep(Duration::from_secs(10));
-
-    Ok(())
+    #[test]
+    fn old_single_process_package_is_rejected() -> Result<()> {
+        let root = env::temp_dir().join(unique_name("ainiee-package-test"));
+        fs::create_dir(&root)?;
+        fs::write(root.join("AiNiee.exe"), b"old release")?;
+        assert!(find_release(&root).is_err());
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
 }

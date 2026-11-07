@@ -6,6 +6,10 @@
 
 更新时需要同时替换前端与后端并重启。首次连接和每次 WebSocket 重连都会通过 `/health` 校验协议版本；不兼容时显示桌面要求版本和后端实际版本，不接收旧协议的业务消息。重连仍会重试，后端更新到兼容版本后可恢复连接。
 
+Windows 自动安装仅支持打包版本，更新 ZIP 必须同时包含 `AiNiee.exe`、前端 `_internal`、`backend/AiNieeBackend.exe` 和后端 `_internal`。安装前保存界面设置并请求本机后端关闭；更新器等待前后端及待替换文件释放后备份并替换，复制失败时回滚，保留下载包和备份以便重试。成功后自动重启前端，保留后端连接地址，由前端按原流程连接或启动后端。远程后端不会因本机更新而关闭，需要单独更新到兼容版本。安装过程写入安装目录的 `update.log`，不会覆盖 `Data`、`ProjectCache`、`Logs`、`downloads` 或改变 `portable.txt`。macOS 仍通过打开 DMG 后手动替换应用完成安装；源码运行使用 Git 更新。更新检查只跟随正式版本，不安装 Beta 预发布包。
+
+Windows 打包还需 Rust/Cargo 和 MSVC 工具链；`Tools/pyinstall.py` 会先从 `Tools/rust_updater` 构建更新器，避免携带旧的 `updater.exe`。可单独运行 `python Tools/build_updater.py` 更新资源中的二进制。
+
 手动导出和翻译完成后的自动导出通过 `project.export.completed` 返回完整的文件清单和报告。桌面分别提示成功、部分失败或失败，并将完整报告和逐文件错误写入前端日志，保留错误码、源文件路径等诊断信息。停止任务且未执行导出时不发送导出完成通知。
 
 ## 目录结构

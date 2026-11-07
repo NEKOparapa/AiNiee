@@ -22,6 +22,8 @@ def main():
     import PyInstaller.__main__
     os.chdir(ROOT)
     sys.path.insert(0, str(ROOT))
+    from Tools.build_updater import build_updater
+    build_updater()
     PyInstaller.__main__.run(pyinstaller_command())
     from Tools.pyinstall_backend import build_backend
     build_backend(ROOT / "dist" / "AiNiee" / "backend")

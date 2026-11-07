@@ -1,5 +1,25 @@
 {
     "PART_1": {
+      "源码运行时请通过 Git 更新，自动安装仅支持打包版本": {
+        "简中": "源码运行时请通过 Git 更新，自动安装仅支持打包版本",
+        "繁中": "原始碼執行時請透過 Git 更新，自動安裝僅支援打包版本",
+        "English": "Use Git to update a source checkout. Automatic installation requires a packaged release."
+      },
+      "更新包续传范围无效，请重新下载": {
+        "简中": "更新包续传范围无效，请重新下载",
+        "繁中": "更新套件續傳範圍無效，請重新下載",
+        "English": "Invalid download resume range. Please download the update again."
+      },
+      "安装目录缺少 AiNiee.exe，请手动更新": {
+        "简中": "安装目录缺少 AiNiee.exe，请手动更新",
+        "繁中": "安裝目錄缺少 AiNiee.exe，請手動更新",
+        "English": "AiNiee.exe is missing from the installation directory. Please update manually."
+      },
+      "当前系统不支持自动安装，请手动更新": {
+        "简中": "当前系统不支持自动安装，请手动更新",
+        "繁中": "目前系統不支援自動安裝，請手動更新",
+        "English": "Automatic installation is unavailable on this system. Please update manually."
+      },
       "开始更新": {
         "简中": "开始更新",
         "繁中": "開始更新",
@@ -222,4 +242,3 @@
       }
     }
   }
-  
