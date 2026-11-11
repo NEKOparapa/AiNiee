@@ -35,7 +35,7 @@ def _not_ready(error):
 
 
 def connect_backend(url=None, *, startup_timeout=60, on_status=None):
-    url = url or os.environ.get("AINIEE_BACKEND_URL", "http://127.0.0.1:3389")
+    url = url or os.environ.get("AINIEE_BACKEND_URL", "http://127.0.0.1:33888")
     client = BackendClient(url, os.environ.get("AINIEE_API_TOKEN", ""))
     process = None
     deadline = time.monotonic() + startup_timeout

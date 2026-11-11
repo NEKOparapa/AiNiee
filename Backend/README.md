@@ -7,10 +7,10 @@ AiNiee 后端提供文档、图片、音频和视频处理接口，以及桌面�
 安装后端依赖后，在项目根目录启动：
 
 ```powershell
-python -m Backend --host 127.0.0.1 --port 3389
+python -m Backend --host 127.0.0.1 --port 33888
 ```
 
-- 默认地址：`http://127.0.0.1:3389`；完整字段、类型和默认值见运行后的 [交互文档](http://127.0.0.1:3389/docs) 与 [OpenAPI](http://127.0.0.1:3389/openapi.json)。
+- 默认地址：`http://127.0.0.1:33888`；完整字段、类型和默认值见运行后的 [交互文档](http://127.0.0.1:33888/docs) 与 [OpenAPI](http://127.0.0.1:33888/openapi.json)。
 - 请求体使用 JSON。设置 `AINIEE_API_TOKEN` 后，HTTP 和 WebSocket 请求须携带 `Authorization: Bearer <令牌>`；监听非本机地址必须设置令牌。
 - 所有输入、输出及导入导出路径均属于**后端所在机器**；路径参数不会上传客户端文件。
 - 文档、图片、音频、视频分别使用 `document`、`image`、`audio`、`video` 队列。同类任务串行，不同类可并行；后端使用单进程、单 worker。

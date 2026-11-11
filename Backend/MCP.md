@@ -4,7 +4,7 @@ AiNiee 在同一个后端提供 MCP 工具，可提交文档、图片、音频�
 
 ## 连接
 
-- 地址：`http://127.0.0.1:3389/mcp`，传输方式选择 **Streamable HTTP**。
+- 地址：`http://127.0.0.1:33888/mcp`，传输方式选择 **Streamable HTTP**。
 - 设置了 `AINIEE_API_TOKEN` 时，每个 HTTP 请求都须携带 `Authorization: Bearer <令牌>`，与 REST 共用令牌；本机未设置令牌时可不传。
 - 使用支持 MCP 的客户端完成初始化和协议协商，再通过 `tools/list` 获取工具定义。
 - 应用设置中的 MCP 开关对应布尔配置 `mcp_enable`，默认开启，保存后立即生效。关闭时 MCP 返回 HTTP 503、错误码 `MCP_DISABLED`；REST 仍可用，已提交任务继续执行。
@@ -93,10 +93,10 @@ $env:AINIEE_API_TOKEN = "替换成随机令牌"
 $env:AINIEE_MCP_ALLOWED_HOSTS = "translate.example.com"
 # 客户端发送 Origin 请求头时，加入该客户端的实际来源；未发送时无需设置。
 $env:AINIEE_MCP_ALLOWED_ORIGINS = "https://client.example.com"
-python -m Backend --host 0.0.0.0 --port 3389
+python -m Backend --host 0.0.0.0 --port 33888
 ```
 
-多个值用逗号分隔。Host 填具体主机名或 IP，可附端口，例如 `192.168.1.20:3389`；Origin 填 `http://` 或 `https://` 加主机及可选端口。可用 `:*` 匹配任意端口，不支持 `*` 或域名通配符，也不能带路径、查询参数或凭据。设置会追加到本机默认允许列表；未携带 Origin 的请求仍会检查 Host 和令牌。
+多个值用逗号分隔。Host 填具体主机名或 IP，可附端口，例如 `192.168.1.20:33888`；Origin 填 `http://` 或 `https://` 加主机及可选端口。可用 `:*` 匹配任意端口，不支持 `*` 或域名通配符，也不能带路径、查询参数或凭据。设置会追加到本机默认允许列表；未携带 Origin 的请求仍会检查 Host 和令牌。
 
 跨网络部署使用 HTTPS 反向代理，客户端连接如 `https://translate.example.com/mcp`。此服务面向可信环境，工具能够调用收费模型并访问后端文件，不提供多用户文件隔离。
 

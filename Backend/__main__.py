@@ -14,7 +14,7 @@ def main():
     logger.info("Starting AiNiee backend (PID %s), log file: %s", os.getpid(), log_path)
     parser = argparse.ArgumentParser(description="AiNiee FastAPI backend (single worker)")
     parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=3389)
+    parser.add_argument("--port", type=int, default=33888)
     args = parser.parse_args()
     if args.host not in ("127.0.0.1", "localhost", "::1") and not os.environ.get("AINIEE_API_TOKEN"):
         parser.error("监听非本机地址时，请设置 AINIEE_API_TOKEN")

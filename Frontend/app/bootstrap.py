@@ -121,7 +121,7 @@ def _setup_qt_high_dpi():
 def main(argv=None):
     import argparse
     parser = argparse.ArgumentParser(description="AiNiee desktop client")
-    parser.add_argument("--backend-url", default=os.environ.get("AINIEE_BACKEND_URL", "http://127.0.0.1:3389"), help="FastAPI 后端地址，本机未运行时自动启动（默认 http://127.0.0.1:3389）")
+    parser.add_argument("--backend-url", default=os.environ.get("AINIEE_BACKEND_URL", "http://127.0.0.1:33888"), help="FastAPI 后端地址，本机未运行时自动启动（默认 http://127.0.0.1:33888）")
     args = parser.parse_args(argv)
     _log_path = _install_log_system()
     display_banner()
