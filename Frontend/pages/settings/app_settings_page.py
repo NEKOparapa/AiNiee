@@ -1,7 +1,6 @@
 """Application preferences arranged in the same groups as task settings."""
 
 import os
-import sys
 
 from PyQt5.QtCore import QSignalBlocker, QTimer
 from PyQt5.QtGui import QColor
@@ -16,7 +15,6 @@ from Frontend.core.log import LogMixin
 from Frontend.core.log_system import redact
 from Frontend.pages.settings.grouped_settings_page import GroupedSettingsPage
 from Frontend.platform.file_dialogs import get_existing_directory, get_open_file_name
-from Frontend.platform.process import launch_desktop
 
 
 class AppSettingsPage(GroupedSettingsPage, LogMixin):
@@ -219,7 +217,7 @@ class AppSettingsPage(GroupedSettingsPage, LogMixin):
         dialog.cancelButton.setText(self.tra("取消"))
         accepted = dialog.exec()
         dialog.deleteLater()
-        if not accepted or not self.prepare_to_leave():
+        if not accepted or not self.prepare_to_leave() or not self._app_window.prepare_to_close_media():
             return
         try:
             self.import_config(path)
@@ -230,11 +228,8 @@ class AppSettingsPage(GroupedSettingsPage, LogMixin):
         self._save_timer.stop()
         self.editor.setEnabled(False)
         self.success_toast("", self.tra("配置文件导入成功,应用即将自动重启!"))
-        QTimer.singleShot(1000, self._restart_app)
-
-    def _restart_app(self):
-        launch_desktop()
-        sys.exit(0)
+        self._app_window.setEnabled(False)
+        QTimer.singleShot(1000, self._app_window.restart_desktop)
 
     def _choose_export(self):
         path = get_existing_directory(self, self.tra("选择文件夹"), "")

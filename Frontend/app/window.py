@@ -23,6 +23,7 @@ from Frontend.core.icons import TaskSettingsIcon
 from Frontend.core.resources import frontend_resource_path
 from Frontend.services.backend_client import BackendError
 from Frontend.platform.platform_paths import is_macos
+from Frontend.platform.process import RESTART_EXIT_CODE
 from Frontend.core.log import LogMixin
 from Frontend.app.navigation import BaseNavigationItem
 from Frontend.pages.workspace.edit_view_page import EditViewPage
@@ -138,10 +139,9 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
             return
         self._close_in_progress = True
         try:
-            for page in getattr(self, "media_pages", ()):
-                if not page.prepare_to_close():
-                    event.ignore()
-                    return
+            if not self.prepare_to_close_media():
+                event.ignore()
+                return
             info_cont = self.tra("确定退出程序并关闭后端服务？\n后端将停止正在执行的任务并保存缓存。")
             message_box = MessageBox("Warning", info_cont, self)
             message_box.yesButton.setText(self.tra("确认"))
@@ -165,18 +165,7 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
 
             # A native Alt+F4 may send a QCloseEvent without calling QWidget.close.
             # Commit shutdown once, including when another close event is queued.
-            self._shutdown_complete = True
-            for page in getattr(self, "media_pages", ()):
-                page.cleanup()
-            try:
-                # Local cleanup must run before quitting the Qt event loop.
-                EventManager.get_singleton().process_event(Base.EVENT.APP_SHUT_DOWN, {})
-            except Exception as error:
-                self.error("关闭前端组件时发生错误", error=error)
-            try:
-                self._stop_theme_listener()
-            except Exception as error:
-                self.error("停止系统主题监听时发生错误", error=error)
+            self._shutdown_desktop()
             self.info(self.tra("主窗口已关闭，稍后应用将自动退出") + " ... ")
             event.accept()
             self.hide()
@@ -185,6 +174,27 @@ class AppFluentWindow(FluentWindow, ConfigMixin, LogMixin, ToastMixin, Base):
                 QTimer.singleShot(0, application.quit)
         finally:
             self._close_in_progress = False
+
+    def prepare_to_close_media(self) -> bool:
+        return all(page.prepare_to_close() for page in getattr(self, "media_pages", ()))
+
+    def restart_desktop(self) -> None:
+        self._shutdown_desktop()
+        self.hide()
+        QApplication.exit(RESTART_EXIT_CODE)
+
+    def _shutdown_desktop(self) -> None:
+        self._shutdown_complete = True
+        for page in getattr(self, "media_pages", ()):
+            page.cleanup()
+        try:
+            EventManager.get_singleton().process_event(Base.EVENT.APP_SHUT_DOWN, {})
+        except Exception as error:
+            self.error("关闭前端组件时发生错误", error=error)
+        try:
+            self._stop_theme_listener()
+        except Exception as error:
+            self.error("停止系统主题监听时发生错误", error=error)
 
     def _stop_theme_listener(self) -> None:
         # deleteLater destroys the C++ object, not its Python attribute. Remove

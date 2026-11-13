@@ -6,6 +6,9 @@ import sys
 from Frontend.core.paths import executable_root, repo_root
 
 
+RESTART_EXIT_CODE = 42
+
+
 def desktop_command():
     arguments = sys.argv[1:]
     if getattr(sys, "frozen", False):
@@ -17,5 +20,6 @@ def launch_desktop():
     return subprocess.Popen(
         desktop_command(),
         cwd=str(executable_root()),
+        env={**os.environ, "PYINSTALLER_RESET_ENVIRONMENT": "1"} if getattr(sys, "frozen", False) else None,
         creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
     )

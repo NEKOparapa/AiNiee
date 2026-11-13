@@ -255,6 +255,16 @@
       "繁中": "設定檔匯入成功,應用即將自動重啟!",
       "English": "Profile imported.\nThe app will restart soon."
     },
+    "重启失败": {
+      "简中": "重启失败",
+      "繁中": "重新啟動失敗",
+      "English": "Restart failed"
+    },
+    "配置已导入，请手动重新打开 AiNiee。": {
+      "简中": "配置已导入，请手动重新打开 AiNiee。",
+      "繁中": "設定檔已匯入，請手動重新開啟 AiNiee。",
+      "English": "Profile imported. Please reopen AiNiee manually."
+    },
     "配置文件不存在!": {
       "简中": "配置文件不存在!",
       "繁中": "設定檔不存在!",

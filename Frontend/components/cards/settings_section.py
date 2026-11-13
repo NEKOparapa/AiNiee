@@ -1,10 +1,10 @@
 """Grouped settings fields shared by provider and task configuration pages."""
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel, CaptionLabel, CardWidget, FluentIcon, HorizontalSeparator,
-    IconWidget, SpinBox, StrongBodyLabel, SwitchButton, TransparentToolButton,
+    IconWidget, SpinBox, StrongBodyLabel, SwitchButton, TransparentPushButton,
 )
 
 from Frontend.core.config import ConfigMixin
@@ -13,44 +13,57 @@ from Frontend.core.config import ConfigMixin
 class SettingsSection(CardWidget, ConfigMixin):
     def __init__(self, title, icon, description="", parent=None, *, collapsible=False):
         super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 16, 20, 20)
-        layout.setSpacing(16)
-        header = QHBoxLayout()
+        layout = QGridLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        if collapsible:
+            self.expand_button = TransparentPushButton(self)
+            self.expand_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+            self.expand_button.setCursor(Qt.PointingHandCursor)
+            self.expand_button.setCheckable(True)
+            self.expand_button.setAccessibleName(self.tra(title))
+            self.expand_button.setToolTip(self.tra("展开参数"))
+            layout.addWidget(self.expand_button, 0, 0)
+
+        # The labels size the row; clicks pass through to the button underneath.
+        header_content = QWidget(self)
+        header_content.setAttribute(Qt.WA_TransparentForMouseEvents, collapsible)
+        layout.addWidget(header_content, 0, 0)
+        header = self.header_layout = QHBoxLayout(header_content)
+        header.setContentsMargins(20, 16, 20, 16)
         header.setSpacing(12)
-        icon_widget = IconWidget(icon, self)
+        icon_widget = IconWidget(icon, header_content)
         icon_widget.setFixedSize(24, 24)
         header.addWidget(icon_widget)
         heading = QVBoxLayout()
         heading.setSpacing(2)
-        heading.addWidget(StrongBodyLabel(self.tra(title), self))
+        heading.addWidget(StrongBodyLabel(self.tra(title), header_content))
         if description:
-            caption = CaptionLabel(self.tra(description), self)
+            caption = CaptionLabel(self.tra(description), header_content)
             caption.setTextColor("#686868", "#aaaaaa")
             caption.setWordWrap(True)
             heading.addWidget(caption)
         header.addLayout(heading, 1)
-        layout.addLayout(header)
+        if collapsible:
+            header.addStrut(32)
+            self.chevron = IconWidget(FluentIcon.CHEVRON_RIGHT_MED, header_content)
+            self.chevron.setFixedSize(16, 16)
+            header.addWidget(self.chevron)
+            header.addSpacing(8)
 
         self.body = QWidget(self)
         self.fields = QVBoxLayout(self.body)
-        self.fields.setContentsMargins(0, 0, 0, 0)
+        self.fields.setContentsMargins(20, 0, 20, 20)
         self.fields.setSpacing(12)
         self.fields.addWidget(HorizontalSeparator(self))
-        layout.addWidget(self.body)
+        layout.addWidget(self.body, 1, 0)
         if collapsible:
-            self.expand_button = TransparentToolButton(FluentIcon.CHEVRON_RIGHT_MED, self)
-            self.expand_button.setFixedSize(32, 32)
-            self.expand_button.setCheckable(True)
-            self.expand_button.setToolTip(self.tra("展开参数"))
-            self.expand_button.setAccessibleName(self.tra(title))
             self.expand_button.toggled.connect(self._set_expanded)
-            header.addWidget(self.expand_button)
             self.body.hide()
 
     def _set_expanded(self, expanded):
         self.body.setVisible(expanded)
-        self.expand_button.setIcon(FluentIcon.CHEVRON_DOWN_MED if expanded else FluentIcon.CHEVRON_RIGHT_MED)
+        self.chevron.setIcon(FluentIcon.CHEVRON_DOWN_MED if expanded else FluentIcon.CHEVRON_RIGHT_MED)
         self.expand_button.setToolTip(self.tra("收起参数") if expanded else self.tra("展开参数"))
 
     def add_field(self, label, widget, description="", *, multiline=False):

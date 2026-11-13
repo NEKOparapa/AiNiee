@@ -46,7 +46,8 @@ from Frontend.platform.platform_paths import (
     monospace_font_family,
 )
 from Frontend.platform.runtime_setup import prepare_working_directory
-from Frontend.platform.single_instance import acquire_app_mutex
+from Frontend.platform.process import RESTART_EXIT_CODE, launch_desktop
+from Frontend.platform.single_instance import acquire_app_mutex, release_app_mutex
 
 import multiprocessing
 import warnings
@@ -233,4 +234,18 @@ def _run_application(args, script_dir, splash):
     splash.close()
 
     # 进入事件循环，等待用户操作
-    return app.exec_()
+    exit_code = app.exec_()
+    if exit_code != RESTART_EXIT_CODE:
+        return exit_code
+
+    # Keep the service running. The replacement reconnects to the same backend.
+    backend_client.close()
+    try:
+        release_app_mutex()
+        launch_desktop()
+    except OSError as error:
+        _log.error("配置导入后无法自动重启桌面端", error=error)
+        QMessageBox.critical(None, app_fluent_window.tra("重启失败"),
+                             app_fluent_window.tra("配置已导入，请手动重新打开 AiNiee。"))
+        return 1
+    return 0

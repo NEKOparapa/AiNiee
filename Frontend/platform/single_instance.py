@@ -43,3 +43,16 @@ def acquire_app_mutex() -> bool:
     except Exception:
         _handle = None
         return True
+
+
+def release_app_mutex() -> None:
+    """Drop this desktop's handle before starting its replacement."""
+    global _handle
+    if _handle is None:
+        return
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    if not kernel32.CloseHandle(_handle):
+        raise ctypes.WinError(ctypes.get_last_error())
+    _handle = None

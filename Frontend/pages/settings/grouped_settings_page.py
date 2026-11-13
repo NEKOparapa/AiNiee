@@ -17,8 +17,8 @@ from Frontend.pages.settings.media_settings_page import MediaSettingsPage
 class CompactSettingsSection(SettingsSection):
     def __init__(self, title, icon, description, parent, *, expanded=True):
         super().__init__(title, icon, description, parent, collapsible=True)
-        self.layout().setContentsMargins(20, 14, 20, 16)
-        self.layout().setSpacing(14)
+        self.header_layout.setContentsMargins(20, 14, 20, 16)
+        self.fields.setContentsMargins(20, 0, 20, 16)
         self.fields.setSpacing(10)
         self.expand_button.setChecked(expanded)
 
