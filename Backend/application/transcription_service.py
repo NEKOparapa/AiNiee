@@ -13,16 +13,16 @@ from Backend.domain.models.intermediate import parse_model
 from Backend.infrastructure.files.pipeline_support import file_sha256
 from Backend.infrastructure.transcription.provider import SUPPORTED_FORMATS, request_transcription
 from Backend.infrastructure.transcription.volcengine import FAST_FORMATS, FAST_MAX_BYTES
-from Backend.infrastructure.transcription import minimax, openai
+from Backend.infrastructure.transcription import deepseek, minimax, openai
 
 
-def _audio_source(cache_file, reference=None, metadata=None):
+def _audio_source(cache_file, reference=None, metadata=None, *, allow_conversion=False):
     metadata = cache_file.media_metadata if metadata is None else metadata
     duration = metadata.get("duration_ms")
     if type(duration) is not int or duration <= 0:
         raise PipelineError("ASR_INVALID_AUDIO", "音频缺少有效时长，请重新读取文件", 400)
     audio_format = metadata.get("format")
-    if not isinstance(audio_format, str) or audio_format.lower() not in SUPPORTED_FORMATS:
+    if not isinstance(audio_format, str) or not audio_format or (not allow_conversion and audio_format.lower() not in SUPPORTED_FORMATS):
         raise PipelineError("ASR_INVALID_AUDIO", "音频格式不受当前转录接口支持", 400)
     sample_rate = metadata.get("sample_rate")
     if type(sample_rate) is not int or sample_rate <= 0:
@@ -202,11 +202,14 @@ def _transcribe_file(project, resolved, context, request_executor) -> dict:
                 if cache_file.media_type == "video":
                     artifact = prepare_video_audio(project.project_id, cache_file, context)
                     audio_reference, audio_metadata = artifact["source_ref"], artifact["media_metadata"]
-                path, audio_format, sample_rate, duration_ms = _audio_source(cache_file, audio_reference, audio_metadata)
+                deepseek_asr = resolved.api_format == "DeepSeek"
+                path, audio_format, sample_rate, duration_ms = _audio_source(
+                    cache_file, audio_reference, audio_metadata, allow_conversion=deepseek_asr)
                 if context.is_cancelled():
                     report["cancelled_files"] = len(audio_files) - ordinal
                     break
                 if (duration_ms > 300000
+                        or deepseek_asr and not deepseek.can_upload(audio_metadata, path.stat().st_size)
                         or resolved.api_format == "VolcengineASRFast" and
                         (audio_format not in FAST_FORMATS or path.stat().st_size > FAST_MAX_BYTES)
                         or resolved.api_format == "MiniMax" and

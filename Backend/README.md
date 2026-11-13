@@ -82,8 +82,9 @@ OpenAI 生图使用 `api_format: "OpenAI"`，默认模型 `gpt-image-2.5-sunburs
 | `POST /api/v2/write/subtitles` | `model`、`options.output_dir`；导出字幕，可设置 `format/mode/bilingual_order` |
 | `POST /api/v2/audio/translate` | `path`、`output.output_dir`；可选 `read_options/transcription/translation`，执行读取 → 转录 → 翻译 → 字幕导出 |
 
-转录支持 `DashScope`、`VolcengineASRFast` 和 `MiniMax`，音频与视频共用接口配置。MiniMax 使用模型 `asr-1.0` 和完整地址 `https://api.minimax.cn/v1/speech_to_text`，以 Bearer API Key 鉴权，通过 multipart 上传本地音频。REST/MCP 的转录配置可设置 `api_format: "MiniMax"`，也可只传已保存的 `provider_id`。
+转录支持 `DashScope`、`VolcengineASRFast`、`MiniMax`、`OpenAI` 和 `DeepSeek`，音频与视频共用接口配置。MiniMax 使用模型 `asr-1.0` 和完整地址 `https://api.minimax.cn/v1/speech_to_text`，以 Bearer API Key 鉴权，通过 multipart 上传本地音频。REST/MCP 的转录配置可设置 `api_format: "MiniMax"`，也可只传已保存的 `provider_id`。
 
+DeepSeek 使用 `api_format: "DeepSeek"` 和完整地址 `https://api.deepseek.com/v1/tools/asr`。请求只上传音频文件，无需指定模型。每次上传最多 120 秒、8 MiB。需要转换的音频会在本地转成单声道 PCM WAV，长音频按不重叠的片段上传。每段转录文本使用该片段在原音频中的起止时间。[DeepSeek 语音识别指南](https://api-docs.deepseek.com/zh-cn/guides/asr)
 
 OpenAI 转录使用 `api_format: "OpenAI"` 和 `POST /v1/audio/transcriptions`，同样接受基地址或完整端点。默认 `whisper-1` 请求非流式 `verbose_json` 和分句时间戳；`gpt-4o-transcribe-diarize` 使用 `diarized_json` 与 `chunking_strategy=auto`。程序不根据开关擅自更换模型。`gpt-transcribe`、`gpt-4o-transcribe`、`gpt-4o-mini-transcribe` 使用 `json`；若模型只返回文本，则按当前音频/切片整体时长保存并报告缺少逐句时间戳，不能视为精确字幕。`gpt-transcribe` 支持多个语言提示，其余模型显式指定时仅接受一种。单次上传不超过 25 MB，过大或格式不适合直接上传时复用本地 WAV 切片，并继续共用项目请求池、取消和检查点恢复。请求失败不会自动重发。官方已公告 `whisper-1` 及上述 GPT-4o 转录系列于 **2027-02-26** 停用；当前保留 Whisper 默认值是为了字幕时间戳，使用官方服务时需留意该日期。见 [OpenAI 转录文档](https://developers.openai.com/api/docs/guides/speech-to-text)。
 

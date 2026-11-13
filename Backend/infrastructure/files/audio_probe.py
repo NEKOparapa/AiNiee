@@ -58,10 +58,12 @@ def _wave_metadata(path):
     try:
         with wave.open(str(path), "rb") as stream:
             frames, rate, channels = stream.getnframes(), stream.getframerate(), stream.getnchannels()
+            pcm16 = stream.getsampwidth() == 2 and stream.getcomptype() == "NONE"
         if frames <= 0 or rate <= 0 or channels <= 0:
             raise ValueError("WAV 文件没有有效音频帧")
         return {"duration_ms": max(1, round(frames * 1000 / rate)), "sample_rate": rate,
-                "channels": channels, "format": "wav", "size_bytes": path.stat().st_size}
+                "channels": channels, "format": "wav", "size_bytes": path.stat().st_size,
+                **({"codec_name": "pcm_s16le"} if pcm16 else {})}
     except (OSError, EOFError, ValueError, wave.Error) as error:
         raise PipelineError("AUDIO_PROBE_FAILED", f"无法读取 WAV 音频元数据: {error}") from error
 
@@ -115,6 +117,8 @@ def probe_audio(path: Path) -> dict:
                     "channels": int(channels), "format": audio_format, "size_bytes": path.stat().st_size}
         if audio_format != raw_format:
             metadata["container_format"] = raw_format
+        if stream.get("codec_name"):
+            metadata["codec_name"] = stream["codec_name"]
         return metadata
     except PipelineError:
         raise

@@ -568,6 +568,28 @@
       "English": "Adjust long-audio chunk length. Set request concurrency in the transcription provider."
     }
   },
+  "DEEPSEEK_ASR": {
+    "DeepSeek · 自动识别语种，按音频片段返回文本": {
+      "简中": "DeepSeek · 自动识别语种，按音频片段返回文本",
+      "繁中": "DeepSeek · 自動辨識語種，按音訊片段傳回文字",
+      "English": "DeepSeek · Automatic language detection and per-clip transcripts"
+    },
+    "自动识别语种。每段最长 120 秒，字幕时间对应整个片段。": {
+      "简中": "自动识别语种。每段最长 120 秒，字幕时间对应整个片段。",
+      "繁中": "自動辨識語種。每段最長 120 秒，字幕時間對應整個片段。",
+      "English": "Language is detected automatically. Each subtitle spans its entire audio clip, up to 120 seconds."
+    },
+    "DeepSeek 接口地址必须以 /v1/tools/asr 结尾": {
+      "简中": "DeepSeek 接口地址必须以 /v1/tools/asr 结尾",
+      "繁中": "DeepSeek 介面位址必須以 /v1/tools/asr 結尾",
+      "English": "The DeepSeek URL must end with /v1/tools/asr"
+    },
+    "DeepSeek API Key 必须是不含空白的 ASCII 文本": {
+      "简中": "DeepSeek API Key 必须是不含空白的 ASCII 文本",
+      "繁中": "DeepSeek API Key 必須是不含空白的 ASCII 文字",
+      "English": "The DeepSeek API key must be printable ASCII text without spaces"
+    }
+  },
   "MINIMAX_ASR": {
     "MiniMax · 语音识别与逐句时间戳": {
       "简中": "MiniMax · 语音识别与逐句时间戳",

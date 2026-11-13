@@ -1,6 +1,6 @@
 """Dispatch the configured speech protocol without changing paid services."""
 from Backend.application.pipeline_common import PipelineError
-from Backend.infrastructure.transcription import dashscope, minimax, openai, volcengine
+from Backend.infrastructure.transcription import dashscope, deepseek, minimax, openai, volcengine
 
 
 SUPPORTED_FORMATS = dashscope.SUPPORTED_FORMATS | volcengine.FAST_FORMATS | minimax.SUPPORTED_FORMATS | openai.SUPPORTED_FORMATS
@@ -12,6 +12,8 @@ def request_transcription(audio_bytes, *, audio_format, sample_rate, duration_ms
                  "config": config, "context": context, "retry_context": retry_context}
     if config["api_format"] == "DashScope":
         return dashscope.request_transcription(audio_bytes, **arguments)
+    if config["api_format"] == "DeepSeek":
+        return deepseek.request_transcription(audio_bytes, **arguments)
     if config["api_format"] == "OpenAI":
         return openai.request_transcription(audio_bytes, **arguments)
     if config["api_format"] == "MiniMax":

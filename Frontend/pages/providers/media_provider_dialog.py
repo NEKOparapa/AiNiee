@@ -52,7 +52,7 @@ class MediaProviderForm(QWidget, ConfigMixin):
         self.resource_id_row = self._add_field("资源 ID", self.resource_id_edit)
         self.model_edit = LineEdit(self)
         self.model_edit.setPlaceholderText(self.tra("请输入模型名称或 Endpoint ID"))
-        self._add_field("模型名称", self.model_edit)
+        self.model_row = self._add_field("模型名称", self.model_edit)
         self.protocol_hint = CaptionLabel(self.tra("填写 Gemini API 基地址，模型名称单独填写。"), self)
         self.protocol_hint.setWordWrap(True)
         self.fields.addWidget(self.protocol_hint)
@@ -108,6 +108,8 @@ class MediaProviderForm(QWidget, ConfigMixin):
                                         else self.tra("请输入此接口的 API Key"))
         gemini = self.kind == "image_generation" and format_ == "Gemini"
         minimax = self.kind == "transcription" and format_ == "MiniMax"
+        deepseek = self.kind == "transcription" and format_ == "DeepSeek"
+        self.model_row.setVisible(not deepseek)
         self.protocol_hint.setVisible(gemini or minimax)
         self.protocol_hint.setText(self.tra("使用非流式识别获取逐句时间戳；长音频自动切片。" if minimax
                                            else "填写 Gemini API 基地址，模型名称单独填写。"))
@@ -115,7 +117,11 @@ class MediaProviderForm(QWidget, ConfigMixin):
                                         "https://api.minimax.cn/v1/speech_to_text" if minimax else "https://")
         self.model_edit.setPlaceholderText("gemini-3-pro-image" if gemini else "asr-1.0" if minimax
                                           else self.tra("请输入模型名称或 Endpoint ID"))
-        if format_ == "OpenAI":
+        if deepseek:
+            self.protocol_hint.show()
+            self.protocol_hint.setText(self.tra("自动识别语种。每段最长 120 秒，字幕时间对应整个片段。"))
+            self.url_edit.setPlaceholderText("https://api.deepseek.com/v1/tools/asr")
+        elif format_ == "OpenAI":
             transcription = self.kind == "transcription"
             self.protocol_hint.show()
             self.protocol_hint.setText(self.tra(
@@ -150,7 +156,7 @@ class MediaProviderForm(QWidget, ConfigMixin):
         values = {
             "name": self.name_edit.text(), "api_format": self.format_combo.currentText(),
             "api_url": self.url_edit.text(), "api_key": self.key_edit.text(),
-            "model": self.model_edit.text(),
+            "model": "" if self.format_combo.currentText() == "DeepSeek" else self.model_edit.text(),
         }
         if self.kind == "transcription" and values["api_format"] == "VolcengineASRFast":
             values.update(app_id=self.app_id_edit.text(), resource_id=self.resource_id_edit.text())

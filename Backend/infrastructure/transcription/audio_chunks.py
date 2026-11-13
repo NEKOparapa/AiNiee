@@ -147,8 +147,8 @@ def prepare_audio_chunks(path, *, chunk_duration_ms=240000, chunk_overlap_ms=200
     """
     if type(chunk_duration_ms) is not int or not 30_000 <= chunk_duration_ms <= 290_000:
         raise PipelineError("INVALID_CHUNK_CONFIG", "chunk_duration_ms 必须为 30000 至 290000 的整数", 422)
-    if type(chunk_overlap_ms) is not int or not 500 <= chunk_overlap_ms <= 5000:
-        raise PipelineError("INVALID_CHUNK_CONFIG", "chunk_overlap_ms 必须为 500 至 5000 的整数", 422)
+    if type(chunk_overlap_ms) is not int or (chunk_overlap_ms != 0 and not 500 <= chunk_overlap_ms <= 5000):
+        raise PipelineError("INVALID_CHUNK_CONFIG", "chunk_overlap_ms 必须为 0 或 500 至 5000 的整数", 422)
     if (isinstance(vad_threshold, bool) or not isinstance(vad_threshold, (int, float))
             or not math.isfinite(vad_threshold) or not 0 < vad_threshold < 1):
         raise PipelineError("INVALID_VAD_CONFIG", "vad_threshold 必须在 0 和 1 之间", 422)

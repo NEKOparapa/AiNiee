@@ -148,7 +148,17 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
         values.update(overrides)
         values["provider_id"] = provider_id
 
-    for key in ("api_url", "api_key", "model", "provider_id"):
+    formats = {name.lower(): name for name in ("DashScope", "VolcengineASRFast", "MiniMax", "OpenAI", "DeepSeek")}
+    api_format = values["api_format"]
+    if not isinstance(api_format, str) or api_format.lower() not in formats:
+        raise PipelineError("ASR_CONFIG_ERROR", "转录格式仅支持 " + "、".join(formats.values()), 400)
+    values["api_format"] = formats[api_format.lower()]
+    required = ["api_url", "api_key", "provider_id"]
+    if values["api_format"] == "DeepSeek":
+        values["model"] = ""  # The ASR tool has no model selector.
+    else:
+        required.append("model")
+    for key in required:
         if not isinstance(values[key], str) or not values[key].strip():
             messages = {"api_key": "请配置转录接口 API Key", "api_url": "转录接口地址不能为空",
                         "model": "转录模型不能为空", "provider_id": "转录接口标识不能为空"}
@@ -164,11 +174,12 @@ def resolve_transcription_config(config=None, *, kind="audio") -> TranscriptionC
         raise PipelineError("ASR_CONFIG_ERROR", "转录接口必须为不含凭证或查询参数的 HTTP(S) 地址", 400)
     if any(char in values["api_key"] for char in "\r\n"):
         raise PipelineError("ASR_CONFIG_ERROR", "转录接口 API Key 格式无效", 400)
-    formats = {"dashscope": "DashScope", "volcengineasrfast": "VolcengineASRFast", "minimax": "MiniMax", "openai": "OpenAI"}
-    api_format = values["api_format"]
-    if not isinstance(api_format, str) or api_format.lower() not in formats:
-        raise PipelineError("ASR_CONFIG_ERROR", "转录格式仅支持 DashScope、VolcengineASRFast、MiniMax 或 OpenAI", 400)
-    values["api_format"] = formats[api_format.lower()]
+    if values["api_format"] == "DeepSeek":
+        if not url.path.rstrip("/").endswith("/v1/tools/asr"):
+            raise PipelineError("ASR_CONFIG_ERROR", "DeepSeek 接口地址必须以 /v1/tools/asr 结尾", 400)
+        values["api_url"] = values["api_url"].rstrip("/")
+        if any(not 33 <= ord(char) <= 126 for char in values["api_key"]):
+            raise PipelineError("ASR_CONFIG_ERROR", "DeepSeek API Key 必须是不含空白的 ASCII 文本", 400)
     if values["api_format"] == "OpenAI":
         try:
             values["api_url"] = openai_media_endpoint(values["api_url"], "/audio/transcriptions")

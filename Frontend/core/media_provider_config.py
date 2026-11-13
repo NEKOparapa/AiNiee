@@ -19,7 +19,7 @@ SUPPORTED_LANGUAGE_HINTS = frozenset(
     "zh en ja ko vi th id ms tl hi ar fr de es pt ru it nl sv da fi no el pl cs hu ro bg hr sk".split()
 )
 PROVIDER_FORMATS = {
-    "transcription": ("OpenAI", "DashScope", "VolcengineASRFast", "MiniMax"),
+    "transcription": ("OpenAI", "DashScope", "VolcengineASRFast", "MiniMax", "DeepSeek"),
     "image_generation": ("OpenAI", "DashScope", "VolcengineArk", "Gemini"),
 }
 PROVIDER_DEFAULTS = {
@@ -50,6 +50,11 @@ def get_media_provider_presets(kind):
             "group": "online", "request_timeout": 300,
         }
         presets.update({
+            "deepseek_asr": {
+                "name": "DeepSeek", "api_format": "DeepSeek", "api_url": "https://api.deepseek.com/v1/tools/asr",
+                "api_key": "", "model": "", "group": "online", "icon": "deepseek",
+                "description": "DeepSeek · 自动识别语种，按音频片段返回文本",
+            },
             "minimax_asr": {
                 "name": "MiniMax", "api_format": "MiniMax",
                 "api_url": "https://api.minimax.cn/v1/speech_to_text",
@@ -105,6 +110,8 @@ def normalize_media_provider(kind, data=None):
         if not isinstance(result[key], str):
             raise ValueError("接口名称、格式、地址、密钥与模型必须是文本。")
         result[key] = result[key].strip()
+    if kind == "transcription" and result["api_format"] == "DeepSeek":
+        result["model"] = ""
     if kind == "transcription" and result["api_format"] == "VolcengineASRFast":
         result.setdefault("app_id", "")
         result.setdefault("resource_id", "volc.bigasr.auc_turbo")
@@ -121,7 +128,7 @@ def normalize_media_provider(kind, data=None):
             host = ""
         official = host.endswith(".aliyuncs.com") or host in (
             "openspeech.bytedance.com", "ark.cn-beijing.volces.com", "generativelanguage.googleapis.com",
-            "api.minimax.cn", "api.minimax.io",
+            "api.minimax.cn", "api.minimax.io", "api.deepseek.com",
             "api.openai.com",
         )
         result["group"] = "online" if official else "custom"
@@ -144,7 +151,7 @@ def validate_media_provider(kind, data, *, require_credentials=False):
         valid = False
     if not valid:
         raise ValueError("请输入不含账号、密码、查询参数或片段的 HTTP(S) 接口地址。")
-    if not result["model"]:
+    if result["api_format"] != "DeepSeek" and not result["model"]:
         raise ValueError("请输入模型名称。")
     if any(c in result["api_key"] for c in "\r\n\x00"):
         raise ValueError("接口密钥必须是单行文本。")
@@ -154,6 +161,11 @@ def validate_media_provider(kind, data, *, require_credentials=False):
         validate_gemini_connection(result["api_url"], result["model"], result["api_key"])
     if result["api_format"] == "OpenAI":
         validate_openai_connection(result["api_url"], result["api_key"], kind)
+    if result["api_format"] == "DeepSeek":
+        if not url.path.rstrip("/").endswith("/v1/tools/asr"):
+            raise ValueError("DeepSeek 接口地址必须以 /v1/tools/asr 结尾")
+        if any(not 33 <= ord(char) <= 126 for char in result["api_key"]):
+            raise ValueError("DeepSeek API Key 必须是不含空白的 ASCII 文本")
     if kind == "transcription" and result["api_format"] == "MiniMax":
         if not url.path.rstrip("/").endswith("/v1/speech_to_text"):
             raise ValueError("MiniMax 接口地址必须以 /v1/speech_to_text 结尾")

@@ -10,6 +10,7 @@ from Backend.application.pipeline_common import PipelineError
 from Backend.infrastructure.files.pipeline_support import file_sha256
 from Backend.infrastructure.transcription.audio_chunks import prepare_audio_chunks
 from Backend.infrastructure.transcription.chunk_merge import merge_chunk_results
+from Backend.infrastructure.transcription.deepseek import MAX_DURATION_MS as DEEPSEEK_MAX_DURATION_MS
 
 
 CHECKPOINT_KEY = "transcription_checkpoint"
@@ -81,8 +82,8 @@ def _checkpoint(cache_file, prepared, resolved):
         "language_hints": list(resolved.language_hints),
         "speaker_diarization_enabled": resolved.speaker_diarization_enabled,
         "keep_dialect": resolved.keep_dialect,
-        "chunk_duration_ms": round(resolved.chunk_duration_seconds * 1000),
-        "chunk_overlap_ms": round(resolved.chunk_overlap_seconds * 1000),
+        "chunk_duration_ms": prepared.report["chunk_duration_ms"],
+        "chunk_overlap_ms": prepared.report["chunk_overlap_ms"],
         "vad_threshold": resolved.vad_threshold,
         "duration_ms": prepared.duration_ms, "sample_rate": prepared.sample_rate,
     }
@@ -116,9 +117,14 @@ def transcribe_long_audio(cache_file, path, resolved, context, requester, *, aud
     audio_metadata = cache_file.media_metadata if audio_metadata is None else audio_metadata
     report = {"total": 0, "cached_chunks": 0, "succeeded": 0, "failed": 0, "cancelled_chunks": 0,
               "chunks": [], "errors": [], "warnings": [], "operation_errors": [], "usage": empty_usage()}
+    chunk_duration_ms = round(resolved.chunk_duration_seconds * 1000)
+    chunk_overlap_ms = round(resolved.chunk_overlap_seconds * 1000)
+    if resolved.api_format == "DeepSeek":
+        # There are no word timestamps to reconcile overlapping transcripts.
+        chunk_duration_ms = min(chunk_duration_ms, DEEPSEEK_MAX_DURATION_MS)
+        chunk_overlap_ms = 0
     with prepare_audio_chunks(
-        path, chunk_duration_ms=round(resolved.chunk_duration_seconds * 1000),
-        chunk_overlap_ms=round(resolved.chunk_overlap_seconds * 1000),
+        path, chunk_duration_ms=chunk_duration_ms, chunk_overlap_ms=chunk_overlap_ms,
         vad_threshold=resolved.vad_threshold, context=context,
     ) as prepared:
         if prepared.duration_ms != audio_metadata["duration_ms"]:
