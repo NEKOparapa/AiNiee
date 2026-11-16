@@ -89,15 +89,14 @@ def _source_path(cache_file, warnings):
 
 
 def _commit_output(temporary, destination, overwrite):
-    if overwrite:
-        os.replace(temporary, destination)
-    elif os.name == "nt":
-        # Windows rename is atomic and refuses an existing destination. It also
-        # works on removable drives/filesystems without hard-link support.
+    if os.name == "nt":
+        from Backend.infrastructure.files.windows_file_publish import publish_file
         try:
-            os.rename(temporary, destination)
+            publish_file(temporary, destination, overwrite)
         except FileExistsError as exc:
             raise PipelineError("OUTPUT_EXISTS", f"输出文件已存在: {destination}", 409) from exc
+    elif overwrite:
+        os.replace(temporary, destination)
     else:
         # A same-filesystem hard link publishes a complete file and never replaces
         # a destination created by another process between checking and publishing.
