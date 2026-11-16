@@ -4,7 +4,6 @@ import json
 import os
 from pathlib import Path
 import platform
-import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,17 +55,6 @@ def pyinstaller_media_args(arch=None):
             kind = "binary" if path.name in names else "data"
             result.append(f"--add-{kind}={path}{os.pathsep}media-tools")
     return result
-
-
-def check_release(destination):
-    executable = (destination / "Contents" / "MacOS" / "AiNieeBackend" if sys.platform == "darwin"
-                  else destination / "AiNieeBackend.exe")
-    # No local source tree, user configuration or service startup is needed.
-    from tempfile import TemporaryDirectory
-    with TemporaryDirectory(prefix="ainiee release check ") as working:
-        subprocess.run([str(executable.resolve()), "--check-media-tools"], cwd=working,
-                       env={**os.environ, "PATH": ""}, check=True, timeout=120,
-                       creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
 
 
 if __name__ == "__main__":

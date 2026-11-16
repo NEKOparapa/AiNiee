@@ -1,332 +1,156 @@
-import logging
+from asyncio import CancelledError
+from collections import defaultdict, deque
+from functools import cached_property
+import gc
 from importlib.metadata import version
-from contextlib import contextmanager
-from concurrent.futures import Executor, Future
-from concurrent.futures.thread import _WorkItem
+import json
 from pathlib import Path
+import re
+from tempfile import TemporaryDirectory
 
-from Backend.infrastructure.compat.babeldoc import ensure_optional_imports, ensure_pdf_runtime
-
-ensure_optional_imports()
-
-from babeldoc import progress_monitor
-from babeldoc.babeldoc_exception.BabelDOCException import ExtractTextError
-from babeldoc.docvision.doclayout import DocLayoutModel
-from babeldoc.docvision.table_detection.rapidocr import RapidOCRModel
-from babeldoc.format.pdf.document_il.midend import il_translator
-from babeldoc.format.pdf.high_level import TRANSLATE_STAGES, do_translate
-from babeldoc.format.pdf import high_level as pdf_high_level
-from babeldoc.format.pdf.translation_config import (
-    TranslateResult,
-    TranslationConfig,
-    WatermarkOutputMode
-)
-from babeldoc.main import create_parser
-from babeldoc.progress_monitor import ProgressMonitor
-from babeldoc.translator.translator import BaseTranslator
-from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
-    Progress,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn
-)
-
-from Backend.domain.models.cache_item import CacheItem
 from Backend.application.pipeline_common import PipelineError
+from Backend.domain.models.cache_item import CacheItem
+from Backend.infrastructure.compat.babeldoc import ensure_pdf_runtime, ensure_skimage
 from Backend.infrastructure.files.pipeline_support import file_sha256, source_sequence_digest
 from Backend.infrastructure.files.writers.base_writer import OutputConfig
 
+ensure_pdf_runtime()
+ensure_skimage()
 
-@contextmanager
-def _managed_documents():
-    """Close BabelDOC's metadata/working documents, including early-read exits.
-
-    The service already serializes PDF operations because BabelDOC adapters patch
-    its global executor/stage classes. Keep this additional patch equally scoped.
-    """
-    original = pdf_high_level.Document
-    documents = []
-    def open_document(*args, **kwargs):
-        document = original(*args, **kwargs)
-        documents.append(document)
-        return document
-    pdf_high_level.Document = open_document
-    try:
-        yield
-    finally:
-        pdf_high_level.Document = original
-        for document in reversed(documents):
-            if not document.is_closed:
-                document.close()
+from babeldoc.babeldoc_exception.BabelDOCException import ExtractTextError
+from babeldoc.docvision.base_doclayout import DocLayoutModel
+from babeldoc.format.pdf.high_level import do_translate, get_translation_stage
+from babeldoc.format.pdf.translation_config import TranslateResult, TranslationConfig
+from babeldoc.progress_monitor import ProgressMonitor
+from babeldoc.translator.translator import BaseTranslator
 
 
-class FinishReading(Exception):
-    @classmethod
-    def raise_after_call(cls, func):
-        def warpper(*args, **kwargs):
-            func(*args, **kwargs)
-            raise FinishReading
-        return warpper
+_PARSER_SETTINGS = {
+    "split_short_lines": False,
+    "short_line_split_factor": 0.8,
+    "disable_rich_text_translate": False,
+    "min_text_length": 5,
+    "formular_font_pattern": None,
+    "formular_char_pattern": None,
+}
 
 
-class IgnoreStyleNoneFilter(logging.Filter):
-    def filter(self, record):
-        return record.getMessage().startswith("Style is None")
+class _ReadComplete(CancelledError):
+    """Stop the native pipeline once its ordered paragraph record is on disk."""
 
 
-class IgnoreFinishReadingException(logging.Filter):
-    def filter(self, record):
-        if record.exc_info:
-            exc_type = record.exc_info[0]
-            return exc_type and issubclass(exc_type, FinishReading)
-        return False
+def _stop_before_typesetting(**event):
+    if event["type"] == "progress_start" and event["stage"] == "Typesetting":
+        raise _ReadComplete()
 
 
-# 屏蔽告警
-logging.getLogger("babeldoc.format.pdf.document_il.midend.typesetting").addFilter(IgnoreStyleNoneFilter())
-logging.getLogger("babeldoc.format.pdf.high_level").addFilter(IgnoreFinishReadingException())
+class _CacheTranslator(BaseTranslator):
+    def __init__(self, items: list[CacheItem] | None):
+        super().__init__("en", "zh", True)
+        self.reading = items is None
+        self.translations = defaultdict(deque)
+        for item in items or ():
+            self.translations[item.source_text].append(item.final_text)
 
+    def translate(self, text, **kwargs):
+        # The single Rust worker admits equal-priority requests FIFO. Distinct
+        # source texts can arrive out of order because priority uses token count.
+        if self.reading:
+            return text
+        return self.translations[text].popleft()
 
-class PdfSourceVisitor(BaseTranslator):
-    def __init__(self):
-        super().__init__('', '', True)
-        # do_translate本身是多线程操作，但是更换为单线程的线程池后没有线程安全问题
-        self.source_texts: list[str] = []
+    def do_translate(self, text, rate_limit_params=None):
+        return self.translate(text)
 
-    def translate(self, text, *args, **kwargs):
-        return self.do_translate(text)
-
-    def do_translate(self, text, rate_limit_params: dict = None):
-        self.source_texts.append(text)
-        return text
-
-    def do_llm_translate(self, text, rate_limit_params: dict = None):
+    def do_llm_translate(self, text, rate_limit_params=None):
         raise NotImplementedError
-
-
-class TranslatedItemsTranslator(BaseTranslator):
-    def __init__(self, items: list[CacheItem]):
-        super().__init__('', '', True)
-        self.items = items
-        self.position = 0
-
-    def translate(self, text, *args, **kwargs):
-        return self.do_translate(text)
-
-    def do_translate(self, text, rate_limit_params: dict = None):
-        if self.position >= len(self.items) or self.items[self.position].source_text != text:
-            raise PipelineError("PDF_MAPPING_MISMATCH", "PDF 原文或顺序与缓存不一致，请重新读取 PDF")
-        item = self.items[self.position]
-        self.position += 1
-        return item.final_text
-
-    def assert_complete(self):
-        if self.position != len(self.items):
-            raise PipelineError("PDF_MAPPING_MISMATCH", "PDF 未完整消费缓存条目，请重新读取 PDF")
-
-    def do_llm_translate(self, text, rate_limit_params: dict = None):
-        raise NotImplementedError
-
-
-class MainThreadExecutor(Executor):
-    def __init__(self, *args, **kwargs) -> None:
-        pass
-
-    def submit(self, fn, /, *args, **kwargs):
-        if "priority" in kwargs:
-            del kwargs["priority"]
-        f = Future()
-        _WorkItem(f, fn, args, kwargs).run()
-        return f
-
-    def shutdown(self, wait: bool = True, *, cancel_futures: bool = False) -> None:
-        pass
-
-
-class TranslationStage:
-    __init__ = progress_monitor.TranslationStage.__init__
-
-    def __enter__(self):
-        # 在read_content 和 write_content 中对pm附加的属性 pm.pbar_manager = Progress()
-        self.pbar = self.pm.pbar_manager.add_task(self.name, total=self.total)
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if hasattr(self, "pbar"):
-            with self.lock:
-                diff = self.total - self.current
-                self.pm.pbar_manager.update(self.pbar, advance=diff)
-
-    def advance(self, n: int = 1):
-        if hasattr(self, "pbar"):
-            with self.lock:
-                self.current += n
-                self.pm.pbar_manager.update(self.pbar, advance=n)
-
-    @classmethod
-    def create_progress(cls):
-        return Progress(
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-        )
 
 
 class BabeldocPdfAccessor:
-    def __init__(self, tmp_directory: Path, output_config: OutputConfig | None, parse_options=None) -> None:
-        ensure_pdf_runtime()
+    def __init__(self, tmp_directory: Path, output_config: OutputConfig | None, parse_options=None):
         self.tmp_directory = tmp_directory
         self.output_config = output_config
         self.parse_options = dict(parse_options or {})
-        self._result_cache: dict[(Path, int), TranslateResult] = {}
-        self._init_babeldoc_args()
+        self._result_cache: dict[tuple[str, str], TranslateResult] = {}
 
-    def _init_babeldoc_args(self):
-        parser = create_parser()
-        cmd_args = [
-            "--no-watermark", "--ignore-cache", "--skip-scanned-detection",
-            "--working-dir", str(self.tmp_directory / "babeldoc_working"),
-            "--output", str(self.tmp_directory),
-        ]
-        if self.output_config:
-            if not self.output_config.translated_config.enabled:
-                cmd_args.append("--no-mono")
-            if not self.output_config.bilingual_config.enabled:
-                cmd_args.append("--no-dual")
-            if self.output_config.language_config.target_lang_code:
-                cmd_args.extend(("--lang-out", self.output_config.language_config.target_lang_code))
-        if self.parse_options.get("pages"):
-            cmd_args.extend(("--pages", self.parse_options["pages"]))
-        self.babeldoc_args = parser.parse_args(cmd_args)
-        return self
+    @cached_property
+    def _layout_model(self):
+        return DocLayoutModel.load_onnx()
 
     def parse_metadata(self, texts):
-        settings = ("split_short_lines", "short_line_split_factor", "disable_rich_text_translate",
-                    "min_text_length", "formular_font_pattern", "formular_char_pattern", "translate_table_text")
         return {
             "babeldoc_version": version("babeldoc"),
-            "parse_options": {"pages": self.babeldoc_args.pages},
-            "parser_settings": {name: getattr(self.babeldoc_args, name) for name in settings},
+            "parse_options": {"pages": self.parse_options.get("pages")},
+            "parser_settings": {**_PARSER_SETTINGS, "translate_table_text": False},
             "source_sequence_sha256": source_sequence_digest(texts),
         }
 
-    _OldExecutor = il_translator.PriorityThreadPoolExecutor
-    _OldTranslationStage = progress_monitor.TranslationStage
+    def _run(self, source: Path, items: list[CacheItem] | None):
+        output = self.output_config
+        reading = items is None
+        with TemporaryDirectory(dir=self.tmp_directory) as work:
+            config = TranslationConfig(
+                translator=_CacheTranslator(items),
+                input_file=source,
+                lang_in="en",
+                lang_out=(output.language_config.target_lang_code if output else None) or "zh",
+                pages=self.parse_options.get("pages"),
+                doc_layout_model=self._layout_model,
+                working_dir=work,
+                output_dir=self.tmp_directory,
+                no_dual=reading or bool(output and not output.bilingual_config.enabled),
+                no_mono=reading or bool(output and not output.translated_config.enabled),
+                pool_max_workers=1,
+                skip_scanned_detection=True,
+                auto_extract_glossary=False,
+                save_auto_extracted_glossary=False,
+                **_PARSER_SETTINGS,
+            )
+            callback = _stop_before_typesetting if reading else None
+            result = None
+            try:
+                with ProgressMonitor(get_translation_stage(config), progress_change_callback=callback) as monitor:
+                    result = do_translate(monitor, config)
+            except _ReadComplete:
+                pass
+            except ExtractTextError as exc:
+                raise PipelineError("SCANNED_PDF_NOT_SUPPORTED", "PDF 不包含可复制文本，本轮不支持扫描件") from exc
+            finally:
+                # BabelDOC leaves PyMuPDF reference cycles after metadata/TOC
+                # processing. Release their file handles before cleaning up on Windows.
+                gc.collect()
+
+            # The native stage writes this in page/paragraph order, independent
+            # of the order in which it called the translator.
+            tracking = json.loads(config.get_working_file_path("translate_tracking.json").read_bytes())
+            paragraphs = [
+                paragraph for page in tracking["page"] for paragraph in page["paragraph"]
+                if paragraph["llm_translate_trackers"]
+            ]
+            return result, paragraphs
 
     def read_content(self, source_file_path: Path):
-        visitor = PdfSourceVisitor()
-        babeldoc_translation_config = self._create_babeldoc_translation_config(
-            self.babeldoc_args, str(source_file_path), visitor
-        )
-
-        old_il_translate = il_translator.ILTranslator.translate
-        old_il_stage_name = il_translator.ILTranslator.stage_name
-        new_il_stage_name = "Read Paragraphs"
-
-        try:
-            progress_monitor.TranslationStage = TranslationStage
-            il_translator.ILTranslator.stage_name = new_il_stage_name
-            il_translator.PriorityThreadPoolExecutor = MainThreadExecutor
-
-            # 提取完原文就可以终止了，不需要后面的写入
-            new_il_translate = FinishReading.raise_after_call(old_il_translate)
-            il_translator.ILTranslator.translate = new_il_translate
-
-            new_stages = [
-                (new_il_stage_name, *stage[1:]) if stage[0] == old_il_stage_name else stage
-                for stage in TRANSLATE_STAGES
-            ]
-            with _managed_documents(), ProgressMonitor(new_stages) as pm, TranslationStage.create_progress() as pbar_manager:
-                pm.pbar_manager = pbar_manager
-                do_translate(pm, babeldoc_translation_config)
-        except ExtractTextError as exc:
-            raise PipelineError("SCANNED_PDF_NOT_SUPPORTED", "PDF 不包含可复制文本，本轮不支持扫描件") from exc
-        except FinishReading:
-            pass
-        finally:
-            il_translator.ILTranslator.translate = old_il_translate
-            il_translator.PriorityThreadPoolExecutor = self._OldExecutor
-            il_translator.ILTranslator.stage_name = old_il_stage_name
-            progress_monitor.TranslationStage = self._OldTranslationStage
-        if not visitor.source_texts:
+        _, paragraphs = self._run(source_file_path, None)
+        if not paragraphs:
             raise PipelineError("NO_TRANSLATABLE_TEXT", "PDF 没有可翻译的文本")
-        return visitor.source_texts
+        return [paragraph["input"] for paragraph in paragraphs]
 
     def write_content(self, source_file_path: Path, items: list[CacheItem], metadata=None):
-        # Babeldoc会同时输出译文和双语文件，为了性能考虑不修改config写两次，而选择一次性输出译文和双语文件，同时缓存输出文件路径
-        # lru_cache不接受list，这里手写，简单认为items数组的id代表数组
-        metadata = metadata or {}
-        current_metadata = self.parse_metadata(item.source_text for item in items)
-        for key in ("babeldoc_version", "parse_options", "parser_settings", "source_sequence_sha256"):
-            if metadata.get(key) != current_metadata[key]:
-                raise PipelineError("PDF_MAPPING_MISMATCH", "PDF 解析版本、参数或原文已变化，请重新读取 PDF")
+        current = self.parse_metadata(item.source_text for item in items)
+        if any((metadata or {}).get(key) != value for key, value in current.items()):
+            raise PipelineError("PDF_MAPPING_MISMATCH", "PDF 解析版本、参数或原文已变化，请重新读取 PDF")
         cache_id = (file_sha256(source_file_path), source_sequence_digest(
             value for item in items for value in (item.source_text, item.final_text)))
-        result = self._result_cache.get(cache_id)
-        if result is not None:
-            return result
+        if cache_id in self._result_cache:
+            return self._result_cache[cache_id]
 
-        extracted = self.read_content(source_file_path)
-        if source_sequence_digest(extracted) != current_metadata["source_sequence_sha256"]:
-            raise PipelineError("PDF_MAPPING_MISMATCH", "PDF 原文定位与缓存不一致，请重新读取 PDF")
-        translator = TranslatedItemsTranslator(items)
-        babeldoc_translation_config = self._create_babeldoc_translation_config(
-            self.babeldoc_args, str(source_file_path), translator
-        )
-        try:
-            progress_monitor.TranslationStage = TranslationStage
-            il_translator.PriorityThreadPoolExecutor = MainThreadExecutor
-
-            with _managed_documents(), ProgressMonitor(TRANSLATE_STAGES) as pm, TranslationStage.create_progress() as pbar_manager:
-                pm.pbar_manager = pbar_manager
-                result = do_translate(pm, babeldoc_translation_config)
-            translator.assert_complete()
-        except ExtractTextError as exc:
-            raise PipelineError("SCANNED_PDF_NOT_SUPPORTED", "PDF 不包含可复制文本，本轮不支持扫描件") from exc
-        finally:
-            il_translator.PriorityThreadPoolExecutor = self._OldExecutor
-            progress_monitor.TranslationStage = self._OldTranslationStage
-
-        self._result_cache.clear()
-        self._result_cache[cache_id] = result
+        self._result_cache.clear()  # BabelDOC reuses output names on the next run.
+        result, paragraphs = self._run(source_file_path, items)
+        # BabelDOC collapses long punctuation runs before recording its output.
+        if len(paragraphs) != len(items) or any(
+            paragraph["input"] != item.source_text or paragraph["output"] != re.sub(r"[. 。…，]{20,}", ".", item.final_text)
+            for paragraph, item in zip(paragraphs, items)
+        ):
+            raise PipelineError("PDF_MAPPING_MISMATCH", "PDF 段落与缓存译文不匹配，请重新读取 PDF")
+        self._result_cache = {cache_id: result}
         return result
-
-    @classmethod
-    def _create_babeldoc_translation_config(cls, args, file, translator):
-        table_model = RapidOCRModel() if args.translate_table_text else None
-        return TranslationConfig(
-            input_file=file,
-            font=None,
-            pages=args.pages,
-            output_dir=args.output,
-            translator=translator,
-            debug=args.debug,
-            lang_in=args.lang_in,
-            lang_out=args.lang_out,
-            no_dual=args.no_dual,
-            no_mono=args.no_mono,
-            qps=args.qps,
-            formular_font_pattern=args.formular_font_pattern,
-            formular_char_pattern=args.formular_char_pattern,
-            split_short_lines=args.split_short_lines,
-            short_line_split_factor=args.short_line_split_factor,
-            doc_layout_model=DocLayoutModel.load_onnx(),
-            skip_clean=args.skip_clean,
-            dual_translate_first=args.dual_translate_first,
-            disable_rich_text_translate=args.disable_rich_text_translate,
-            enhance_compatibility=args.enhance_compatibility,
-            use_alternating_pages_dual=args.use_alternating_pages_dual,
-            report_interval=args.report_interval,
-            min_text_length=args.min_text_length,
-            watermark_output_mode=WatermarkOutputMode.NoWatermark,
-            split_strategy=None,  # 源码中对应args.max_pages_per_part，这里不要
-            table_model=table_model,
-            show_char_box=args.show_char_box,
-            skip_scanned_detection=args.skip_scanned_detection,
-            ocr_workaround=args.ocr_workaround,
-            custom_system_prompt=None,
-        )

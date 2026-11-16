@@ -4,7 +4,6 @@ from tempfile import TemporaryDirectory
 
 from Backend.domain.models.cache_file import CacheFile
 from Backend.domain.models.cache_project import ProjectType
-from Backend.infrastructure.files.accessors.babeldoc_pdf_accessor import BabeldocPdfAccessor
 from Backend.infrastructure.files.writers.base_writer import (
     BaseBilingualWriter,
     BaseTranslatedWriter,
@@ -51,6 +50,8 @@ class BabeldocPdfWriter(BaseBilingualWriter, BaseTranslatedWriter):
     ):
         metadata = cache_file.extra.get("pdf", {})
         if self.file_accessor is None or self.file_accessor.parse_options != metadata.get("parse_options", {}):
+            from Backend.infrastructure.files.accessors.babeldoc_pdf_accessor import BabeldocPdfAccessor
+
             self.file_accessor = BabeldocPdfAccessor(self.abs_tmp_directory, self.output_config, metadata.get("parse_options", {}))
         result = self.file_accessor.write_content(source_file_path, cache_file.items, metadata)
         babeldoc_path_str = getattr(result, babeldoc_output_attr)

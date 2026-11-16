@@ -25,9 +25,8 @@ def main():
     from Tools.build_updater import build_updater
     build_updater()
     PyInstaller.__main__.run(pyinstaller_command())
-    from Tools.pyinstall_backend import build_backend
+    from Tools.pyinstall_backend import build_backend, check_release
     build_backend(ROOT / "dist" / "AiNiee" / "backend")
-    from Tools.ffmpeg_bundle import check_release
     check_release(ROOT / "dist" / "AiNiee" / "backend")
 
 

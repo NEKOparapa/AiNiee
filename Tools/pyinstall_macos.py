@@ -173,11 +173,10 @@ def main() -> None:
     sys.path.insert(0, str(ROOT))
     icon_path = build_icns()
     PyInstaller.__main__.run(pyinstaller_command(icon_path, args.target_arch))
-    from Tools.pyinstall_backend import build_backend
+    from Tools.pyinstall_backend import build_backend, check_release
     build_backend(ROOT / "dist" / f"{APP_NAME}.app" / "Contents" / "Helpers" / "AiNieeBackend.app", target_arch(args.target_arch))
     patch_info_plist()
     sign_app_bundle()
-    from Tools.ffmpeg_bundle import check_release
     check_release(ROOT / "dist" / f"{APP_NAME}.app" / "Contents" / "Helpers" / "AiNieeBackend.app")
 
 

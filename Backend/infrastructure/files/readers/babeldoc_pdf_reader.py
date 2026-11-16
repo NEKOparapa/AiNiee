@@ -24,8 +24,6 @@ class BabeldocPdfReader(BaseSourceReader):
 
     def _ensure_accessor(self):
         if self.file_accessor is None:
-            from Backend.infrastructure.compat.babeldoc import ensure_pdf_runtime
-            ensure_pdf_runtime()
             # AutoType constructs every reader; load PDF dependencies only when used.
             from Backend.infrastructure.files.accessors.babeldoc_pdf_accessor import BabeldocPdfAccessor
 

@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,10 +24,10 @@ def pyinstaller_command(arch=None):
         "--copy-metadata=pymupdf",
         "--copy-metadata=mcp", "--copy-metadata=mcp-types",
     ]
-    for package in ("babeldoc", "mediapipe", "chardet", "sklearn", "rich", "bitstring", "magika"):
+    for package in ("babeldoc", "mediapipe", "chardet", "sklearn", "rich", "magika"):
         command.append(f"--collect-all={package}")
     for package in ("Frontend", "PyQt5", "PyQt6", "PySide2", "PySide6", "tkinter",
-                    "IPython", "pytest", "jax", "jaxlib", "torch", "tensorflow", "skimage", "hyperscan"):
+                    "IPython", "pytest", "jax", "jaxlib", "torch", "tensorflow", "skimage"):
         command.append(f"--exclude-module={package}")
     if arch:
         command.append(f"--target-arch={arch}")
@@ -44,6 +45,16 @@ def build_backend(destination, arch=None):
     # Let PyInstaller's BUNDLE arrange Frameworks/Resources and their symlinks.
     name = "AiNieeBackend.app" if sys.platform == "darwin" else "AiNieeBackend"
     shutil.copytree(ROOT / "build" / "backend-dist" / name, destination, symlinks=True)
+
+
+def check_release(destination):
+    executable = (destination / "Contents" / "MacOS" / "AiNieeBackend" if sys.platform == "darwin"
+                  else destination / "AiNieeBackend.exe")
+    with TemporaryDirectory(prefix="ainiee release check ") as working:
+        for check in ("--check-media-tools", "--check-pdf-runtime"):
+            subprocess.run([str(executable.resolve()), check], cwd=working,
+                           env={**os.environ, "PATH": ""}, check=True, timeout=120,
+                           creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
 
 
 if __name__ == "__main__":

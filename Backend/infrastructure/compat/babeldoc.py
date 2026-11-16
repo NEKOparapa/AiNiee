@@ -14,7 +14,7 @@ def ensure_pdf_runtime():
     try:
         installed = version("pymupdf")
     except PackageNotFoundError as error:
-        raise PipelineError("CAPABILITY_UNAVAILABLE", "PDF 读取需要安装 pymupdf==1.26.7", 503) from error
+        raise PipelineError("CAPABILITY_UNAVAILABLE", f"PDF 读取需要安装 pymupdf=={required}", 503) from error
     if installed != required:
         raise PipelineError(
             "PDF_DEPENDENCY_INCOMPATIBLE",
@@ -34,16 +34,3 @@ def ensure_skimage():
 
     sys.modules["skimage"] = skimage
     sys.modules["skimage.metrics"] = metrics
-
-
-def ensure_hyperscan():
-    if "hyperscan" in sys.modules or importlib.util.find_spec("hyperscan") is not None:
-        return
-    from Backend.infrastructure.compat import hyperscan
-
-    sys.modules["hyperscan"] = hyperscan
-
-
-def ensure_optional_imports():
-    ensure_skimage()
-    ensure_hyperscan()

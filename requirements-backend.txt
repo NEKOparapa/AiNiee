@@ -43,22 +43,20 @@ matplotlib
 sounddevice>=0.4.4
 
 # BabelDOC
-# onnx 新版本打包后不能运行，这里使用 onnx==1.16.1 onnxruntime==1.20.1
 # PDF layout processing still requires OpenCV; image translation uses cloud generation.
 opencv-python>=4.10
-# 不使用 babeldoc.document_il.midend.detect_scanned_file.DetectScannedFile 所以去除 scikit-image>=0.25.2
-# BabelDOC 0.6.x imports BitStream, which was removed in bitstring 5.0.
-bitstring>=4.3.0,<5
+# BabelDOC's spawned PDF writer imports the glossary module during startup.
+hyperscan>=0.7.13
 configargparse>=1.7
 httpx[socks]>=0.27.0
 huggingface-hub>=0.27.0
 numpy>=2.0.2
-onnx==1.16.1
+onnx==1.21.0
 onnxruntime==1.20.1
 openai>=1.59.3
 orjson>=3.10.14
 charset-normalizer>=2.0.0
-cryptography>=36.0.0
+cryptography>=46.0.7
 peewee>=3.17.8
 psutil>=7.0.0
 # Keep in sync with the PDF runtime check; 1.28.0 can abort on page rendering.
@@ -73,7 +71,8 @@ tenacity>=9.0.0
 freetype-py>=2.5.1
 tiktoken>=0.9.0
 levenshtein>=0.27.1
-pyzstd
-rtree
+pyzstd>=0.17.0
+rtree>=1.4.0
+scipy>=1.15.3
 uharfbuzz>=0.50.2
 scikit-learn>=1.7.1
