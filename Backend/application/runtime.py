@@ -297,13 +297,14 @@ class Runtime(ConfigStore):
             return self.snapshot()
         return self.run_job("read", load, source="desktop")
 
-    def cache_call(self, method, args, kwargs, project_id=None):
+    def cache_call(self, method, args, kwargs, project_id=None, include_project=True):
         if method not in self.CACHE_METHODS:
             raise ValueError("不支持的缓存操作")
         args, kwargs = copy.deepcopy(args), copy.deepcopy(kwargs)
         if method == "search_items":
             import inspect
             kwargs["expected_project_id"] = project_id
+            kwargs["include_project"] = include_project
             try:
                 inspect.signature(self.cache.search_items_snapshot).bind(*args, **kwargs)
             except TypeError as error:
@@ -336,9 +337,12 @@ class Runtime(ConfigStore):
                 with self.cache.file_lock:
                     if self.cache.project and self.cache.project.project_id == identifier:
                         self.cache.project = None
-            if method in ("update_item_text", "update_generated_translation", "set_analysis_data", "clear_analysis_data"):
+            if method in ("update_item_text", "update_generated_translation"):
                 self.cache.save_to_file()
-            return {"result": to_wire(result), "project": self.snapshot()}
+            response = {"result": to_wire(result)}
+            if include_project:
+                response["project"] = self.snapshot()
+            return response
         if method == "list_project_histories":
             return call()
         return self.run_job(f"cache/{method}", call, source="desktop", project_id=project_id)
@@ -417,7 +421,6 @@ class Runtime(ConfigStore):
             result = self.executor.analyze(context=context)
             if result.get("analysis_data") is not None:
                 self.cache.set_analysis_data(result["analysis_data"])
-                self.cache.save_to_file()
             return result
         return self._submit("analysis", action)
 

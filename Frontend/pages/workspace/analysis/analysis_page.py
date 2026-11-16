@@ -1,5 +1,6 @@
 from typing import Any
 from pathlib import Path
+from uuid import uuid4
 import rapidjson as json
 
 from PyQt5.QtCore import QIODevice, QPoint, QSaveFile, Qt, QTimer
@@ -157,7 +158,6 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self._updating_ui = False
         self._splitter_ratio_initialized = False
         self._table_width_ratio_initialized = set()
-        self._temp_row_counter = 0
         self._sort_states = {}
         self.analysis_runtime_state = self._create_default_runtime_state()
 
@@ -1082,18 +1082,19 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         table.blockSignals(True)
         table.setRowCount(len(rows))
         for row_index, row in enumerate(rows):
-            row_key = self._get_row_key(view_name, row)
-            for col_index, (field_name, editable) in enumerate(field_specs):
-                value = row.get(field_name, "")
-                display_value = self._get_display_field_value(view_name, field_name, value, row)
-                item = QTableWidgetItem(display_value)
-                item.setData(Qt.UserRole, row_key)
-                if not editable:
-                    item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                table.setItem(row_index, col_index, item)
+            self._fill_row(table, row_index, row, field_specs, view_name)
         table.resizeRowsToContents()
         table.blockSignals(False)
         self._apply_sort_indicator(view_name)
+
+    def _fill_row(self, table, row_index, row, field_specs, view_name):
+        row_key = self._get_row_key(view_name, row)
+        for column, (field, editable) in enumerate(field_specs):
+            item = QTableWidgetItem(self._get_display_field_value(view_name, field, row.get(field, ""), row))
+            item.setData(Qt.UserRole, row_key)
+            if not editable:
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            table.setItem(row_index, column, item)
 
     def _apply_sort_indicator(self, view_name: str) -> None:
         table = self._get_table_for_view(view_name)
@@ -1344,7 +1345,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         new_value = item.text().strip()
         display_value = new_value
         refresh_navigation = self._field_affects_category_grouping(view_name, field_name)
-        refresh_view = refresh_navigation
+        refresh_view = refresh_navigation or self._get_sort_state(view_name)["column"] == item.column()
         if view_name == self.VIEW_CHARACTERS and field_name == "gender":
             new_value = self._get_character_category_value(new_value, fallback=self.CHARACTER_OTHER)
             display_value = self._get_display_field_value(view_name, field_name, new_value, target_row)
@@ -1378,7 +1379,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
             self._updating_ui = False
 
         target_row[field_name] = new_value
-        self._persist_analysis_state(refresh_navigation=refresh_navigation)
+        if not self._persist_analysis_state(refresh_navigation=refresh_navigation):
+            return
         if refresh_view:
             if view_name == self.VIEW_CHARACTERS:
                 self._populate_characters_table()
@@ -1399,12 +1401,26 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         rows = self.analysis_data.setdefault(key, [])
         insert_index = self._get_insert_row_index(view_name, table)
         new_row = self._create_empty_row(view_name)
-        new_row["_row_key"] = self._create_temp_row_key()
+        new_row["_row_key"] = f"__analysis_temp_row__{uuid4().hex}"
         rows.insert(insert_index, new_row)
 
-        self._persist_analysis_state(refresh_navigation=True)
-        self._refresh_all_views()
-        self._focus_row_by_key(view_name, new_row["_row_key"])
+        if not self._persist_analysis_state(refresh_navigation=True):
+            return
+        for index, row in enumerate(self._get_visible_rows(view_name)):
+            if row is new_row:
+                blocked = table.blockSignals(True)
+                try:
+                    table.insertRow(index)
+                    self._fill_row(table, index, row, self._get_table_field_specs(view_name), view_name)
+                    table.resizeRowToContents(index)
+                finally:
+                    table.blockSignals(blocked)
+                table.setCurrentCell(index, 0)
+                table.selectRow(index)
+                item = table.item(index, 0)
+                table.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
+                table.editItem(item)
+                break
         self.success_toast(self.tra("完成"), self.tra("新行已插入。"))
 
     def _create_empty_row(self, view_name: str) -> dict:
@@ -1450,30 +1466,6 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
                 return index + 1
 
         return len(rows)
-
-    def _create_temp_row_key(self) -> str:
-        self._temp_row_counter += 1
-        return f"__analysis_temp_row__{self._temp_row_counter}"
-
-    def _focus_row_by_key(self, view_name: str, row_key: str) -> None:
-        table = self._get_table_for_view(view_name)
-        normalized_row_key = self._normalize_row_key(row_key)
-        if not table or not normalized_row_key:
-            return
-
-        table.clearSelection()
-        for row_index in range(table.rowCount()):
-            item = table.item(row_index, 0)
-            current_row_key = self._normalize_row_key(item.data(Qt.UserRole) if item else "")
-            if current_row_key != normalized_row_key:
-                continue
-
-            table.setCurrentCell(row_index, 0)
-            table.selectRow(row_index)
-            if item:
-                table.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtCenter)
-                table.editItem(item)
-            return
 
     def _normalize_table_file_rows(self, view_name: str, rows: list) -> tuple[list[dict], int]:
         """只读写表格字段；原文去重后保留最后一条，排除内部标识和正则设置。"""
@@ -1546,7 +1538,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         self.analysis_data[key] = merged_rows
         # 显示整张表，避免导入了其他分类后看不到新增或替换的条目。
         self._set_filter_for_view(view_name, None)
-        self._persist_analysis_state(refresh_navigation=True)
+        if not self._persist_analysis_state(refresh_navigation=True):
+            return
         self._refresh_all_views()
         self.success_toast(self.tra("完成"), self.tra("导入完成：新增 {0} 条，替换 {1} 条，跳过 {2} 条无效内容。").format(
             len(incoming) - len(replaced), len(replaced), skipped,
@@ -1777,7 +1770,8 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if deleted_count <= 0:
             return 0
 
-        self._persist_analysis_state(refresh_navigation=True)
+        if not self._persist_analysis_state(refresh_navigation=True):
+            return 0
         self._refresh_all_views()
         return deleted_count
 
@@ -2049,13 +2043,17 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         if deleted_count:
             self.success_toast(self.tra("完成"), self.tra("已删除 {0} 条内容。").format(deleted_count))
 
-    def _persist_analysis_state(self, refresh_navigation: bool = False) -> None:
+    def _persist_analysis_state(self, refresh_navigation: bool = False) -> bool:
         if not self.cache_manager or not self.cache_manager.project:
-            return
+            return False
 
         self._sync_stats()
-        self.cache_manager.set_analysis_data(self._clone_analysis_data(self.analysis_data))
-        self._request_cache_save()
+        try:
+            self.cache_manager.set_analysis_data(self._clone_analysis_data(self.analysis_data))
+        except Exception as error:
+            self.refresh_from_project()
+            self.error_toast(self.tra("失败"), str(error))
+            return False
         if refresh_navigation:
             self._refresh_navigation()
         self._apply_runtime_state(
@@ -2065,10 +2063,7 @@ class AnalysisPage(QFrame, ConfigMixin, LogMixin, ToastMixin, Base):
         )
         self._render_header()
         self._update_action_buttons()
-
-    def _request_cache_save(self) -> None:
-        if self.cache_manager and self.cache_manager.project:
-            self.config_backend().save_project()
+        return True
 
     def _sync_stats(self) -> None:
         if not self.analysis_data:

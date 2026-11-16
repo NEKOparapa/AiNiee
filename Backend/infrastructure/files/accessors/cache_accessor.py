@@ -51,6 +51,8 @@ class CacheAccessor:
 
     CACHE_FILENAME = "AinieeCacheData.json"
     STATS_FILENAME = "ProjectStatistics.json"
+    LEGACY_ANALYSIS_FILENAME = "ProjectAnalysis.json"
+    ANALYSIS_EXTRA_KEY = "analysis_v1"
     HISTORY_LIMIT = 3
     CACHE_WRITE_LOCK: ClassVar[threading.Lock] = threading.Lock()
 
@@ -184,6 +186,33 @@ class CacheAccessor:
 
         return changed
 
+    @staticmethod
+    def _write_json(path: Path, payload: dict) -> None:
+        # All cache writes run under CACHE_WRITE_LOCK.
+        temporary = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        try:
+            temporary.write_bytes(msgspec.json.encode(payload))
+            os.replace(temporary, path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    @classmethod
+    def _update_analysis(cls, stats_path: Path, project_id: str, data) -> None:
+        stats = cls._statistics_fields(stats_path)
+        if stats.get("project_id") != project_id:
+            raise ValueError("统计文件与项目 ID 不匹配")
+        stats[cls.ANALYSIS_EXTRA_KEY] = data
+        cls._write_json(stats_path, stats)
+
+    @classmethod
+    def _write_split_cache(cls, path: Path, payload: dict, stats: dict) -> None:
+        # payload is a detached model. Publish its companion before the reference
+        # so an interrupted upgrade leaves the original inline cache readable.
+        stats[cls.ANALYSIS_EXTRA_KEY] = payload["extra"].pop(cls.ANALYSIS_EXTRA_KEY, None)
+        cls._write_json(path.with_name(cls.STATS_FILENAME), stats)
+        payload["analysis_cache_file"] = cls.STATS_FILENAME
+        cls._write_json(path, payload)
+
     @classmethod
     def _write_project_cache_files(cls, project: CacheProject) -> None:
         """将项目缓存和统计信息原子写入 ProjectCache/<project_id>/ 目录。"""
@@ -194,57 +223,29 @@ class CacheAccessor:
 
             cache_dir = cls.get_project_cache_dir(project.project_id)
             cache_path = os.path.join(cache_dir, cls.CACHE_FILENAME)
-            stats_path = os.path.join(cache_dir, cls.STATS_FILENAME)
-            cache_tmp_path = cache_path + f".{os.getpid()}.tmp"
-            stats_tmp_path = stats_path + f".{os.getpid()}.tmp"
-
-            try:
-                os.makedirs(cache_dir, exist_ok=True)
-
-                cls._backup_legacy_cache(cache_path)
-
-                # 先写临时文件，再 replace，避免读到半截文件
-                content_bytes = msgspec.json.encode(project.to_dict())
-                with open(cache_tmp_path, "wb") as writer:
-                    writer.write(content_bytes)
-                os.replace(cache_tmp_path, cache_path)
-
-                # 统计文件单独保存，供启动页快速读取项目概况
-                stats_payload = cls._build_stats_payload(project)
-                with open(stats_tmp_path, "w", encoding="utf-8") as writer:
-                    json.dump(stats_payload, writer, ensure_ascii=False, indent=4)
-                os.replace(stats_tmp_path, stats_path)
-            finally:
-                # 确保异常情况下临时文件也会被清理
-                for tmp_path in (cache_tmp_path, stats_tmp_path):
-                    if not os.path.exists(tmp_path):
-                        continue
-                    try:
-                        os.remove(tmp_path)
-                    except OSError:
-                        pass
+            os.makedirs(cache_dir, exist_ok=True)
+            cls._backup_legacy_cache(cache_path)
+            # Some older projects recorded progress only in ProjectStatistics.json.
+            previous = None
+            if project.stats_data is None:
+                previous = cls._read_statistics_payload(Path(cache_dir) / cls.STATS_FILENAME)
+                if previous and previous.get("project_id") != project.project_id:
+                    previous = None
+            cls._write_split_cache(Path(cache_path), project.to_dict(), cls._build_stats_payload(project, previous))
 
     @classmethod
-    def _read_statistics_payload(cls, stats_path: str) -> dict | None:
+    def _statistics_fields(cls, path: Path) -> dict:
+        # History and progress queries need the summary, not thousands of table rows.
+        fields = msgspec.json.decode(path.read_bytes(), type=dict[str, msgspec.Raw])
+        fields.pop(cls.ANALYSIS_EXTRA_KEY, None)
+        return {name: msgspec.json.decode(value) for name, value in fields.items()}
+
+    @classmethod
+    def _read_statistics_payload(cls, stats_path: str | Path) -> dict | None:
         """读取统计文件，读取失败时返回 None。"""
-        if not os.path.isfile(stats_path):
-            return None
-
         try:
-            if os.path.getsize(stats_path) == 0:
-                return None
-
-            with open(stats_path, "r", encoding="utf-8") as reader:
-                content = reader.read().strip()
-
-            if not content:
-                return None
-
-            payload = json.loads(content)
-            if isinstance(payload, dict):
-                return payload
-            return None
-        except (json.JSONDecodeError, OSError, IOError):
+            return cls._statistics_fields(Path(stats_path))
+        except (msgspec.DecodeError, OSError):
             return None
 
     @classmethod
@@ -386,6 +387,24 @@ class CacheAccessor:
         with cls.CACHE_WRITE_LOCK:
             content_bytes = cache_path.read_bytes()
             content = json.loads(content_bytes.decode("utf-8-sig"))
+            companion = content.get("analysis_cache_file") if isinstance(content, dict) else None
+            split = companion in (cls.STATS_FILENAME, cls.LEGACY_ANALYSIS_FILENAME)
+            if split:
+                del content["analysis_cache_file"]
+                analysis_path = cache_path.with_name(companion)
+                try:
+                    analysis = msgspec.json.decode(analysis_path.read_bytes(), type=dict)
+                except FileNotFoundError as error:
+                    raise ValueError(f"缺少提取结果缓存 {analysis_path.name}，请复制完整的项目缓存目录") from error
+                if analysis.get("project_id") != content.get("project_id"):
+                    raise ValueError("提取结果缓存与项目 ID 不匹配")
+                if cls.ANALYSIS_EXTRA_KEY not in analysis:
+                    raise ValueError("提取结果缓存缺少分析数据")
+                data = analysis[cls.ANALYSIS_EXTRA_KEY]
+                if data is not None:
+                    if not isinstance(data, dict):
+                        raise ValueError("提取结果缓存必须为对象")
+                    content.setdefault("extra", {})[cls.ANALYSIS_EXTRA_KEY] = data
             if isinstance(content, list):
                 project = cls._read_from_old_content(content)
                 payload = normalize_project(project).to_dict()
@@ -395,14 +414,23 @@ class CacheAccessor:
                 raise ValueError("缓存根节点必须为对象或旧版列表")
             project = parse_model(payload)
             normalized = project.to_dict()
-            if normalized != content:
+            canonical = Path(cls.get_default_cache_path(project_id=project.project_id)).resolve()
+            upgrade_layout = companion != cls.STATS_FILENAME and cache_path.resolve() == canonical
+            if normalized != content or upgrade_layout:
                 cls._backup_legacy_cache(cache_path, content_bytes)
-                temporary = cache_path.with_name(cache_path.name + f".{os.getpid()}.tmp")
-                try:
-                    temporary.write_bytes(msgspec.json.encode(normalized))
-                    os.replace(temporary, cache_path)
-                finally:
-                    temporary.unlink(missing_ok=True)
+                if upgrade_layout:
+                    stats = cls._build_stats_payload(project)
+                    previous = cls._read_statistics_payload(cache_path.with_name(cls.STATS_FILENAME))
+                    if previous and previous.get("project_id", project.project_id) == project.project_id:
+                        stats.update(previous)
+                    cls._write_split_cache(cache_path, normalized, stats)
+                    if companion == cls.LEGACY_ANALYSIS_FILENAME:
+                        cache_path.with_name(companion).unlink(missing_ok=True)
+                else:
+                    if split:
+                        normalized["extra"].pop(cls.ANALYSIS_EXTRA_KEY, None)
+                        normalized["analysis_cache_file"] = companion
+                    cls._write_json(cache_path, normalized)
             return project
 
     @classmethod

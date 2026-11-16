@@ -134,7 +134,7 @@ OpenAI 转录使用 `api_format: "OpenAI"` 和 `POST /v1/audio/transcriptions`�
 | `POST /api/project/export` | 可选 `export_path`；导出当前项目文件，**202** |
 | `POST /api/project/save` | 保存当前项目缓存 |
 | `POST /api/check/{kind}` | `kind` 为 `language/rule/terminology`；请求体传对应检查参数 |
-| `POST /api/cache/{method}` | `args/kwargs/project_id`；调用缓存白名单操作，返回 `result/project` |
+| `POST /api/cache/{method}` | `args/kwargs/project_id`；默认返回 `result/project`。已持有项目的客户端可传 `include_project: false` 只取结果 |
 
 表格条目包含 `text_index/source_text/translation_text`；单文件参数与多文件 `*_jobs` 不能混用。可选 `view` 用于指定结果通知的界面。
 

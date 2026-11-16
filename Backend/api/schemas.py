@@ -24,6 +24,7 @@ class CacheCall(RequestModel):
     args: list[Any] = Field(default_factory=list)
     kwargs: dict[str, Any] = Field(default_factory=dict)
     project_id: str | None = None
+    include_project: bool = True
 
 
 class ModelQuery(RequestModel):

@@ -183,7 +183,7 @@ def create_app(runtime=None, token=None):
     @app.post("/api/cache/{method}", dependencies=[Depends(authorized)])
     async def cache_call(method: str, body: CacheCall):
         execute = run_in_threadpool if method in ("list_project_histories", "search_items") else wait_document_call
-        return await execute(runtime.cache_call, method, body.args, body.kwargs, body.project_id)
+        return await execute(runtime.cache_call, method, body.args, body.kwargs, body.project_id, body.include_project)
 
     @app.post("/api/check/{kind}", dependencies=[Depends(authorized)])
     async def check(kind: str, params: dict[str, Any]):

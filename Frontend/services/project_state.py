@@ -96,10 +96,25 @@ class RemoteCacheManager:
         return self._call("reset_project_status", task_mode)
 
     def set_analysis_data(self, analysis_data):
-        return self._call("set_analysis_data", analysis_data)
+        self._save_analysis("set_analysis_data", [analysis_data])
 
     def clear_analysis_data(self):
-        return self._call("clear_analysis_data")
+        self._save_analysis("clear_analysis_data", [])
+
+    def _save_analysis(self, method, args):
+        with self.file_lock:
+            project = self.project
+        if project is None:
+            return
+        self.client.request("POST", f"/api/cache/{method}", json={
+            "project_id": project.project_id, "args": args, "include_project": False,
+        }, timeout=600)
+        with self.file_lock:
+            if self.project is project:
+                if args:
+                    project.extra["analysis_v1"] = copy.deepcopy(args[0])
+                else:
+                    project.extra.pop("analysis_v1", None)
 
     def update_item_text(self, storage_path, text_index, field_name, new_text):
         return self._call("update_item_text", storage_path, text_index, field_name, new_text)

@@ -1,5 +1,6 @@
 """活动项目的内存状态、并发访问与保存调度。"""
 from collections import defaultdict
+from pathlib import Path
 from typing import Callable, Dict, List, Tuple
 import os
 import posixpath
@@ -28,13 +29,13 @@ _ANY_PROJECT = object()
 class CacheManager(CacheAccessor, ConfigMixin, LogMixin):
     """管理活动项目、并发访问与保存调度；文件访问由 CacheAccessor 提供。"""
 
-    ANALYSIS_EXTRA_KEY = "analysis_v1"
     SAVE_INTERVAL = 8  # 缓存保存间隔（秒）
 
     def __init__(self, on_saved: Callable[[dict], None] | None = None) -> None:
         # 线程锁：保护 project 的读写以及缓存落盘过程
         self.file_lock = threading.Lock()
         self.project = None
+        self._has_local_cache = False
         self.on_saved = on_saved
         self._save_thread = None
         self._save_stop_event = threading.Event()
@@ -86,6 +87,7 @@ class CacheManager(CacheAccessor, ConfigMixin, LogMixin):
                     return None
                 self._ensure_project_metadata(self.project)
                 self._write_project_cache_files(self.project)
+                self._has_local_cache = True
                 saved = {
                     "project_id": self.project.project_id,
                     "cache_path": self.get_default_cache_path(project_id=self.project.project_id),
@@ -93,12 +95,15 @@ class CacheManager(CacheAccessor, ConfigMixin, LogMixin):
         except Exception:
             self._save_requested.set()
             raise
+        self._notify_saved(saved)
+        return saved
+
+    def _notify_saved(self, saved):
         if self.on_saved:
             try:
                 self.on_saved(saved)
             except Exception as error:
                 self.warning(f"项目缓存已保存，但保存通知失败：{error}")
-        return saved
 
     def save_to_file_tick(self) -> None:
         """定时保存任务。"""
@@ -118,15 +123,12 @@ class CacheManager(CacheAccessor, ConfigMixin, LogMixin):
         with self.file_lock:
             self._ensure_project_metadata(data)
             self.project = normalize_project(data)
+            self._has_local_cache = False
 
     def load_from_project_id(self, project_id: str) -> None:
         """根据 project_id 从新的 ProjectCache 目录加载项目。"""
         path = self.get_default_cache_path(project_id=project_id)
-        with self.file_lock:
-            if os.path.isfile(path):
-                self.project = self.read_from_file(path)
-            else:
-                self.project = None
+        self._load_cache_path(path)
 
     def load_from_file(self, output_path: str = "") -> None:
         """按旧路径加载；未找到显式候选时，优先回退到最新项目历史。"""
@@ -136,11 +138,14 @@ class CacheManager(CacheAccessor, ConfigMixin, LogMixin):
             histories = self.list_project_histories(limit=1, prune=False)
             if histories:
                 path = histories[0]["cache_path"]
+        self._load_cache_path(path)
+
+    def _load_cache_path(self, path):
         with self.file_lock:
-            if os.path.isfile(path):
-                self.project = self.read_from_file(path)
-            else:
-                self.project = None
+            self.project = self.read_from_file(path) if os.path.isfile(path) else None
+            self._has_local_cache = self.project is not None and Path(path).resolve() == Path(
+                self.get_default_cache_path(project_id=self.project.project_id)
+            ).resolve()
 
     # 项目统计与状态判断
     def get_item_count(self) -> int:
@@ -295,15 +300,15 @@ class CacheManager(CacheAccessor, ConfigMixin, LogMixin):
         )
 
     def search_items_snapshot(self, query: str, scope: str, is_regex: bool, search_flagged: bool,
-                              *, expected_project_id=_ANY_PROJECT) -> dict:
+                              *, expected_project_id=_ANY_PROJECT, include_project=True) -> dict:
         """Return matching rows and their project as one consistent response."""
         return self._search_items(
             query, scope, is_regex, search_flagged,
-            expected_project_id=expected_project_id, include_project=True,
+            expected_project_id=expected_project_id, wire_response=True, include_project=include_project,
         )
 
     def _search_items(self, query, scope, is_regex, search_flagged,
-                      *, expected_project_id, include_project=False):
+                      *, expected_project_id, wire_response=False, include_project=False):
         error_message = None
         with self.file_lock:
             project = self._query_project_locked(expected_project_id)
@@ -312,8 +317,10 @@ class CacheManager(CacheAccessor, ConfigMixin, LogMixin):
             except re.error as error:
                 error_message = f"无效的正则表达式: {error}"
                 result = []
-            if include_project:
-                result = {"result": to_wire(result), "project": to_wire(project) if project else None}
+            if wire_response:
+                result = {"result": to_wire(result)}
+                if include_project:
+                    result["project"] = to_wire(project) if project else None
         if error_message is not None:
             self.error(error_message)
         return result
@@ -383,13 +390,28 @@ class CacheManager(CacheAccessor, ConfigMixin, LogMixin):
         return self.project.get_extra(self.ANALYSIS_EXTRA_KEY, {}) or {}
 
     def set_analysis_data(self, analysis_data: dict) -> None:
-        """写入分析结果附加数据。"""
-        if not self.project:
-            return
-        self.project.set_extra(self.ANALYSIS_EXTRA_KEY, analysis_data or {})
+        if not isinstance(analysis_data, dict):
+            raise ValueError("提取结果必须为对象")
+        self._save_analysis_data(analysis_data)
 
     def clear_analysis_data(self) -> None:
-        """清除分析结果附加数据。"""
-        if not self.project:
-            return
-        self.project.extra.pop(self.ANALYSIS_EXTRA_KEY, None)
+        self._save_analysis_data(None)
+
+    def _save_analysis_data(self, data):
+        with self.file_lock:
+            project = self.project
+            if project is None:
+                return
+            path = self.get_default_cache_path(project_id=project.project_id)
+            # An imported standalone cache may not have a local base yet.
+            if not self._has_local_cache or not os.path.isfile(path):
+                self._write_project_cache_files(project)
+                self._has_local_cache = True
+            with self.CACHE_WRITE_LOCK:
+                self._update_analysis(Path(path).with_name(self.STATS_FILENAME), project.project_id, data)
+            if data is None:
+                project.extra.pop(self.ANALYSIS_EXTRA_KEY, None)
+            else:
+                project.set_extra(self.ANALYSIS_EXTRA_KEY, data)
+            saved = {"project_id": project.project_id, "cache_path": path}
+        self._notify_saved(saved)
