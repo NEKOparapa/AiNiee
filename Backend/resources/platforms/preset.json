@@ -147,11 +147,15 @@
             "icon": "anthropic",
             "user_thread_counts": 0,
             "rpm_limit": 2000,
-            "model": "claude-sonnet-5",
+            "model": "claude-sonnet-5-5",
             "think_switch": false,
             "think_depth": "low",
             "auto_complete": false,
             "model_datas": [
+                "claude-sonnet-5-5",
+                "claude-opus-5-5",
+                "claude-haiku-5-5",
+                "claude-fable-5-2",
                 "claude-sonnet-5",
                 "claude-opus-5",
                 "claude-fable-5"
@@ -342,6 +346,10 @@
                 "gpt-4o",
                 "gpt-4o-mini",
                 "gpt-4-turbo",
+                "claude-sonnet-5-5",
+                "claude-opus-5-5",
+                "claude-haiku-5-5",
+                "claude-fable-5-2",
                 "claude-sonnet-5",
                 "claude-opus-5",
                 "claude-fable-5"

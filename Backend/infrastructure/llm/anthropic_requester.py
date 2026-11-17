@@ -31,7 +31,9 @@ class AnthropicRequester(LogMixin, Base):
             # 参数基础配置
             base_params = {
                 "model": model_name,
-                "system": system_prompt,
+                "system": ModelConfigHelper.build_claude_system(
+                    system_prompt, platform_config.get("system_cache_prefix_len")
+                ),
                 "messages": messages,
                 "timeout": request_timeout,
                 "max_tokens": max_tokens,
@@ -53,8 +55,20 @@ class AnthropicRequester(LogMixin, Base):
 
             # 从工厂获取客户端
             client = LLMClientFactory().get_anthropic_client(platform_config)
-            # 发送请求
-            response = client.messages.create(**base_params)
+            # 发送请求；支持的型号走 beta 接口开启服务端拒答回退
+            fallback_params = ModelConfigHelper.get_claude_fallback_params(
+                model_name, platform_config.get("api_url")
+            )
+            if fallback_params:
+                response = client.beta.messages.create(**base_params, **fallback_params)
+            else:
+                response = client.messages.create(**base_params)
+
+            if response.stop_reason == "refusal":
+                details = getattr(response, "stop_details", None)
+                category = getattr(details, "category", None) or "unknown"
+                self.error(f"模型拒绝回答（安全分类：{category}） ...")
+                return True, None, None, None, None
 
             # 提取回复的文本内容和思考内容
             thinking_parts = []
@@ -79,7 +93,10 @@ class AnthropicRequester(LogMixin, Base):
 
         # 获取指令消耗（Anthropic 使用 input_tokens）
         try:
-            prompt_tokens = int(response.usage.input_tokens)
+            # 开启缓存后 input_tokens 不含缓存写入/命中部分，三者相加才是完整输入
+            usage = response.usage
+            prompt_tokens = int(usage.input_tokens) + int(getattr(usage, "cache_creation_input_tokens", 0) or 0) \
+                + int(getattr(usage, "cache_read_input_tokens", 0) or 0)
         except Exception:
             prompt_tokens = 0
 
