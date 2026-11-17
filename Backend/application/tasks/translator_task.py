@@ -45,6 +45,7 @@ class TranslatorTask(LogMixin, Base):
         # 提示词与信息内容存储
         self.messages = []
         self.system_prompt = ""
+        self.system_cache_prefix_len = 0
 
         # 输出日志存储
         self.extra_log = []
@@ -110,6 +111,10 @@ class TranslatorTask(LogMixin, Base):
                 self.previous_text_list,
                 self.source_lang,
             )
+            # 系统提示词开头不随批次变化的长度，供 Claude 提示词缓存定位断点
+            stable_system, _ = PromptBuilder.build_stable_system(self.config, self.source_lang)
+            if self.system_prompt.startswith(stable_system):
+                self.system_cache_prefix_len = len(stable_system)
 
         if any(TOKEN_RE.search(item.source_text) for item in self.items):
             self.system_prompt += "\n\n" + EPUB_TOKEN_INSTRUCTION
@@ -154,6 +159,7 @@ class TranslatorTask(LogMixin, Base):
         platform_config = self.config.get_active_platform_configuration()
         if self.context is not None:
             platform_config["is_cancelled"] = self.context.is_cancelled
+        platform_config["system_cache_prefix_len"] = self.system_cache_prefix_len
 
         # 发起请求
         requester = LLMRequester()

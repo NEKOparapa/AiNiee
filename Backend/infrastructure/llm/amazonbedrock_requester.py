@@ -41,7 +41,9 @@ class AmazonbedrockRequester(LogMixin, Base):
 
             request_params = {
                 "model": model_name,
-                "system": system_prompt,
+                "system": ModelConfigHelper.build_claude_system(
+                    system_prompt, platform_config.get("system_cache_prefix_len")
+                ),
                 "messages": messages,
                 "timeout": request_timeout,
                 "max_tokens": max_tokens,
@@ -61,6 +63,12 @@ class AmazonbedrockRequester(LogMixin, Base):
                 request_params.update(ModelConfigHelper.get_claude_thinking_off_params(model_name))
 
             response = client.messages.create(**request_params)
+
+            if response.stop_reason == "refusal":
+                details = getattr(response, "stop_details", None)
+                category = getattr(details, "category", None) or "unknown"
+                self.error(f"模型拒绝回答（安全分类：{category}） ...")
+                return True, None, None, None, None
 
             thinking_parts = []
             content_parts = []
@@ -83,7 +91,10 @@ class AmazonbedrockRequester(LogMixin, Base):
 
         # 获取指令消耗
         try:
-            prompt_tokens = int(response.usage.input_tokens)
+            # 开启缓存后 input_tokens 不含缓存写入/命中部分，三者相加才是完整输入
+            usage = response.usage
+            prompt_tokens = int(usage.input_tokens) + int(getattr(usage, "cache_creation_input_tokens", 0) or 0) \
+                + int(getattr(usage, "cache_read_input_tokens", 0) or 0)
         except Exception:
             prompt_tokens = 0
 

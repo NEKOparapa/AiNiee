@@ -855,6 +855,38 @@ class PromptBuilder(Base):
         return the_profile
 
 
+    # 系统提示词固定部分
+    def build_stable_system(config, source_lang) -> tuple[str, list[str]]:
+        """系统提示词中不随批次变化的部分：基础提示词、世界观、文风、翻译示例。"""
+        log = []
+        prompt_preset = PromptBuilderEnum.normalize_translation_preset(
+            config.translation_prompt_selection["last_selected_id"]
+        )
+        if prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.LOCAL):
+            system = PromptBuilder.build_system(config, source_lang)
+        else:
+            custom_prompt = config.translation_prompt_selection["prompt_content"]
+            system = PromptBuilder._replace_language_placeholders(custom_prompt, config, source_lang)
+
+        if getattr(config, "world_building_switch", False):
+            world_building = PromptBuilder.build_world_building(config)
+            if world_building != "":
+                system += world_building
+                log.append(world_building)
+
+        if getattr(config, "writing_style_switch", False):
+            writing_style = PromptBuilder.build_writing_style(config)
+            if writing_style != "":
+                system += writing_style
+                log.append(writing_style)
+
+        if config.translation_example_switch == True:
+            translation_example = PromptBuilder.build_translation_example(config)
+            if translation_example != "":
+                system += translation_example
+                log.append(translation_example)
+        return system, log
+
     # 生成信息结构 - 通用
     def generate_prompt(config, source_text_dict: dict, previous_text_list: list[str], source_lang) -> tuple[list[dict], str, list[str]]:
         # 储存指令
@@ -865,13 +897,9 @@ class PromptBuilder(Base):
             config.translation_prompt_selection["last_selected_id"]
         )
 
-        # 基础系统提示词
-        if prompt_preset in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.LOCAL):
-            system = PromptBuilder.build_system(config, source_lang)
-        else:
-            custom_prompt = config.translation_prompt_selection["prompt_content"]
-            system = PromptBuilder._replace_language_placeholders(custom_prompt, config, source_lang)
-
+        # 固定部分在前（可被提示词缓存命中），随批次变化的术语表等在后
+        system, stable_log = PromptBuilder.build_stable_system(config, source_lang)
+        extra_log.extend(stable_log)
 
         # 如果开启术语表
         if TableConfigHelper.has_enabled_tables(config, "prompt_dictionary"):
@@ -905,31 +933,12 @@ class PromptBuilder(Base):
             system += project_non_translate
             extra_log.append(project_non_translate)
 
-
-        # 如果开启翻译示例
+        # 角色介绍按本批原文筛选，也属于变化部分
         if getattr(config, "characterization_switch", False):
             characterization = PromptBuilder.build_characterization(config, source_text_dict)
             if characterization != "":
                 system += characterization
                 extra_log.append(characterization)
-
-        if getattr(config, "world_building_switch", False):
-            world_building = PromptBuilder.build_world_building(config)
-            if world_building != "":
-                system += world_building
-                extra_log.append(world_building)
-
-        if getattr(config, "writing_style_switch", False):
-            writing_style = PromptBuilder.build_writing_style(config)
-            if writing_style != "":
-                system += writing_style
-                extra_log.append(writing_style)
-
-        if config.translation_example_switch == True:
-            translation_example = PromptBuilder.build_translation_example(config)
-            if translation_example != "":
-                system += translation_example
-                extra_log.append(translation_example)
 
         # 构建动态few-shot
         switch_A = config.few_shot_and_example_switch # 打开动态示例开关时
