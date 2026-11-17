@@ -48,8 +48,8 @@ class AnthropicRequester(LogMixin, Base):
                     if think_depth in {"low", "medium", "high", "xhigh", "max"}
                     else "medium"
                 }
-            elif not ModelConfigHelper.is_claude_always_thinking_model(model_name):
-                base_params["thinking"] = {"type": "disabled"}
+            else:
+                base_params.update(ModelConfigHelper.get_claude_thinking_off_params(model_name))
 
             # 从工厂获取客户端
             client = LLMClientFactory().get_anthropic_client(platform_config)

@@ -57,8 +57,8 @@ class AmazonbedrockRequester(LogMixin, Base):
                     if think_depth in {"low", "medium", "high", "xhigh", "max"}
                     else "medium"
                 }
-            elif not ModelConfigHelper.is_claude_always_thinking_model(model_name):
-                request_params["thinking"] = {"type": "disabled"}
+            else:
+                request_params.update(ModelConfigHelper.get_claude_thinking_off_params(model_name))
 
             response = client.messages.create(**request_params)
 
